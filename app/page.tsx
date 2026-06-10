@@ -1,9 +1,11 @@
 import About from "@/components/sections/About";
+import Features from "@/components/sections/Features";
 import Footer from "@/components/sections/Footer";
 import Gallery from "@/components/sections/Gallery";
 import GoogleReviews from "@/components/sections/GoogleReviews";
 import Hero from "@/components/sections/Hero";
 import Navbar from "@/components/sections/Navbar";
+import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
 
 export default function HomePage() {
   return (
@@ -11,6 +13,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
+        <Features />
         <About />
 
         {/*
@@ -27,6 +30,7 @@ export default function HomePage() {
         <GoogleReviews />
       </main>
       <Footer />
+      <FloatingWhatsApp />
     </>
   );
 }

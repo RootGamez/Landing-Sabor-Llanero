@@ -7,23 +7,23 @@ import type { SiteImage } from "@/types";
  */
 export const heroImages: SiteImage[] = [
   {
-    src: "/images/hero/hero-1.jpg",
+    src: "/images/hero/hero-1.svg",
     alt: "Pizza artesanal recién salida del horno en Pizzería Sabor Llanero",
   },
   {
-    src: "/images/hero/hero-2.jpg",
+    src: "/images/hero/hero-2.svg",
     alt: "Interior acogedor del local familiar de Sabor Llanero en Ocucaje",
   },
   {
-    src: "/images/hero/hero-3.jpg",
+    src: "/images/hero/hero-3.svg",
     alt: "Pizza familiar con ingredientes frescos y queso derretido",
   },
   {
-    src: "/images/hero/hero-4.jpg",
+    src: "/images/hero/hero-4.svg",
     alt: "Tequeños venezolanos dorados, especialidad de la casa",
   },
   {
-    src: "/images/hero/hero-5.jpg",
+    src: "/images/hero/hero-5.svg",
     alt: "Equipo familiar de Pizzería Sabor Llanero preparando pizza artesanal",
   },
 ];

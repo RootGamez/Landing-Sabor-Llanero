@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import { CloseIcon, ExpandIcon } from "@/components/ui/icons";
 import type { SiteImage } from "@/types";
 
 interface GalleryGridProps {
@@ -9,20 +10,21 @@ interface GalleryGridProps {
 }
 
 /**
- * Grid responsivo de fotos con zoom sutil al hover y un
- * lightbox ligero implementado sin librerías.
+ * Grid responsivo de fotos con zoom sutil al hover, overlay con
+ * caption y un lightbox ligero implementado sin librerías.
  */
 export default function GalleryGrid({ images }: GalleryGridProps) {
   const [lightbox, setLightbox] = useState<number | null>(null);
 
   const close = useCallback(() => setLightbox(null), []);
 
-  // Cierra el lightbox con Escape y navega con flechas
+  // Escape cierra; flechas navegan
   useEffect(() => {
     if (lightbox === null) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === "Escape") close();
-      if (e.key === "ArrowRight") setLightbox((i) => (i === null ? null : (i + 1) % images.length));
+      if (e.key === "ArrowRight")
+        setLightbox((i) => (i === null ? null : (i + 1) % images.length));
       if (e.key === "ArrowLeft")
         setLightbox((i) => (i === null ? null : (i - 1 + images.length) % images.length));
     };
@@ -32,13 +34,16 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
         {images.map((image, i) => (
           <button
             key={image.src}
             type="button"
             onClick={() => setLightbox(i)}
-            className="group relative aspect-square overflow-hidden rounded-2xl focus-visible:outline-2 focus-visible:outline-brand-red"
+            className={`group relative overflow-hidden rounded-2xl ring-1 ring-white/10 transition-all duration-300 hover:ring-brand-yellow/60 focus-visible:outline-2 focus-visible:outline-brand-yellow ${
+              // Composición editorial: la primera y la sexta ocupan doble ancho en desktop
+              i === 0 || i === 5 ? "aspect-square lg:col-span-2 lg:aspect-[2/1]" : "aspect-square"
+            }`}
             aria-label={`Ampliar foto: ${image.alt}`}
           >
             <Image
@@ -46,9 +51,15 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
               alt={image.alt}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
             />
-            <span className="absolute inset-0 bg-brand-blue/0 transition-colors duration-300 group-hover:bg-brand-blue/20" />
+            {/* Overlay con caption al hover */}
+            <span className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/10 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+              <span className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-white">
+                {image.alt}
+                <ExpandIcon className="h-4 w-4 shrink-0 text-brand-yellow" />
+              </span>
+            </span>
           </button>
         ))}
       </div>
@@ -56,7 +67,7 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
       {/* Lightbox ligero */}
       {lightbox !== null && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label={images[lightbox].alt}
@@ -64,13 +75,13 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
         >
           <button
             type="button"
-            className="absolute top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-2xl text-white transition-colors hover:bg-brand-red"
+            className="absolute top-4 right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-brand-red"
             aria-label="Cerrar"
             onClick={close}
           >
-            ✕
+            <CloseIcon className="h-5 w-5" />
           </button>
-          <div
+          <figure
             className="relative h-[80vh] w-full max-w-4xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -81,7 +92,10 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
               sizes="100vw"
               className="object-contain"
             />
-          </div>
+            <figcaption className="absolute inset-x-0 -bottom-2 translate-y-full text-center text-sm text-white/70">
+              {images[lightbox].alt}
+            </figcaption>
+          </figure>
         </div>
       )}
     </>

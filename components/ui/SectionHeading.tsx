@@ -1,31 +1,56 @@
 interface SectionHeadingProps {
+  /** Texto pequeño superior (eyebrow), ej. "Conócenos" */
+  kicker?: string;
   title: string;
   subtitle?: string;
-  /** Para secciones con fondo oscuro (azul) */
+  /** Para secciones con fondo oscuro */
   light?: boolean;
+  align?: "center" | "left";
 }
 
 /**
- * Título de sección en Bangers con subrayado tricolor.
+ * Título de sección: kicker en mayúsculas, Bangers grande y
+ * subrayado tricolor de marca.
  */
-export default function SectionHeading({ title, subtitle, light = false }: SectionHeadingProps) {
+export default function SectionHeading({
+  kicker,
+  title,
+  subtitle,
+  light = false,
+  align = "center",
+}: SectionHeadingProps) {
+  const centered = align === "center";
   return (
-    <div className="mx-auto mb-12 max-w-2xl text-center md:mb-16">
+    <div className={`mb-14 max-w-2xl md:mb-20 ${centered ? "mx-auto text-center" : "text-left"}`}>
+      {kicker && (
+        <span
+          className={`mb-3 inline-block rounded-full px-4 py-1 text-xs font-semibold tracking-[0.2em] uppercase ${
+            light
+              ? "bg-brand-yellow/15 text-brand-yellow"
+              : "bg-brand-blue/8 text-brand-blue"
+          }`}
+        >
+          {kicker}
+        </span>
+      )}
       <h2
-        className={`font-display text-4xl tracking-wide md:text-5xl ${
+        className={`font-display text-4xl tracking-wide text-balance sm:text-5xl md:text-6xl ${
           light ? "text-white" : "text-ink"
         }`}
       >
         {title}
       </h2>
       {/* Subrayado tricolor de marca */}
-      <div className="mx-auto mt-3 flex h-1.5 w-24 overflow-hidden rounded-full" aria-hidden="true">
+      <div
+        className={`mt-4 flex h-1.5 w-28 overflow-hidden rounded-full ${centered ? "mx-auto" : ""}`}
+        aria-hidden="true"
+      >
         <span className="flex-1 bg-brand-yellow" />
-        <span className="flex-1 bg-brand-blue" />
+        <span className={`flex-1 ${light ? "bg-white" : "bg-brand-blue"}`} />
         <span className="flex-1 bg-brand-red" />
       </div>
       {subtitle && (
-        <p className={`mt-4 text-base md:text-lg ${light ? "text-white/80" : "text-ink/70"}`}>
+        <p className={`mt-5 text-base md:text-lg ${light ? "text-white/75" : "text-ink/65"}`}>
           {subtitle}
         </p>
       )}

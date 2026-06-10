@@ -1,34 +1,39 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────
-   Sistema de diseño — Pizzería Sabor Llanero
+   Sistema de diseño premium — Pizzería Sabor Llanero
    El tricolor venezolano manda: amarillo, azul, rojo.
+   Base cálida tipo "masa artesanal" + secciones profundas.
    ───────────────────────────────────────────── */
 @theme {
+  /* Tricolor de marca */
   --color-brand-yellow: #ffce00;
   --color-brand-blue: #00247d;
   --color-brand-red: #cf142b;
-  --color-brand-blue-soft: #eef1fa;
+
+  /* Variantes tonales */
+  --color-brand-yellow-deep: #e6b800;
+  --color-brand-blue-deep: #001a5c;
+  --color-brand-blue-ink: #0a1133;
+  --color-brand-red-deep: #a80f22;
+
+  /* Superficies */
+  --color-cream: #fdf8ef;
+  --color-cream-deep: #f6edda;
+  --color-charcoal: #16120e;
   --color-surface: #f9fafb;
   --color-ink: #1a1a1a;
 
   --font-display: var(--font-bangers), "Bangers", system-ui, sans-serif;
   --font-sans: var(--font-poppins), "Poppins", system-ui, sans-serif;
 
-  --radius-brand: 1rem;
+  --radius-brand: 1.25rem;
 
-  --animate-fade-in-up: fade-in-up 0.7s ease-out both;
-
-  @keyframes fade-in-up {
-    from {
-      opacity: 0;
-      transform: translateY(24px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+  /* Sombras con tinte de marca (sistema de elevación consistente) */
+  --shadow-card: 0 1px 2px rgb(26 26 26 / 0.05), 0 8px 24px -8px rgb(0 36 125 / 0.12);
+  --shadow-card-hover: 0 2px 4px rgb(26 26 26 / 0.06), 0 20px 40px -12px rgb(0 36 125 / 0.22);
+  --shadow-glow-red: 0 8px 32px -8px rgb(207 20 43 / 0.55);
+  --shadow-glow-yellow: 0 8px 32px -8px rgb(255 206 0 / 0.45);
 }
 
 html {
@@ -40,22 +45,106 @@ html {
 body {
   font-family: var(--font-sans);
   color: var(--color-ink);
-  background: #ffffff;
+  background: var(--color-cream);
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-brand-yellow);
+  color: var(--color-ink);
+}
+
+/* ── Utilidades de marca ───────────────────── */
+
+/* Texto con degradado tricolor */
+.text-tricolor {
+  background: linear-gradient(
+    100deg,
+    var(--color-brand-yellow) 0%,
+    var(--color-brand-yellow) 32%,
+    #6f86d6 47%,
+    var(--color-brand-red) 68%,
+    var(--color-brand-red) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Textura sutil de puntos para secciones planas */
+.texture-dots {
+  background-image: radial-gradient(rgb(0 36 125 / 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.texture-dots-light {
+  background-image: radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Brillo que cruza los botones primarios al hover */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgb(255 255 255 / 0.35) 50%,
+    transparent 65%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.6s ease;
+}
+.btn-shine:hover::after {
+  transform: translateX(110%);
 }
 
 /* Animación de aparición al hacer scroll (activada por Reveal.tsx) */
 .reveal {
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(28px);
   transition:
-    opacity 0.7s ease-out,
-    transform 0.7s ease-out;
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Flecha de "scroll" del hero */
+@keyframes float-down {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(8px);
+    opacity: 0.5;
+  }
+}
+.animate-float-down {
+  animation: float-down 1.8s ease-in-out infinite;
+}
+
+/* Ken Burns sutil para las fotos del hero */
+@keyframes ken-burns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+.animate-ken-burns {
+  animation: ken-burns 7s ease-out forwards;
 }
 
 /* Respeta la preferencia de usuarios con movimiento reducido */
@@ -67,5 +156,12 @@ body {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+  .animate-float-down,
+  .animate-ken-burns {
+    animation: none;
+  }
+  .btn-shine::after {
+    display: none;
   }
 }

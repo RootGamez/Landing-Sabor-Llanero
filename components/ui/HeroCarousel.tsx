@@ -68,13 +68,13 @@ export default function HeroCarousel({ images }: HeroCarouselProps) {
             fill
             priority={i === 0}
             sizes="100vw"
-            className="object-cover"
+            className={`object-cover ${i === current ? "animate-ken-burns" : ""}`}
           />
         </div>
       ))}
 
       {/* Overlay oscuro degradado para legibilidad del texto */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/35 to-black/75" />
 
       {/* Dots de posición */}
       <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 gap-2.5">

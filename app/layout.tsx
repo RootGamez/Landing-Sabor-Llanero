@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     images: [
       {
-        url: "/images/hero/hero-1.jpg",
+        url: "/images/hero/hero-1.svg",
         width: 1600,
         height: 900,
         alt: `Pizza artesanal de ${siteConfig.fullName}`,
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${siteConfig.fullName} | Pizza Artesanal en Ocucaje, Ica`,
     description: siteConfig.description,
-    images: ["/images/hero/hero-1.jpg"],
+    images: ["/images/hero/hero-1.svg"],
   },
   robots: { index: true, follow: true },
 };
@@ -76,7 +76,7 @@ function buildRestaurantJsonLd(): string {
     telephone: siteConfig.phone,
     servesCuisine: ["Pizza", "Venezolana", "Peruana"],
     priceRange: "$$",
-    image: `${siteConfig.url}/images/hero/hero-1.jpg`,
+    image: `${siteConfig.url}/images/hero/hero-1.svg`,
     address: {
       "@type": "PostalAddress",
       streetAddress: siteConfig.address.street,

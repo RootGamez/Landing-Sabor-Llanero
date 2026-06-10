@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { siteConfig } from "@/lib/siteConfig";
 import TricolorBar from "@/components/ui/TricolorBar";
+import { WhatsAppIcon } from "@/components/ui/icons";
 
 /**
  * Navbar sticky: transparente sobre el hero, blanco con sombra al
@@ -33,7 +34,7 @@ export default function Navbar() {
     <header className="fixed inset-x-0 top-0 z-50">
       <nav
         className={`transition-all duration-300 ${
-          solid ? "bg-white shadow-md" : "bg-transparent"
+          solid ? "bg-white/90 shadow-lg shadow-brand-blue/5 backdrop-blur-md" : "bg-transparent"
         }`}
         aria-label="Navegación principal"
       >
@@ -64,6 +65,17 @@ export default function Navbar() {
                 </a>
               </li>
             ))}
+            <li>
+              <a
+                href={siteConfig.whatsapp.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-red px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:scale-105 hover:bg-brand-red-deep active:scale-95"
+              >
+                <WhatsAppIcon className="h-4 w-4" />
+                Pedir ahora
+              </a>
+            </li>
           </ul>
 
           {/* Botón hamburguesa (móvil) */}

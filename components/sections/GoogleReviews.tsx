@@ -33,11 +33,26 @@ export default function GoogleReviews() {
   }, []);
 
   return (
-    <section id="resenas" className="bg-brand-blue-soft py-20 md:py-28">
-      <div className="mx-auto max-w-6xl px-4 md:px-6">
+    <section
+      id="resenas"
+      className="texture-dots-light relative overflow-hidden bg-gradient-to-b from-brand-blue to-brand-blue-deep py-24 md:py-32"
+    >
+      {/* Resplandores decorativos de marca */}
+      <div
+        className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-brand-yellow/10 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -right-32 -bottom-32 h-96 w-96 rounded-full bg-brand-red/15 blur-3xl"
+        aria-hidden="true"
+      />
+
+      <div className="relative mx-auto max-w-6xl px-4 md:px-6">
         <SectionHeading
+          kicker="Reseñas"
           title="Lo Que Dicen Nuestros Clientes"
-          subtitle="Reseñas reales de Google ⭐ Gracias por su confianza"
+          subtitle="Opiniones reales de Google — gracias por tanta confianza"
+          light
         />
 
         <div className="relative min-h-48">
@@ -47,7 +62,7 @@ export default function GoogleReviews() {
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className={`animate-pulse rounded-2xl bg-white p-6 shadow-sm ${
+                  className={`animate-pulse rounded-2xl bg-white/95 p-6 shadow-card ${
                     i > 0 ? "hidden sm:block" : ""
                   } ${i > 1 ? "sm:hidden lg:block" : ""}`}
                 >
@@ -55,7 +70,7 @@ export default function GoogleReviews() {
                     <div className="h-10 w-10 rounded-full bg-brand-blue/10" />
                     <div className="h-3 w-24 rounded bg-brand-blue/10" />
                   </div>
-                  <div className="mt-4 h-3 w-20 rounded bg-brand-yellow/40" />
+                  <div className="mt-4 h-3 w-20 rounded bg-brand-yellow/50" />
                   <div className="mt-3 space-y-2">
                     <div className="h-3 w-full rounded bg-brand-blue/10" />
                     <div className="h-3 w-4/5 rounded bg-brand-blue/10" />
