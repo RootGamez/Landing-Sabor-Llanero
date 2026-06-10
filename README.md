@@ -15,39 +15,24 @@ Para desarrollo: `pnpm dev`.
 > **Importante:** si cambias `next.config.ts`, reinicia el servidor de
 > desarrollo (Ctrl+C y `pnpm dev` de nuevo) — Next no recarga la config.
 
-## Placeholders de imágenes
-
-Si las imágenes de muestra no cargan o se ven rotas, regenéralas en tu
-máquina y reinicia el servidor:
-
-```bash
-node scripts/generate-placeholders.mjs
-```
-
 ## ¿Dónde cambio cada cosa?
 
 Toda la data vive en `lib/` — no hay nada hardcodeado en los componentes.
 
 | Quiero cambiar… | Archivo |
 |---|---|
-| Tarjeta vertical del hero (pósters/productos) | `public/images/promos/` y `public/images/featured/` + `lib/heroImages.ts` |
-| Afiches de la galería (formato vertical 2:3) | `public/images/promos/` + `lib/galleryImages.ts` |
+| Imágenes del carrusel del hero (verticales 2:3) | `public/images/` + `lib/heroImages.ts` |
+| Afiches de la galería (verticales 2:3) | `public/images/promos/` + `lib/galleryImages.ts` |
 | Secuencia "Así nace tu pizza" (5 etapas) | `public/images/builder/etapa-1.png` … `etapa-5.png` + `lib/builderImages.ts` |
-| Foto grande de la Pizza Alborada | `public/images/featured/pizza-alborada.jpg` (ruta en `lib/siteConfig.ts` → `media`) |
-| Foto de los tequeños (best seller) | `public/images/featured/tequenos.png` (`media.tequenos`) |
-| Video del local (sección Nosotros) | `public/videos/local.mp4` (`media.localVideo`) |
-| Logo del navbar | `public/images/brand/logo.jpg` (`media.logo`) |
+| Foto de la Pizza Alborada / tequeños / logo / video del local | `public/images/featured/`, `public/images/brand/`, `public/videos/` + rutas en `lib/siteConfig.ts` → `media` |
 | Horarios (badge "Abierto ahora", footer y SEO) | `lib/businessHours.ts` — única fuente de verdad |
 | Teléfono, WhatsApp y su mensaje pre-escrito | `lib/siteConfig.ts` |
 | Dirección, coordenadas y link de Google Maps | `lib/siteConfig.ts` |
 | Links de Instagram / Facebook / WhatsApp | `lib/siteConfig.ts` → `socials` |
 | Dominio del sitio (SEO, sitemap) | `lib/siteConfig.ts` → `url` |
 | Textos de la historia | `components/sections/About.tsx` |
-
-> Las imágenes actuales son **placeholders SVG** (vectoriales, nítidos en
-> cualquier navegador). Cuando tengas fotos reales, súbelas en formato
-> `.webp` o `.jpg` con el nombre que quieras y actualiza la ruta en el
-> archivo de `lib/` correspondiente — `next/image` las optimiza solo.
+| Precio e ingredientes de la Alborada | `components/sections/AlboradaFeature.tsx` |
+| Textos de los tequeños | `components/sections/TequenosFeature.tsx` |
 
 ## Reseñas de Google (Featurable)
 
@@ -76,8 +61,14 @@ Apunta Nginx con `proxy_pass http://localhost:3000;`. No depende de Vercel.
 
 ```
 app/                  → layout (SEO + JSON-LD), página, sitemap, robots
-components/sections/  → Navbar, Hero, About, Gallery, GoogleReviews, Footer
-components/ui/        → carrusel, badge de horario, lightbox, franja tricolor…
+components/sections/  → Navbar, Hero, Features, About, PizzaBuilder,
+                        AlboradaFeature, TequenosFeature, Gallery,
+                        GoogleReviews, Footer
+components/ui/        → carrusel, badge de horario, lightbox, partículas,
+                        cursor glow, franja tricolor…
 lib/                  → TODA la configuración del negocio
+public/images/        → brand/ (logo) · featured/ (alborada, tequeños)
+                        · promos/ (afiches) · builder/ (etapas)
+public/videos/        → video del local
 types/                → tipos TypeScript
 ```
