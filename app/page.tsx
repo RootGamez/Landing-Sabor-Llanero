@@ -1,0 +1,32 @@
+import About from "@/components/sections/About";
+import Footer from "@/components/sections/Footer";
+import Gallery from "@/components/sections/Gallery";
+import GoogleReviews from "@/components/sections/GoogleReviews";
+import Hero from "@/components/sections/Hero";
+import Navbar from "@/components/sections/Navbar";
+
+export default function HomePage() {
+  return (
+    <>
+      <Navbar />
+      <main>
+        <Hero />
+        <About />
+
+        {/*
+          ── FUTURO: sección Menú / Carta ──────────────────────────
+          Cuando la carta esté lista, crea components/sections/Menu.tsx
+          y móntala aquí. El anchor #menu ya queda reservado:
+          <section id="menu"> ... </section>
+          Recuerda añadir { label: "Menú", href: "#menu" } a
+          siteConfig.navLinks.
+          ──────────────────────────────────────────────────────────
+        */}
+
+        <Gallery />
+        <GoogleReviews />
+      </main>
+      <Footer />
+    </>
+  );
+}
