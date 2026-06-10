@@ -46,15 +46,19 @@ export default function AlboradaFeature() {
           </div>
         </Reveal>
 
-        {/* Copy */}
-        <Reveal delay={150}>
-          <div className="text-center md:text-left">
+        {/* Copy — textos en cascada */}
+        <div className="text-center md:text-left">
+          <Reveal>
             <span className="mb-3 inline-block rounded-full bg-brand-yellow/15 px-4 py-1 text-xs font-semibold tracking-[0.2em] text-brand-yellow uppercase">
               El resultado
             </span>
+          </Reveal>
+          <Reveal delay={90}>
             <h2 className="font-display text-5xl tracking-wide text-white sm:text-6xl md:text-7xl">
               Pizza <span className="text-brand-yellow">Alborada</span>
             </h2>
+          </Reveal>
+          <Reveal delay={180}>
             <div
               className="mx-auto mt-4 flex h-1.5 w-28 overflow-hidden rounded-full md:mx-0"
               aria-hidden="true"
@@ -63,29 +67,36 @@ export default function AlboradaFeature() {
               <span className="flex-1 bg-white" />
               <span className="flex-1 bg-brand-red" />
             </div>
+          </Reveal>
 
+          <Reveal delay={260}>
             <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-white/80 md:mx-0 md:text-lg">
               La que acabas de ver nacer, capa por capa. Nuestra creación
               gourmet insignia: generosa, dorada y con ese borde crocante que
               solo da el horno bien caliente.
             </p>
+          </Reveal>
 
-            {/* Ingredientes */}
-            <ul className="mt-7 flex flex-wrap justify-center gap-2.5 md:justify-start">
-              {INGREDIENTS.map((ing) => (
-                <li
-                  key={ing}
-                  className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm font-medium text-white/90"
-                >
-                  {ing}
-                </li>
-              ))}
-            </ul>
+          {/* Ingredientes */}
+          <ul className="mt-7 flex flex-wrap justify-center gap-2.5 md:justify-start">
+            {INGREDIENTS.map((ing, i) => (
+              <li key={ing}>
+                <Reveal delay={340 + i * 80}>
+                  <span className="inline-block rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm font-medium text-white/90">
+                    {ing}
+                  </span>
+                </Reveal>
+              </li>
+            ))}
+          </ul>
 
+          <Reveal delay={620}>
             <p className="mt-4 text-sm text-white/55">
               Disponible en tamaño Familiar, Grande y Mediana.
             </p>
+          </Reveal>
 
+          <Reveal delay={700}>
             <a
               href={siteConfig.whatsapp.url}
               target="_blank"
@@ -95,8 +106,8 @@ export default function AlboradaFeature() {
               <WhatsAppIcon className="h-5 w-5" />
               Pedir mi Alborada
             </a>
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
       </div>
     </section>
   );

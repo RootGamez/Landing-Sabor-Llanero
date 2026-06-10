@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Reveal from "@/components/ui/Reveal";
 import { WhatsAppIcon } from "@/components/ui/icons";
 import { builderImages } from "@/lib/builderImages";
 import { siteConfig } from "@/lib/siteConfig";
@@ -96,17 +97,23 @@ export default function PizzaBuilder() {
         <div className="mx-auto grid w-full max-w-6xl items-center gap-6 px-4 md:grid-cols-[1fr_1.15fr] md:gap-12 md:px-6">
           {/* Columna izquierda: pasos */}
           <div>
-            <span className="mb-3 inline-block rounded-full bg-brand-yellow/15 px-4 py-1 text-xs font-semibold tracking-[0.2em] text-brand-yellow uppercase">
-              En vivo
-            </span>
-            <h2 className="font-display text-4xl tracking-wide text-white sm:text-5xl md:text-6xl">
-              Así Nace Tu Pizza
-            </h2>
-            <div className="mt-4 flex h-1.5 w-28 overflow-hidden rounded-full" aria-hidden="true">
-              <span className="flex-1 bg-brand-yellow" />
-              <span className="flex-1 bg-white" />
-              <span className="flex-1 bg-brand-red" />
-            </div>
+            <Reveal>
+              <span className="mb-3 inline-block rounded-full bg-brand-yellow/15 px-4 py-1 text-xs font-semibold tracking-[0.2em] text-brand-yellow uppercase">
+                En vivo
+              </span>
+            </Reveal>
+            <Reveal delay={90}>
+              <h2 className="font-display text-4xl tracking-wide text-white sm:text-5xl md:text-6xl">
+                Así Nace Tu Pizza
+              </h2>
+            </Reveal>
+            <Reveal delay={180}>
+              <div className="mt-4 flex h-1.5 w-28 overflow-hidden rounded-full" aria-hidden="true">
+                <span className="flex-1 bg-brand-yellow" />
+                <span className="flex-1 bg-white" />
+                <span className="flex-1 bg-brand-red" />
+              </div>
+            </Reveal>
 
             <ol className="mt-6 space-y-2.5 md:mt-10 md:space-y-4">
               {STEPS.map((step, i) => {

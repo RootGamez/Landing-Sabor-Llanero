@@ -1,3 +1,4 @@
+import Reveal from "@/components/ui/Reveal";
 import TricolorBar from "@/components/ui/TricolorBar";
 import {
   ClockIcon,
@@ -27,23 +28,30 @@ export default function Footer() {
     <footer id="ubicacion" className="bg-brand-blue-ink text-white">
       <div className="mx-auto max-w-6xl px-4 py-20 md:px-6 md:py-24">
         <div className="text-center">
-          <span className="mb-3 inline-block rounded-full bg-brand-yellow/15 px-4 py-1 text-xs font-semibold tracking-[0.2em] text-brand-yellow uppercase">
-            Ubicación y contacto
-          </span>
-          <h2 className="font-display text-5xl tracking-wide md:text-6xl">Visítanos</h2>
-          <div
-            className="mx-auto mt-4 flex h-1.5 w-28 overflow-hidden rounded-full"
-            aria-hidden="true"
-          >
-            <span className="flex-1 bg-brand-yellow" />
-            <span className="flex-1 bg-white" />
-            <span className="flex-1 bg-brand-red" />
-          </div>
+          <Reveal>
+            <span className="mb-3 inline-block rounded-full bg-brand-yellow/15 px-4 py-1 text-xs font-semibold tracking-[0.2em] text-brand-yellow uppercase">
+              Ubicación y contacto
+            </span>
+          </Reveal>
+          <Reveal delay={90}>
+            <h2 className="font-display text-5xl tracking-wide md:text-6xl">Visítanos</h2>
+          </Reveal>
+          <Reveal delay={180}>
+            <div
+              className="mx-auto mt-4 flex h-1.5 w-28 overflow-hidden rounded-full"
+              aria-hidden="true"
+            >
+              <span className="flex-1 bg-brand-yellow" />
+              <span className="flex-1 bg-white" />
+              <span className="flex-1 bg-brand-red" />
+            </div>
+          </Reveal>
         </div>
 
         <div className="mt-14 grid gap-10 md:grid-cols-2 md:gap-16">
           {/* Columna izquierda: horarios y contacto */}
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-7 backdrop-blur-sm md:p-9">
+          <Reveal delay={100}>
+          <div className="h-full rounded-2xl border border-white/10 bg-white/5 p-7 backdrop-blur-sm md:p-9">
             <h3 className="flex items-center gap-2.5 font-display text-2xl tracking-wide text-brand-yellow">
               <ClockIcon className="h-5 w-5" />
               Horarios de atención
@@ -86,9 +94,11 @@ export default function Footer() {
               </p>
             </div>
           </div>
+          </Reveal>
 
           {/* Columna derecha: mapa y redes */}
-          <div className="flex flex-col justify-center gap-10 text-center md:text-left">
+          <Reveal delay={200}>
+          <div className="flex h-full flex-col justify-center gap-10 text-center md:text-left">
             <div>
               <h3 className="font-display text-2xl tracking-wide text-brand-yellow">
                 ¿Cómo llegar?
@@ -131,6 +141,7 @@ export default function Footer() {
               </div>
             </div>
           </div>
+          </Reveal>
         </div>
       </div>
 

@@ -14,16 +14,20 @@ export default function TequenosFeature() {
       className="texture-dots overflow-hidden bg-cream py-24 md:py-32"
     >
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 md:grid-cols-2 md:gap-16 md:px-6">
-        {/* Copy */}
-        <Reveal>
-          <div className="text-center md:text-left">
+        {/* Copy — textos en cascada */}
+        <div className="text-center md:text-left">
+          <Reveal>
             <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand-yellow px-4 py-1.5 text-xs font-bold tracking-[0.15em] text-ink uppercase shadow-glow-yellow">
               <StarIcon className="h-3.5 w-3.5" />
               El más vendido
             </span>
+          </Reveal>
+          <Reveal delay={90}>
             <h2 className="font-display text-5xl tracking-wide text-ink sm:text-6xl">
               Tequeños <span className="text-brand-red">Crocantes</span>
             </h2>
+          </Reveal>
+          <Reveal delay={180}>
             <div
               className="mx-auto mt-4 flex h-1.5 w-28 overflow-hidden rounded-full md:mx-0"
               aria-hidden="true"
@@ -32,28 +36,44 @@ export default function TequenosFeature() {
               <span className="flex-1 bg-brand-blue" />
               <span className="flex-1 bg-brand-red" />
             </div>
+          </Reveal>
 
+          <Reveal delay={260}>
             <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-ink/75 md:mx-0 md:text-lg">
               El clásico venezolano que conquistó Ocucaje: masa dorada y
               crujiente, queso que se estira y nuestra salsa de la casa.
               Pídelos solos o de acompañante — no falla.
             </p>
+          </Reveal>
 
-            <ul className="mt-6 space-y-2 text-sm text-ink/70">
-              <li className="flex items-center justify-center gap-2 md:justify-start">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-red" aria-hidden="true" />
-                Hechos a mano, fritos al momento
-              </li>
-              <li className="flex items-center justify-center gap-2 md:justify-start">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-blue" aria-hidden="true" />
-                Perfectos para compartir en familia
-              </li>
-              <li className="flex items-center justify-center gap-2 md:justify-start">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-yellow" aria-hidden="true" />
-                Combínalos con tu pizza favorita
-              </li>
-            </ul>
+          <ul className="mt-6 space-y-2 text-sm text-ink/70">
+            <li>
+              <Reveal delay={340}>
+                <span className="flex items-center justify-center gap-2 md:justify-start">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-red" aria-hidden="true" />
+                  Hechos a mano, fritos al momento
+                </span>
+              </Reveal>
+            </li>
+            <li>
+              <Reveal delay={420}>
+                <span className="flex items-center justify-center gap-2 md:justify-start">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-blue" aria-hidden="true" />
+                  Perfectos para compartir en familia
+                </span>
+              </Reveal>
+            </li>
+            <li>
+              <Reveal delay={500}>
+                <span className="flex items-center justify-center gap-2 md:justify-start">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-yellow" aria-hidden="true" />
+                  Combínalos con tu pizza favorita
+                </span>
+              </Reveal>
+            </li>
+          </ul>
 
+          <Reveal delay={580}>
             <a
               href={siteConfig.whatsapp.url}
               target="_blank"
@@ -63,8 +83,8 @@ export default function TequenosFeature() {
               <WhatsAppIcon className="h-5 w-5" />
               Pedir tequeños
             </a>
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
 
         {/* Foto horizontal real */}
         <Reveal delay={150}>
