@@ -134,6 +134,24 @@ body {
   animation: float-down 1.8s ease-in-out infinite;
 }
 
+/* Vapor de la pizza recién armada (PizzaBuilder) */
+@keyframes steam {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-22px);
+  }
+}
+.animate-steam {
+  animation: steam 2.4s ease-in-out infinite;
+}
+
 /* Ken Burns sutil para las fotos del hero */
 @keyframes ken-burns {
   from {
@@ -158,7 +176,8 @@ body {
     transition: none;
   }
   .animate-float-down,
-  .animate-ken-burns {
+  .animate-ken-burns,
+  .animate-steam {
     animation: none;
   }
   .btn-shine::after {

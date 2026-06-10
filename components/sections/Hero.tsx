@@ -1,5 +1,6 @@
 import HeroCarousel from "@/components/ui/HeroCarousel";
 import OpenBadge from "@/components/ui/OpenBadge";
+import ParticlesCanvas from "@/components/ui/ParticlesCanvas";
 import { ArrowDownIcon, MapPinIcon, WhatsAppIcon, StarIcon } from "@/components/ui/icons";
 import { heroImages } from "@/lib/heroImages";
 import { siteConfig } from "@/lib/siteConfig";
@@ -12,6 +13,11 @@ export default function Hero() {
   return (
     <section id="inicio" className="relative flex min-h-svh items-center justify-center">
       <HeroCarousel images={heroImages} />
+
+      {/* Brasas flotantes sobre el carrusel (efecto horno de leña) */}
+      <div className="pointer-events-none absolute inset-0 z-[5]">
+        <ParticlesCanvas />
+      </div>
 
       <div className="relative z-10 mx-auto max-w-4xl px-4 pt-20 pb-24 text-center">
         <OpenBadge />

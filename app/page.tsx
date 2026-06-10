@@ -5,6 +5,8 @@ import Gallery from "@/components/sections/Gallery";
 import GoogleReviews from "@/components/sections/GoogleReviews";
 import Hero from "@/components/sections/Hero";
 import Navbar from "@/components/sections/Navbar";
+import PizzaBuilder from "@/components/sections/PizzaBuilder";
+import CursorGlow from "@/components/ui/CursorGlow";
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
 
 export default function HomePage() {
@@ -26,10 +28,12 @@ export default function HomePage() {
           ──────────────────────────────────────────────────────────
         */}
 
+        <PizzaBuilder />
         <Gallery />
         <GoogleReviews />
       </main>
       <Footer />
+      <CursorGlow />
       <FloatingWhatsApp />
     </>
   );
