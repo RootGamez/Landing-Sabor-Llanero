@@ -67,14 +67,14 @@ export default function HeroCarousel({ images }: HeroCarouselProps) {
             alt={image.alt}
             fill
             priority={i === 0}
-            sizes="100vw"
-            className={`object-cover ${i === current ? "animate-ken-burns" : ""}`}
+            sizes="(max-width: 768px) 80vw, 360px"
+            className="object-cover"
           />
         </div>
       ))}
 
-      {/* Overlay oscuro degradado para legibilidad del texto */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/35 to-black/75" />
+      {/* Degradado inferior sutil para que los dots sean legibles */}
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
 
       {/* Dots de posición */}
       <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 gap-2.5">

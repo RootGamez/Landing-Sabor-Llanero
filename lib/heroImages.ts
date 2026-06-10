@@ -1,29 +1,25 @@
 import type { SiteImage } from "@/types";
 
 /**
- * Fotos del carrusel del hero.
- * Para cambiar fotos: reemplaza los archivos en /public/images/hero/
- * (o agrega nuevos) y actualiza este array. Nada más que tocar.
+ * Imágenes VERTICALES del carrusel del hero (tarjeta tipo póster).
+ * Para cambiar fotos: agrega archivos a /public/images/ y actualiza
+ * este array. Orden = orden de aparición.
  */
 export const heroImages: SiteImage[] = [
   {
-    src: "/images/hero/hero-1.svg",
-    alt: "Pizza artesanal recién salida del horno en Pizzería Sabor Llanero",
+    src: "/images/featured/pizza-alborada.jpg",
+    alt: "Pizza Alborada con tocino ahumado, maíz tierno y champiñones, recién horneada",
   },
   {
-    src: "/images/hero/hero-2.svg",
-    alt: "Interior acogedor del local familiar de Sabor Llanero en Ocucaje",
+    src: "/images/promos/pizza-montanera.jpg",
+    alt: "Pizza Montañera con pepperoni, maíz y champiñones de Sabor Llanero",
   },
   {
-    src: "/images/hero/hero-3.svg",
-    alt: "Pizza familiar con ingredientes frescos y queso derretido",
+    src: "/images/promos/pizza-full-beef.jpg",
+    alt: "Pizza Full Beef con carne molida, mozzarella y salchicha ahumada",
   },
   {
-    src: "/images/hero/hero-4.svg",
-    alt: "Tequeños venezolanos dorados, especialidad de la casa",
-  },
-  {
-    src: "/images/hero/hero-5.svg",
-    alt: "Equipo familiar de Pizzería Sabor Llanero preparando pizza artesanal",
+    src: "/images/promos/pizza-hawaiana.jpg",
+    alt: "Pizza Hawaiana edición artesanal con piña fresca en almíbar",
   },
 ];

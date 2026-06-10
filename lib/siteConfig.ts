@@ -57,6 +57,14 @@ export const siteConfig = {
     { label: "Ubicación", href: "#ubicacion" },
   ] satisfies NavLink[],
 
+  /** Rutas de medios de marca */
+  media: {
+    logo: "/images/brand/logo.jpg",
+    localVideo: "/videos/local.mp4",
+    alborada: "/images/featured/pizza-alborada.jpg",
+    tequenos: "/images/featured/tequenos.png",
+  },
+
   /** ID del widget de Featurable (reseñas reales de Google) */
   featurableId: "featurable-c01d0c94-1a52-42ba-a5b6-558847cf2dac",
 } as const;

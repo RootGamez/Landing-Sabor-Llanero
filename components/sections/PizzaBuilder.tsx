@@ -1,54 +1,30 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { WhatsAppIcon } from "@/components/ui/icons";
+import { builderImages } from "@/lib/builderImages";
 import { siteConfig } from "@/lib/siteConfig";
 
 /* ── Utilidades de animación ───────────────────────────── */
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
-/** Progreso normalizado de una sub-fase dentro del scroll total */
 const phase = (p: number, start: number, end: number): number =>
   clamp01((p - start) / (end - start));
-const easeOut = (t: number): number => 1 - Math.pow(1 - t, 3);
-
-/* ── Ingredientes que caen (posiciones finales en el viewBox 640) ── */
-interface Topping {
-  x: number;
-  y: number;
-  r: number;
-  kind: "pep" | "basil";
-}
-
-const TOPPINGS: Topping[] = [
-  { x: 320, y: 245, r: 26, kind: "pep" },
-  { x: 248, y: 300, r: 24, kind: "pep" },
-  { x: 392, y: 298, r: 25, kind: "pep" },
-  { x: 285, y: 372, r: 23, kind: "pep" },
-  { x: 372, y: 370, r: 24, kind: "pep" },
-  { x: 322, y: 318, r: 22, kind: "pep" },
-  { x: 255, y: 232, r: 20, kind: "pep" },
-  { x: 390, y: 235, r: 20, kind: "pep" },
-  { x: 320, y: 428, r: 21, kind: "pep" },
-  { x: 286, y: 264, r: 8, kind: "basil" },
-  { x: 356, y: 262, r: 8, kind: "basil" },
-  { x: 250, y: 338, r: 8, kind: "basil" },
-  { x: 396, y: 340, r: 8, kind: "basil" },
-  { x: 320, y: 392, r: 8, kind: "basil" },
-  { x: 322, y: 208, r: 8, kind: "basil" },
-];
 
 const STEPS = [
   { title: "Masa artesanal", text: "Estirada a mano y reposada el tiempo justo" },
   { title: "Salsa de la casa", text: "Tomates frescos con un toque llanero" },
   { title: "Mozzarella generosa", text: "Queso de verdad, sin tacañería" },
-  { title: "Ingredientes frescos", text: "Y directo al horno, a tu mesa" },
+  { title: "Ingredientes frescos", text: "Jamón, champiñones, maíz… al gusto" },
+  { title: "Al horno y a tu mesa", text: "Borde dorado, queso burbujeante" },
 ] as const;
 
 /**
- * Sección "scrollytelling": mientras el usuario scrollea, la masa se
- * estira, cae la salsa, el queso y los ingredientes llueven por capas.
- * Implementado con position: sticky + requestAnimationFrame — sin librerías.
- * Con prefers-reduced-motion se muestra la pizza ya armada, sin animación.
+ * Sección "scrollytelling" con FOTOS REALES: mientras el usuario
+ * scrollea, la secuencia avanza por capas (masa → salsa → queso →
+ * ingredientes → horneada) con crossfade y zoom sutil.
+ * Sticky + requestAnimationFrame, sin librerías.
+ * Con prefers-reduced-motion se muestra la pizza terminada, estática.
  */
 export default function PizzaBuilder() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -89,25 +65,22 @@ export default function PizzaBuilder() {
   }, []);
 
   const p = progress;
+  const stageCount = builderImages.length; // 5 etapas
 
-  /* Fases del armado */
-  const doughT = easeOut(phase(p, 0, 0.2)); // masa se estira
-  const sauceT = easeOut(phase(p, 0.22, 0.4)); // salsa se expande
-  const cheeseT = easeOut(phase(p, 0.42, 0.58)); // queso funde
-  const endT = phase(p, 0.86, 0.97); // mensaje final
-
-  const crustR = 96 + 134 * doughT; // 96 → 230
-  const sauceR = 186 * sauceT;
-  const cheeseR = 178 * cheeseT;
-
-  const activeStep = p < 0.22 ? 0 : p < 0.42 ? 1 : p < 0.6 ? 2 : 3;
+  /**
+   * Posición continua dentro de la secuencia (0 → 4).
+   * El 0.92 deja un pequeño "respiro" al final con la pizza lista.
+   */
+  const stageF = Math.min(stageCount - 1, (p / 0.92) * (stageCount - 1));
+  const activeStep = Math.min(stageCount - 1, Math.floor(stageF + 0.001));
+  const endT = phase(p, 0.88, 0.98); // CTA + vapor al final
 
   return (
     <section
       ref={sectionRef}
-      aria-label="Cómo preparamos tu pizza"
+      aria-label="Cómo preparamos tu pizza, paso a paso"
       className="relative bg-charcoal"
-      style={{ height: reduced ? "auto" : "300vh" }}
+      style={{ height: reduced ? "auto" : "320vh" }}
     >
       <div
         className={`texture-dots-light flex flex-col justify-center overflow-hidden ${
@@ -120,7 +93,7 @@ export default function PizzaBuilder() {
           aria-hidden="true"
         />
 
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-6 px-4 md:grid-cols-[1fr_1.2fr] md:gap-10 md:px-6">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-6 px-4 md:grid-cols-[1fr_1.15fr] md:gap-12 md:px-6">
           {/* Columna izquierda: pasos */}
           <div>
             <span className="mb-3 inline-block rounded-full bg-brand-yellow/15 px-4 py-1 text-xs font-semibold tracking-[0.2em] text-brand-yellow uppercase">
@@ -135,9 +108,10 @@ export default function PizzaBuilder() {
               <span className="flex-1 bg-brand-red" />
             </div>
 
-            <ol className="mt-8 space-y-3 md:mt-10 md:space-y-5">
+            <ol className="mt-6 space-y-2.5 md:mt-10 md:space-y-4">
               {STEPS.map((step, i) => {
                 const active = i <= activeStep;
+                const current = i === activeStep;
                 return (
                   <li
                     key={step.title}
@@ -146,9 +120,9 @@ export default function PizzaBuilder() {
                     }`}
                   >
                     <span
-                      className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-lg transition-colors duration-500 ${
+                      className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-lg transition-all duration-500 ${
                         active ? "bg-brand-yellow text-ink" : "bg-white/10 text-white/60"
-                      }`}
+                      } ${current ? "scale-110 shadow-glow-yellow" : ""}`}
                     >
                       {i + 1}
                     </span>
@@ -163,7 +137,7 @@ export default function PizzaBuilder() {
 
             {/* CTA final: aparece cuando la pizza está lista */}
             <div
-              className="mt-8 transition-all duration-500"
+              className="mt-7 transition-all duration-500"
               style={{
                 opacity: endT,
                 transform: `translateY(${(1 - endT) * 16}px)`,
@@ -182,79 +156,67 @@ export default function PizzaBuilder() {
             </div>
           </div>
 
-          {/* Columna derecha: la pizza armándose */}
-          <div className="relative mx-auto w-full max-w-[30rem]">
-            <svg
-              viewBox="0 0 640 640"
-              role="img"
-              aria-label="Pizza artesanal armándose capa por capa"
-              className="h-auto w-full"
-            >
-              <defs>
-                <radialGradient id="pbCheese" cx="45%" cy="42%" r="65%">
-                  <stop offset="0%" stopColor="#FADD7A" />
-                  <stop offset="100%" stopColor="#F5C542" />
-                </radialGradient>
-                <radialGradient id="pbGlow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#FFCE00" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#FFCE00" stopOpacity="0" />
-                </radialGradient>
-              </defs>
+          {/* Columna derecha: secuencia real de fotos en marco circular */}
+          <div className="relative mx-auto w-full max-w-[26rem] md:max-w-[30rem]">
+            {/* Aro tricolor decorativo */}
+            <div
+              className="absolute -inset-2 rounded-full opacity-70"
+              style={{
+                background:
+                  "conic-gradient(#ffce00 0deg 120deg, #00247d 120deg 240deg, #cf142b 240deg 360deg)",
+                filter: "blur(10px)",
+              }}
+              aria-hidden="true"
+            />
 
-              {/* Resplandor + sombra */}
-              <circle cx="320" cy="320" r={crustR * 1.5} fill="url(#pbGlow)" opacity={0.5 + doughT * 0.5} />
-              <ellipse cx="320" cy={320 + crustR * 0.92} rx={crustR * 1.12} ry={crustR * 0.2} fill="#000" opacity="0.45" />
-
-              {/* 1. Masa: de bola a base estirada */}
-              <circle cx="320" cy="320" r={crustR} fill="#D99A3D" stroke="#B57A26" strokeWidth={crustR * 0.045} />
-              <circle cx="320" cy="320" r={crustR * 0.86} fill="#E8B55C" opacity={1 - doughT * 0.55} />
-
-              {/* 2. Salsa */}
-              {sauceT > 0.01 && (
-                <circle cx="320" cy="320" r={sauceR} fill="#C44D20" opacity={0.92} />
-              )}
-
-              {/* 3. Queso */}
-              {cheeseT > 0.01 && (
-                <circle cx="320" cy="320" r={cheeseR} fill="url(#pbCheese)" />
-              )}
-
-              {/* 4. Ingredientes cayendo desde arriba, escalonados */}
-              {TOPPINGS.map((tItem, i) => {
-                const delay = i / TOPPINGS.length;
-                const tp = easeOut(phase(p, 0.58 + delay * 0.24, 0.7 + delay * 0.24));
-                if (tp <= 0.01) return null;
-                const offsetY = (1 - tp) * -460;
-                const rot = (1 - tp) * (i % 2 === 0 ? 140 : -140);
+            <div className="relative aspect-square overflow-hidden rounded-full shadow-[0_24px_80px_-20px_rgba(0,0,0,0.8)] ring-4 ring-white/10">
+              {builderImages.map((image, i) => {
+                // Cada etapa hace fade-in encima de la anterior
+                const t = i === 0 ? 1 : clamp01(stageF - (i - 1));
+                const scale = 1.06 - 0.06 * t;
                 return (
-                  <g
-                    key={`${tItem.x}-${tItem.y}`}
-                    transform={`translate(${tItem.x} ${tItem.y + offsetY}) rotate(${rot})`}
-                    opacity={Math.min(1, tp * 2.5)}
+                  <div
+                    key={image.src}
+                    className="absolute inset-0"
+                    style={{ opacity: t, transform: `scale(${scale})` }}
+                    aria-hidden={i !== activeStep}
                   >
-                    {tItem.kind === "pep" ? (
-                      <>
-                        <circle r={tItem.r} fill="#C0392B" stroke="#8E2418" strokeWidth={tItem.r * 0.18} />
-                        <circle r={tItem.r * 0.28} cx={-tItem.r * 0.25} cy={-tItem.r * 0.2} fill="#A92C20" />
-                      </>
-                    ) : (
-                      <ellipse rx={tItem.r} ry={tItem.r * 0.65} fill="#3E7C3A" />
-                    )}
-                  </g>
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      fill
+                      sizes="(max-width: 768px) 90vw, 480px"
+                      className="object-cover"
+                      priority={i === 0}
+                    />
+                  </div>
                 );
               })}
 
-              {/* Vapor al final */}
-              <g opacity={endT} className="animate-steam" style={{ transformOrigin: "320px 140px" }}>
-                <path d="M280 150 q -10 -22 4 -40 q 12 -16 2 -34" fill="none" stroke="#ffffff" strokeWidth="7" strokeLinecap="round" opacity="0.35" />
-                <path d="M320 142 q 12 -24 -2 -44 q -10 -16 2 -32" fill="none" stroke="#ffffff" strokeWidth="7" strokeLinecap="round" opacity="0.45" />
-                <path d="M362 150 q 10 -22 -4 -40 q -12 -16 -2 -34" fill="none" stroke="#ffffff" strokeWidth="7" strokeLinecap="round" opacity="0.35" />
-              </g>
-            </svg>
+              {/* Vapor sobre la pizza horneada */}
+              <svg
+                viewBox="0 0 200 200"
+                className="animate-steam pointer-events-none absolute inset-x-0 top-0 h-1/2 w-full"
+                style={{ opacity: endT * 0.8 }}
+                aria-hidden="true"
+              >
+                <path d="M78 95 q -6 -14 2 -25 q 7 -10 1 -21" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity="0.4" />
+                <path d="M100 90 q 8 -15 -1 -27 q -7 -10 1 -20" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity="0.5" />
+                <path d="M124 95 q 6 -14 -2 -25 q -7 -10 -1 -21" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity="0.4" />
+              </svg>
+            </div>
+
+            {/* Etiqueta de la etapa actual */}
+            <p
+              className="mt-5 text-center font-display text-2xl tracking-wide text-brand-yellow"
+              aria-live="polite"
+            >
+              {STEPS[activeStep].title}
+            </p>
 
             {/* Barra de progreso del armado */}
             {!reduced && (
-              <div className="mx-auto mt-2 h-1.5 w-48 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+              <div className="mx-auto mt-3 h-1.5 w-48 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-brand-yellow via-white to-brand-red"
                   style={{ width: `${Math.round(p * 100)}%` }}

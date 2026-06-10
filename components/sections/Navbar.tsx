@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { siteConfig } from "@/lib/siteConfig";
 import TricolorBar from "@/components/ui/TricolorBar";
 import { WhatsAppIcon } from "@/components/ui/icons";
@@ -42,11 +43,19 @@ export default function Navbar() {
           {/* Logo (placeholder de texto en Bangers) */}
           <a
             href="#inicio"
-            className={`font-display text-2xl tracking-wider transition-colors md:text-3xl ${
+            className={`flex items-center gap-2.5 font-display text-2xl tracking-wider transition-colors md:text-3xl ${
               solid ? "text-brand-blue" : "text-white"
             }`}
             onClick={() => setMenuOpen(false)}
           >
+            {/* Logo real de la marca */}
+            <Image
+              src={siteConfig.media.logo}
+              alt=""
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-full object-cover ring-2 ring-white/40"
+            />
             Sabor <span className="text-brand-red">Llanero</span>
           </a>
 

@@ -34,23 +34,20 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5 lg:gap-5">
         {images.map((image, i) => (
           <button
             key={image.src}
             type="button"
             onClick={() => setLightbox(i)}
-            className={`group relative overflow-hidden rounded-2xl ring-1 ring-white/10 transition-all duration-300 hover:ring-brand-yellow/60 focus-visible:outline-2 focus-visible:outline-brand-yellow ${
-              // Composición editorial: la primera y la sexta ocupan doble ancho en desktop
-              i === 0 || i === 5 ? "aspect-square lg:col-span-2 lg:aspect-[2/1]" : "aspect-square"
-            }`}
+            className="group relative aspect-[2/3] overflow-hidden rounded-2xl ring-1 ring-white/10 transition-all duration-300 hover:ring-brand-yellow/60 focus-visible:outline-2 focus-visible:outline-brand-yellow"
             aria-label={`Ampliar foto: ${image.alt}`}
           >
             <Image
               src={image.src}
               alt={image.alt}
               fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
               className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
             />
             {/* Overlay con caption al hover */}

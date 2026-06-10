@@ -30,9 +30,13 @@ Toda la data vive en `lib/` — no hay nada hardcodeado en los componentes.
 
 | Quiero cambiar… | Archivo |
 |---|---|
-| Fotos del carrusel del hero | Sube tus fotos a `public/images/hero/` (ideal `.webp`) y actualiza las rutas en `lib/heroImages.ts` |
-| Fotos de la galería | `public/images/gallery/` + `lib/galleryImages.ts` |
-| Foto de la sección Nosotros | `public/images/about/` + la ruta en `components/sections/About.tsx` |
+| Tarjeta vertical del hero (pósters/productos) | `public/images/promos/` y `public/images/featured/` + `lib/heroImages.ts` |
+| Afiches de la galería (formato vertical 2:3) | `public/images/promos/` + `lib/galleryImages.ts` |
+| Secuencia "Así nace tu pizza" (5 etapas) | `public/images/builder/etapa-1.png` … `etapa-5.png` + `lib/builderImages.ts` |
+| Foto grande de la Pizza Alborada | `public/images/featured/pizza-alborada.jpg` (ruta en `lib/siteConfig.ts` → `media`) |
+| Foto de los tequeños (best seller) | `public/images/featured/tequenos.png` (`media.tequenos`) |
+| Video del local (sección Nosotros) | `public/videos/local.mp4` (`media.localVideo`) |
+| Logo del navbar | `public/images/brand/logo.jpg` (`media.logo`) |
 | Horarios (badge "Abierto ahora", footer y SEO) | `lib/businessHours.ts` — única fuente de verdad |
 | Teléfono, WhatsApp y su mensaje pre-escrito | `lib/siteConfig.ts` |
 | Dirección, coordenadas y link de Google Maps | `lib/siteConfig.ts` |

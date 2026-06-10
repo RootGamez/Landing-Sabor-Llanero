@@ -1,5 +1,7 @@
 import About from "@/components/sections/About";
+import AlboradaFeature from "@/components/sections/AlboradaFeature";
 import Features from "@/components/sections/Features";
+import TequenosFeature from "@/components/sections/TequenosFeature";
 import Footer from "@/components/sections/Footer";
 import Gallery from "@/components/sections/Gallery";
 import GoogleReviews from "@/components/sections/GoogleReviews";
@@ -29,6 +31,8 @@ export default function HomePage() {
         */}
 
         <PizzaBuilder />
+        <AlboradaFeature />
+        <TequenosFeature />
         <Gallery />
         <GoogleReviews />
       </main>

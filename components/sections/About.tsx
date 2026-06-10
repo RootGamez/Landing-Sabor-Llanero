@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Reveal from "@/components/ui/Reveal";
 import SectionHeading from "@/components/ui/SectionHeading";
+import { siteConfig } from "@/lib/siteConfig";
 
 /**
  * Sección Nosotros: historia breve y emotiva del negocio familiar.
@@ -68,24 +68,25 @@ export default function About() {
           </Reveal>
 
           <Reveal delay={150}>
-            {/* Foto con marco tricolor desplazado */}
-            <div className="relative">
+            {/* Video vertical real del local, con marco tricolor */}
+            <div className="relative mx-auto w-full max-w-[18rem] sm:max-w-[20rem]">
               <div
-                className="absolute -inset-3 -z-10 rotate-2 rounded-3xl bg-gradient-to-br from-brand-yellow via-brand-blue to-brand-red opacity-80"
+                className="absolute -inset-3 rotate-2 rounded-[2rem] bg-gradient-to-br from-brand-yellow via-brand-blue to-brand-red opacity-80"
                 aria-hidden="true"
               />
-              <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-card-hover">
-                <Image
-                  src="/images/about/family.svg"
-                  alt="La familia detrás de Pizzería Sabor Llanero en su local de Ocucaje"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover transition-transform duration-700 hover:scale-105"
-                />
-              </div>
+              <video
+                className="relative aspect-[9/16] w-full rounded-[1.75rem] object-cover shadow-card-hover"
+                src={siteConfig.media.localVideo}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label="Recorrido en video por el local de Pizzería Sabor Llanero en Ocucaje"
+              />
               {/* Badge flotante */}
-              <span className="absolute -bottom-4 left-6 rounded-full bg-brand-red px-5 py-2 font-display text-lg tracking-wide text-white shadow-glow-red">
-                Desde el corazón
+              <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-brand-red px-5 py-2 font-display text-lg tracking-wide whitespace-nowrap text-white shadow-glow-red">
+                Nuestro local
               </span>
             </div>
           </Reveal>
