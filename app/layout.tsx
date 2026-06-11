@@ -21,27 +21,28 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: `${siteConfig.fullName} | Pizza Artesanal en Ocucaje, Ica`,
+    default: `${siteConfig.fullName} | Pizza Artesanal y Delivery en Pisco, Ica`,
     template: `%s | ${siteConfig.fullName}`,
   },
   description: siteConfig.description,
   keywords: [
-    "pizzería Ica",
-    "pizza artesanal Ocucaje",
-    "pizzería Ocucaje",
+    "pizzería Pisco",
+    "pizza artesanal Pisco",
+    "delivery pizza Pisco",
+    "pizzería San Andrés Pisco",
     "pizza Ica",
     "Sabor Llanero",
     "pizza venezolana Perú",
-    "tequeños Ica",
-    "restaurante Ocucaje",
-    "pizza familiar Ica",
+    "tequeños Pisco",
+    "restaurante Pisco",
+    "pizza familiar Pisco",
   ],
   openGraph: {
     type: "website",
     locale: "es_PE",
     url: siteConfig.url,
     siteName: siteConfig.fullName,
-    title: `${siteConfig.fullName} | Pizza Artesanal en Ocucaje, Ica`,
+    title: `${siteConfig.fullName} | Pizza Artesanal y Delivery en Pisco, Ica`,
     description: siteConfig.description,
     images: [
       {
@@ -54,7 +55,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteConfig.fullName} | Pizza Artesanal en Ocucaje, Ica`,
+    title: `${siteConfig.fullName} | Pizza Artesanal y Delivery en Pisco, Ica`,
     description: siteConfig.description,
     images: ["/images/featured/pizza-alborada.jpg"],
   },
@@ -75,6 +76,7 @@ function buildRestaurantJsonLd(): string {
     url: siteConfig.url,
     telephone: siteConfig.phone,
     servesCuisine: ["Pizza", "Venezolana", "Peruana"],
+    areaServed: ["Pisco", "San Andrés"],
     priceRange: "$$",
     image: `${siteConfig.url}/images/featured/pizza-alborada.jpg`,
     logo: `${siteConfig.url}${siteConfig.media.logo}`,
@@ -113,6 +115,15 @@ export default function RootLayout({
           type="application/ld+json"
           // JSON-LD para Google: datos estructurados del restaurante
           dangerouslySetInnerHTML={{ __html: buildRestaurantJsonLd() }}
+        />
+        {/* Limpieza: desregistra service workers de proyectos anteriores en
+            este mismo origen (localhost:3000) que interceptan y rompen las
+            imágenes en recargas normales. Este proyecto no usa SW, así que
+            es seguro; puedes quitarlo si algún día agregas una PWA. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if ("serviceWorker" in navigator) { navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.unregister(); }); }); } if (window.caches) { caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); }); }`,
+          }}
         />
       </body>
     </html>

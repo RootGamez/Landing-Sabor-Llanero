@@ -28,7 +28,9 @@ const features = [
  */
 export default function Features() {
   return (
-    <section aria-label="Por qué elegirnos" className="relative z-20 -mt-14 pb-4 md:-mt-16">
+    // Ritmo de espaciado: la franja de delivery va justo arriba, así que
+    // esta sección ya no se superpone al hero (sin márgenes negativos).
+    <section aria-label="Por qué elegirnos" className="relative pt-14 pb-6 md:pt-20">
       <div className="mx-auto grid max-w-6xl gap-4 px-4 sm:grid-cols-3 md:gap-6 md:px-6">
         {features.map((f, i) => (
           <Reveal key={f.title} delay={i * 100}>

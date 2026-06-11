@@ -10,7 +10,7 @@ export const siteConfig = {
   fullName: "Pizzería Sabor Llanero",
   slogan: "Pizza artesanal con sabor de dos tierras",
   description:
-    "Pizzería artesanal familiar en Ocucaje, Ica. Fusión de sabores de Venezuela y Perú: masa artesanal, ingredientes frescos y atención con cariño de familia.",
+    "Pizzería artesanal familiar en Pisco, Ica. Fusión de sabores de Venezuela y Perú: masa artesanal, ingredientes frescos y delivery a todo Pisco y San Andrés. Promociones todos los días.",
 
   /** URL pública del sitio (cámbiala cuando tengas dominio propio) */
   url: "https://pizzeriasaborllanero.com",
@@ -27,21 +27,31 @@ export const siteConfig = {
   },
 
   address: {
-    street: "Calle Principal s/n", // ← reemplaza por la dirección exacta
-    locality: "Ocucaje",
+    street: "Urb. La Alborada Mz. D Lt. 22",
+    locality: "Pisco",
     region: "Ica",
     country: "PE",
-    display: "Ocucaje, Ica, Perú",
+    display: "Pisco, Ica, Perú",
   },
 
-  /** Coordenadas aproximadas de Ocucaje — ajusta a la ubicación exacta del local */
+  /** Coordenadas aproximadas de Pisco — ajusta a la ubicación exacta del local */
   geo: {
-    latitude: -14.3454,
-    longitude: -75.6711,
+    latitude: -13.7103,
+    longitude: -76.2032,
   },
 
-  googleMapsUrl:
-    "https://www.google.com/maps/search/?api=1&query=Pizzer%C3%ADa+Sabor+Llanero+Ocucaje+Ica",
+  /** Botón "Cómo llegar": abre la ficha real del negocio en Google Maps (CID) */
+  googleMapsUrl: "https://maps.google.com/?cid=8331271402479403448",
+
+  /** Mapa embebido — SOLO la URL del src del iframe oficial de tu ficha de Google */
+  googleMapsEmbedUrl:
+    "https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3876.1976473100926!2d-76.2135703!3d-13.7064761!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91106fa6a9c72deb%3A0x739e9f331827c1b8!2sPizzeria%20-%20Sabor%20llanero!5e0!3m2!1sen!2spe!4v1781191403496!5m2!1sen!2spe",
+
+  /** Zona de reparto y promociones */
+  delivery: {
+    areas: "Todo Pisco y San Andrés",
+    note: "Promociones todos los días",
+  },
 
   socials: [
     { name: "Instagram", url: "https://instagram.com/pizzeriasaborllanero" },

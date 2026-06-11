@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Reveal from "@/components/ui/Reveal";
 import SectionHeading from "@/components/ui/SectionHeading";
 import { siteConfig } from "@/lib/siteConfig";
@@ -39,7 +40,7 @@ export default function About() {
 
               <p className="text-base leading-relaxed text-ink/80 md:text-lg">
                 Somos una <strong className="text-brand-blue">familia venezolana</strong>{" "}
-                que encontró en Ocucaje un nuevo hogar. Trajimos con nosotros el
+                que encontró en Pisco un nuevo hogar. Trajimos con nosotros el
                 sabor de los llanos y lo unimos al cariño del Perú que nos recibió
                 con los brazos abiertos.
               </p>
@@ -54,14 +55,18 @@ export default function About() {
                 ¡Gracias por ser parte de esta historia!
               </p>
 
-              {/* Firma de marca */}
+              {/* Firma de marca con el logo real */}
               <div className="mt-6 flex items-center gap-3 border-t border-ink/8 pt-5">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-blue font-display text-lg text-brand-yellow">
-                  SL
-                </span>
+                <Image
+                  src={siteConfig.media.logo}
+                  alt="Logo de Pizzería Sabor Llanero"
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 rounded-full object-cover ring-2 ring-brand-yellow"
+                />
                 <div className="text-sm">
                   <p className="font-semibold text-ink">Familia Sabor Llanero</p>
-                  <p className="text-ink/55">Venezuela &rarr; Ocucaje, Perú</p>
+                  <p className="text-ink/55">Venezuela &rarr; Pisco, Perú</p>
                 </div>
               </div>
             </div>
@@ -82,7 +87,7 @@ export default function About() {
                 loop
                 playsInline
                 preload="metadata"
-                aria-label="Recorrido en video por el local de Pizzería Sabor Llanero en Ocucaje"
+                aria-label="Recorrido en video por el local de Pizzería Sabor Llanero en Pisco"
               />
               {/* Badge flotante */}
               <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-brand-red px-5 py-2 font-display text-lg tracking-wide whitespace-nowrap text-white shadow-glow-red">

@@ -98,20 +98,32 @@ export default function Footer() {
 
           {/* Columna derecha: mapa y redes */}
           <Reveal delay={200}>
-          <div className="flex h-full flex-col justify-center gap-10 text-center md:text-left">
+          <div className="flex h-full flex-col justify-center gap-8 text-center md:text-left">
             <div>
               <h3 className="font-display text-2xl tracking-wide text-brand-yellow">
                 ¿Cómo llegar?
               </h3>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-white/70 md:mx-0">
-                Estamos en {siteConfig.address.display}. Abre el mapa y déjate
-                guiar hasta el sabor.
-              </p>
+
+              {/* Card con el mapa real embebido */}
+              <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_16px_48px_-16px_rgba(0,0,0,0.6)]">
+                <iframe
+                  src={siteConfig.googleMapsEmbedUrl}
+                  title={`Mapa de ${siteConfig.fullName}: ${siteConfig.address.street}, ${siteConfig.address.display}`}
+                  className="h-64 w-full border-0 md:h-72"
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+                <p className="px-4 py-3 text-xs text-white/65">
+                  {siteConfig.address.street} — {siteConfig.address.display}
+                </p>
+              </div>
+
               <a
                 href={siteConfig.googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-shine mt-6 inline-flex items-center gap-2.5 rounded-full bg-brand-red px-9 py-4 font-semibold text-white shadow-glow-red transition-all duration-300 hover:scale-[1.04] hover:bg-brand-red-deep active:scale-95"
+                className="btn-shine mt-5 inline-flex items-center gap-2.5 rounded-full bg-brand-red px-9 py-4 font-semibold text-white shadow-glow-red transition-all duration-300 hover:scale-[1.04] hover:bg-brand-red-deep active:scale-95"
               >
                 <MapPinIcon className="h-5 w-5" />
                 Abrir en Google Maps

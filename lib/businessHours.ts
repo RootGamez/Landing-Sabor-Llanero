@@ -4,15 +4,16 @@ import type { DaySchedule, OpenStatus } from "@/types";
  * ÚNICA fuente de verdad de los horarios.
  * `open`/`close` en formato 24h "HH:mm". `null` = cerrado ese día.
  * Día 0 = domingo … 6 = sábado.
+ * Atendemos TODOS los días de 5:00 pm a 10:30 pm.
  */
 export const businessHours: DaySchedule[] = [
-  { day: 1, label: "Lunes", open: null, close: null },
-  { day: 2, label: "Martes", open: "18:00", close: "23:00" },
-  { day: 3, label: "Miércoles", open: "18:00", close: "23:00" },
-  { day: 4, label: "Jueves", open: "18:00", close: "23:00" },
-  { day: 5, label: "Viernes", open: "18:00", close: "23:30" },
-  { day: 6, label: "Sábado", open: "17:00", close: "23:30" },
-  { day: 0, label: "Domingo", open: "17:00", close: "22:00" },
+  { day: 1, label: "Lunes", open: "17:00", close: "22:30" },
+  { day: 2, label: "Martes", open: "17:00", close: "22:30" },
+  { day: 3, label: "Miércoles", open: "17:00", close: "22:30" },
+  { day: 4, label: "Jueves", open: "17:00", close: "22:30" },
+  { day: 5, label: "Viernes", open: "17:00", close: "22:30" },
+  { day: 6, label: "Sábado", open: "17:00", close: "22:30" },
+  { day: 0, label: "Domingo", open: "17:00", close: "22:30" },
 ];
 
 const TIME_ZONE = "America/Lima";
@@ -42,7 +43,6 @@ function nowInLima(date: Date): { day: number; minutes: number } {
 
   return {
     day: dayMap[get("weekday")] ?? 0,
-    // "24" puede aparecer a medianoche con hour12:false
     minutes: (Number(get("hour")) % 24) * 60 + Number(get("minute")),
   };
 }

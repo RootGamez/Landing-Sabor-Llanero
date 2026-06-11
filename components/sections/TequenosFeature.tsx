@@ -40,7 +40,7 @@ export default function TequenosFeature() {
 
           <Reveal delay={260}>
             <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-ink/75 md:mx-0 md:text-lg">
-              El clásico venezolano que conquistó Ocucaje: masa dorada y
+              El clásico venezolano que conquistó Pisco: masa dorada y
               crujiente, queso que se estira y nuestra salsa de la casa.
               Pídelos solos o de acompañante — no falla.
             </p>

@@ -1,5 +1,6 @@
 import About from "@/components/sections/About";
 import AlboradaFeature from "@/components/sections/AlboradaFeature";
+import DeliveryBar from "@/components/sections/DeliveryBar";
 import Features from "@/components/sections/Features";
 import TequenosFeature from "@/components/sections/TequenosFeature";
 import Footer from "@/components/sections/Footer";
@@ -17,6 +18,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
+        <DeliveryBar />
         <Features />
         <About />
 
