@@ -1,13 +1,18 @@
 import type { NextConfig } from "next";
 
-// Configuración pensada para deploy en VPS propia (Nginx + PM2), sin features de Vercel.
+// Export estático: el sitio es 100% estático (sin API routes, Server Actions ni
+// SSR en runtime), así que `next build` genera la carpeta `out/` que sirve
+// Cloudflare Pages directo como CDN. También funciona en VPS (Nginx) o cualquier
+// hosting estático. Para volver a SSR con `next start`, quita `output: "export"`.
 const nextConfig: NextConfig = {
+  output: "export",
   images: {
-    formats: ["image/avif", "image/webp"],
-    // Permite servir los placeholders SVG locales vía next/image de forma segura
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // En export estático no hay servidor que optimice imágenes: next/image
+    // se renderiza como <img> normal sirviendo los archivos tal cual.
+    unoptimized: true,
   },
+  // Rutas con barra final (/sobre/) → estructura de carpetas estable en CF Pages.
+  trailingSlash: true,
   poweredByHeader: false,
 };
 

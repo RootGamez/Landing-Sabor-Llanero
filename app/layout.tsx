@@ -116,15 +116,6 @@ export default function RootLayout({
           // JSON-LD para Google: datos estructurados del restaurante
           dangerouslySetInnerHTML={{ __html: buildRestaurantJsonLd() }}
         />
-        {/* Limpieza: desregistra service workers de proyectos anteriores en
-            este mismo origen (localhost:3000) que interceptan y rompen las
-            imágenes en recargas normales. Este proyecto no usa SW, así que
-            es seguro; puedes quitarlo si algún día agregas una PWA. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `if ("serviceWorker" in navigator) { navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.unregister(); }); }); } if (window.caches) { caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); }); }`,
-          }}
-        />
       </body>
     </html>
   );

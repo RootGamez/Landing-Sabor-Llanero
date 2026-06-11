@@ -12,8 +12,8 @@ export const siteConfig = {
   description:
     "Pizzería artesanal familiar en Pisco, Ica. Fusión de sabores de Venezuela y Perú: masa artesanal, ingredientes frescos y delivery a todo Pisco y San Andrés. Promociones todos los días.",
 
-  /** URL pública del sitio (cámbiala cuando tengas dominio propio) */
-  url: "https://pizzeriasaborllanero.com",
+  /** URL pública del sitio */
+  url: "https://saborllanero.online",
 
   phone: "+51 932 770 766",
   phoneHref: "tel:+51932770766",
@@ -34,10 +34,10 @@ export const siteConfig = {
     display: "Pisco, Ica, Perú",
   },
 
-  /** Coordenadas aproximadas de Pisco — ajusta a la ubicación exacta del local */
+  /** Coordenadas del local (pin de la ficha de Google) */
   geo: {
-    latitude: -13.7103,
-    longitude: -76.2032,
+    latitude: -13.7064761,
+    longitude: -76.2135703,
   },
 
   /** Botón "Cómo llegar": abre la ficha real del negocio en Google Maps (CID) */

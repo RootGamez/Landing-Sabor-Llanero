@@ -6,11 +6,17 @@ Landing page oficial del negocio. **Next.js 15 + React 19 + TypeScript + Tailwin
 
 ```bash
 pnpm install
-pnpm build
-pnpm start   # producción en http://localhost:3000
+pnpm dev
 ```
 
-Para desarrollo: `pnpm dev`.
+Desarrollo en `http://localhost:3000`.
+
+Build de producción (genera la carpeta estática `out/`):
+
+```bash
+pnpm build
+npx serve out
+```
 
 > **Importante:** si cambias `next.config.ts`, reinicia el servidor de
 > desarrollo (Ctrl+C y `pnpm dev` de nuevo) — Next no recarga la config.
@@ -60,14 +66,27 @@ reales de Google. Para mostrarlo como **carrusel automático**:
 Aún no existe carta online. El anchor `#menu` está reservado en
 `app/page.tsx` (ver comentario) para montarla cuando esté lista.
 
-## Deploy en VPS (Nginx + PM2)
+## Deploy
 
-```bash
-pnpm install && pnpm build
-pm2 start pnpm --name sabor-llanero -- start   # sirve en el puerto 3000
-```
+`pnpm build` genera la carpeta estática `out/` (`output: "export"` en
+`next.config.ts`). Sirve en cualquier hosting estático.
 
-Apunta Nginx con `proxy_pass http://localhost:3000;`. No depende de Vercel.
+### Cloudflare Pages
+
+Conecta el repo y configura:
+
+| Ajuste | Valor |
+|---|---|
+| Build command | `pnpm build` |
+| Build output directory | `out` |
+| Node version | 22 (`.nvmrc`) |
+
+Cada `git push` redeploya. Las imágenes se sirven sin optimizar; respeta el
+límite de 25 MB por archivo de CF Pages (`public/models/pizza.glb`).
+
+### VPS (Nginx)
+
+Sirve `out/` como `root`. No requiere Node.
 
 ## Estructura
 
