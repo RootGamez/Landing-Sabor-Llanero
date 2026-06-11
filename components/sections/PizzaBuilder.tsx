@@ -94,43 +94,43 @@ export default function PizzaBuilder() {
           aria-hidden="true"
         />
 
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-6 px-4 md:grid-cols-[1fr_1.15fr] md:gap-12 md:px-6">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-5 px-4 md:grid-cols-[1fr_1.15fr] md:gap-12 md:px-6">
           {/* Columna izquierda: pasos */}
           <div>
             <Reveal delay={90}>
-              <h2 className="font-display text-4xl tracking-wide text-white sm:text-5xl md:text-6xl">
+              <h2 className="font-display text-3xl leading-none tracking-wide text-white sm:text-5xl md:text-6xl">
                 Así Nace Tu Pizza
               </h2>
             </Reveal>
             <Reveal delay={180}>
-              <div className="mt-4 flex h-1.5 w-28 overflow-hidden rounded-full" aria-hidden="true">
+              <div className="mt-3 flex h-1.5 w-24 overflow-hidden rounded-full md:mt-4 md:w-28" aria-hidden="true">
                 <span className="flex-1 bg-brand-yellow" />
                 <span className="flex-1 bg-white" />
                 <span className="flex-1 bg-brand-red" />
               </div>
             </Reveal>
 
-            <ol className="mt-6 space-y-2.5 md:mt-10 md:space-y-4">
+            <ol className="mt-5 space-y-2 md:mt-10 md:space-y-4">
               {STEPS.map((step, i) => {
                 const active = i <= activeStep;
                 const current = i === activeStep;
                 return (
                   <li
                     key={step.title}
-                    className={`flex items-start gap-4 transition-all duration-500 ${
+                    className={`flex items-start gap-3 transition-all duration-500 md:gap-4 ${
                       active ? "opacity-100" : "opacity-35"
                     }`}
                   >
                     <span
-                      className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-lg transition-all duration-500 ${
+                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-base transition-all duration-500 md:h-9 md:w-9 md:text-lg ${
                         active ? "bg-brand-yellow text-ink" : "bg-white/10 text-white/60"
                       } ${current ? "scale-110 shadow-glow-yellow" : ""}`}
                     >
                       {i + 1}
                     </span>
                     <div>
-                      <p className="font-semibold text-white">{step.title}</p>
-                      <p className="text-sm text-white/60">{step.text}</p>
+                      <p className="font-semibold leading-tight text-white">{step.title}</p>
+                      <p className="text-sm leading-snug text-white/60">{step.text}</p>
                     </div>
                   </li>
                 );
@@ -139,7 +139,7 @@ export default function PizzaBuilder() {
 
             {/* CTA final: aparece cuando la pizza está lista */}
             <div
-              className="mt-7 transition-all duration-500"
+              className="mt-5 transition-all duration-500 md:mt-7"
               style={{
                 opacity: endT,
                 transform: `translateY(${(1 - endT) * 16}px)`,
@@ -150,7 +150,7 @@ export default function PizzaBuilder() {
                 href={siteConfig.whatsapp.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-shine inline-flex items-center gap-2.5 rounded-full bg-brand-red px-8 py-3.5 font-semibold text-white shadow-glow-red transition-transform duration-300 hover:scale-[1.04] active:scale-95"
+                className="btn-shine inline-flex items-center gap-2.5 rounded-full bg-brand-red px-7 py-3 font-semibold text-white shadow-glow-red transition-transform duration-300 hover:scale-[1.04] active:scale-95 md:px-8 md:py-3.5"
               >
                 <WhatsAppIcon className="h-5 w-5" />
                 Pide la tuya ahora
@@ -159,7 +159,7 @@ export default function PizzaBuilder() {
           </div>
 
           {/* Columna derecha: secuencia real de fotos en marco circular */}
-          <div className="relative mx-auto w-full max-w-[26rem] md:max-w-[30rem]">
+          <div className="relative mx-auto w-full max-w-[14rem] max-[639px]:[@media(max-height:730px)]:max-w-[11rem] sm:max-w-[20rem] md:max-w-[30rem]">
             {/* Aro tricolor decorativo */}
             <div
               className="absolute -inset-2 rounded-full opacity-70"
@@ -210,7 +210,7 @@ export default function PizzaBuilder() {
 
             {/* Etiqueta de la etapa actual */}
             <p
-              className="mt-5 text-center font-display text-2xl tracking-wide text-brand-yellow"
+              className="mt-3 text-center font-display text-xl tracking-wide text-brand-yellow md:mt-5 md:text-2xl"
               aria-live="polite"
             >
               {STEPS[activeStep].title}
@@ -218,7 +218,7 @@ export default function PizzaBuilder() {
 
             {/* Barra de progreso del armado */}
             {!reduced && (
-              <div className="mx-auto mt-3 h-1.5 w-48 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+              <div className="mx-auto mt-3 hidden h-1.5 w-48 overflow-hidden rounded-full bg-white/10 md:block" aria-hidden="true">
                 <div
                   className="h-full rounded-full bg-linear-to-r from-brand-yellow via-white to-brand-red"
                   style={{ width: `${Math.round(p * 100)}%` }}
