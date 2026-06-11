@@ -26,4 +26,8 @@ export const galleryImages: SiteImage[] = [
     src: "/images/promos/promo-tequenos.jpg",
     alt: "Promoción de tequeños crocantes y pizza artesanal en Sabor Llanero",
   },
+  {
+    src: "/images/promos/promo-tarjeta.jpeg",
+    alt: "Promoción de pizzas gourmet en Sabor Llanero",
+  }
 ];

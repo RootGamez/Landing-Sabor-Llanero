@@ -9,6 +9,7 @@ import GoogleReviews from "@/components/sections/GoogleReviews";
 import Hero from "@/components/sections/Hero";
 import Navbar from "@/components/sections/Navbar";
 import PizzaBuilder from "@/components/sections/PizzaBuilder";
+import PizzaShowcase from "@/components/sections/PizzaShowcase";
 import CursorGlow from "@/components/ui/CursorGlow";
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
 
@@ -35,6 +36,7 @@ export default function HomePage() {
         <PizzaBuilder />
         <AlboradaFeature />
         <TequenosFeature />
+        <PizzaShowcase />
         <Gallery />
         <GoogleReviews />
       </main>

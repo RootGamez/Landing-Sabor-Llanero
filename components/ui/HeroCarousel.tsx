@@ -74,7 +74,7 @@ export default function HeroCarousel({ images }: HeroCarouselProps) {
       ))}
 
       {/* Degradado inferior sutil para que los dots sean legibles */}
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/60 to-transparent" />
 
       {/* Dots de posición */}
       <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 gap-2.5">

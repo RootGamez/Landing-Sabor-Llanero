@@ -9,7 +9,7 @@ import type { DaySchedule, OpenStatus } from "@/types";
 export const businessHours: DaySchedule[] = [
   { day: 1, label: "Lunes", open: "17:00", close: "22:30" },
   { day: 2, label: "Martes", open: "17:00", close: "22:30" },
-  { day: 3, label: "Miércoles", open: "17:00", close: "22:30" },
+  { day: 3, label: "Miércoles", open: "--", close: "--" },
   { day: 4, label: "Jueves", open: "17:00", close: "22:30" },
   { day: 5, label: "Viernes", open: "17:00", close: "22:30" },
   { day: 6, label: "Sábado", open: "17:00", close: "22:30" },

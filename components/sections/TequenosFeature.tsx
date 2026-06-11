@@ -90,7 +90,7 @@ export default function TequenosFeature() {
         <Reveal delay={150}>
           <div className="relative">
             <div
-              className="absolute -inset-3 rotate-1 rounded-[2rem] bg-gradient-to-br from-brand-yellow via-brand-blue to-brand-red opacity-60"
+              className="absolute -inset-3 rotate-1 rounded-[2rem] bg-linear-to-br from-brand-yellow via-brand-blue to-brand-red opacity-60"
               aria-hidden="true"
             />
             <div className="relative aspect-[16/10] overflow-hidden rounded-[1.75rem] shadow-card-hover">

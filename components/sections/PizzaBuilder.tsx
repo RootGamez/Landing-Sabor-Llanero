@@ -97,7 +97,6 @@ export default function PizzaBuilder() {
         <div className="mx-auto grid w-full max-w-6xl items-center gap-6 px-4 md:grid-cols-[1fr_1.15fr] md:gap-12 md:px-6">
           {/* Columna izquierda: pasos */}
           <div>
-           
             <Reveal delay={90}>
               <h2 className="font-display text-4xl tracking-wide text-white sm:text-5xl md:text-6xl">
                 Así Nace Tu Pizza
@@ -221,7 +220,7 @@ export default function PizzaBuilder() {
             {!reduced && (
               <div className="mx-auto mt-3 h-1.5 w-48 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-brand-yellow via-white to-brand-red"
+                  className="h-full rounded-full bg-linear-to-r from-brand-yellow via-white to-brand-red"
                   style={{ width: `${Math.round(p * 100)}%` }}
                 />
               </div>

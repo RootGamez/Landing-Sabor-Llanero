@@ -53,9 +53,19 @@ export const siteConfig = {
     note: "Promociones todos los días",
   },
 
+  /** Tamaños disponibles — ajusta porciones y medidas a tu carta real */
+  pizzaSizes: [
+    { name: "Mediana", detail: "8 porciones · 30 cm", scale: 0.58, featured: false },
+    { name: "Grande", detail: "10 porciones · 35 cm", scale: 0.78, featured: false },
+    { name: "Familiar", detail: "12 porciones · 40 cm", scale: 1, featured: true },
+  ],
+
+  /** Gancho de variedad (del flyer: "Más de 15 sabores para elegir") */
+  flavorsClaim: "Más de 20 sabores para elegir",
+
   socials: [
-    { name: "Instagram", url: "https://instagram.com/pizzeriasaborllanero" },
-    { name: "Facebook", url: "https://facebook.com/pizzeriasaborllanero" },
+    { name: "Instagram", url: "https://www.instagram.com/saborllanero_pisco/" },
+    { name: "Facebook", url: "https://www.facebook.com/profile.php?id=61551465756868" },
     { name: "WhatsApp", url: "https://wa.me/51932770766" },
   ] satisfies SocialLink[],
 

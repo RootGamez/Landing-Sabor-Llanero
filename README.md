@@ -34,6 +34,18 @@ Toda la data vive en `lib/` — no hay nada hardcodeado en los componentes.
 | Precio e ingredientes de la Alborada | `components/sections/AlboradaFeature.tsx` |
 | Textos de los tequeños | `components/sections/TequenosFeature.tsx` |
 
+## Modelo 3D de la sección "Antójate en 360°"
+
+El visor usa Three.js y espera el modelo en `public/models/pizza.glb`.
+Si el archivo no existe, muestra la foto real como respaldo.
+
+Para instalarlo: abre <https://poly.pizza/m/9IWGn64Fnqo>, pulsa
+**Download → GLB** y guarda el archivo como `public/models/pizza.glb`.
+
+> Crédito del modelo: "Pepperoni pizza" de **Poly by Google**,
+> licencia [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+> La atribución ya está incluida aquí y en el código.
+
 ## Reseñas de Google (Featurable)
 
 El widget está en `components/sections/GoogleReviews.tsx` y carga las reseñas

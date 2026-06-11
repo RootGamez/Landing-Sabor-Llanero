@@ -34,7 +34,7 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5 lg:gap-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-5">
         {images.map((image, i) => (
           <button
             key={image.src}
@@ -47,11 +47,11 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
               src={image.src}
               alt={image.alt}
               fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 33vw"
               className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
             />
             {/* Overlay con caption al hover */}
-            <span className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/10 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            <span className="absolute inset-0 flex items-end bg-linear-to-t from-black/80 via-black/10 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
               <span className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-white">
                 {image.alt}
                 <ExpandIcon className="h-4 w-4 shrink-0 text-brand-yellow" />

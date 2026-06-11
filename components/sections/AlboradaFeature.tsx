@@ -14,7 +14,7 @@ export default function AlboradaFeature() {
     <section
       id="alborada"
       aria-label="Pizza Alborada, nuestra especialidad"
-      className="relative overflow-hidden bg-gradient-to-b from-charcoal to-brand-blue-ink py-24 md:py-32"
+      className="relative overflow-hidden bg-charcoal bg-linear-to-b from-charcoal to-brand-blue-ink py-24 md:py-32"
     >
       {/* Resplandor dorado de amanecer (alborada) */}
       <div
@@ -27,7 +27,7 @@ export default function AlboradaFeature() {
         <Reveal>
           <div className="relative mx-auto w-full max-w-md">
             <div
-              className="absolute -inset-3 -rotate-2 rounded-[2rem] bg-gradient-to-br from-brand-yellow via-brand-red to-brand-blue opacity-70"
+              className="absolute -inset-3 -rotate-2 rounded-[2rem] bg-linear-to-br from-brand-yellow via-brand-red to-brand-blue opacity-70"
               aria-hidden="true"
             />
             <div className="relative aspect-[3/4] overflow-hidden rounded-[1.75rem] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.9)]">

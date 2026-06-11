@@ -36,7 +36,7 @@ export default function GoogleReviews() {
   return (
     <section
       id="resenas"
-      className="texture-dots relative overflow-hidden bg-gradient-to-b from-cream to-white py-24 md:py-32"
+      className="texture-dots relative overflow-hidden bg-cream bg-linear-to-b from-cream to-white py-24 md:py-32"
     >
       {/* Acentos tricolor suaves de fondo */}
       <div

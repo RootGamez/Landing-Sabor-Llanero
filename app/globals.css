@@ -134,6 +134,20 @@ body {
   animation: float-down 1.8s ease-in-out infinite;
 }
 
+/* Ingredientes flotando en la escena 3D (PizzaShowcase) */
+@keyframes float-y {
+  0%,
+  100% {
+    margin-top: 0;
+  }
+  50% {
+    margin-top: -12px;
+  }
+}
+.animate-float-y {
+  animation: float-y 4s ease-in-out infinite;
+}
+
 /* Vapor de la pizza recién armada (PizzaBuilder) */
 @keyframes steam {
   0% {
@@ -177,7 +191,8 @@ body {
   }
   .animate-float-down,
   .animate-ken-burns,
-  .animate-steam {
+  .animate-steam,
+  .animate-float-y {
     animation: none;
   }
   .btn-shine::after {

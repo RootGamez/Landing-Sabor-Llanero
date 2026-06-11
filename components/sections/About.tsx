@@ -76,7 +76,7 @@ export default function About() {
             {/* Video vertical real del local, con marco tricolor */}
             <div className="relative mx-auto w-full max-w-[18rem] sm:max-w-[20rem]">
               <div
-                className="absolute -inset-3 rotate-2 rounded-[2rem] bg-gradient-to-br from-brand-yellow via-brand-blue to-brand-red opacity-80"
+                className="absolute -inset-3 rotate-2 rounded-[2rem] bg-linear-to-br from-brand-yellow via-brand-blue to-brand-red opacity-80"
                 aria-hidden="true"
               />
               <video
