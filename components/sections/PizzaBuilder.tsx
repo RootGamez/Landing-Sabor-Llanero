@@ -159,58 +159,62 @@ export default function PizzaBuilder() {
           </div>
 
           {/* Columna derecha: secuencia real de fotos en marco circular */}
-          <div className="relative mx-auto w-full max-w-[14rem] max-[639px]:[@media(max-height:730px)]:max-w-[11rem] sm:max-w-[20rem] md:max-w-[30rem]">
-            {/* Aro tricolor decorativo */}
-            <div
-              className="absolute -inset-2 rounded-full opacity-70"
-              style={{
-                background:
-                  "conic-gradient(#ffce00 0deg 120deg, #00247d 120deg 240deg, #cf142b 240deg 360deg)",
-                filter: "blur(10px)",
-              }}
-              aria-hidden="true"
-            />
-
-            <div className="relative aspect-square overflow-hidden rounded-full shadow-[0_24px_80px_-20px_rgba(0,0,0,0.8)] ring-4 ring-white/10">
-              {builderImages.map((image, i) => {
-                // Cada etapa hace fade-in encima de la anterior
-                const t = i === 0 ? 1 : clamp01(stageF - (i - 1));
-                const scale = 1.06 - 0.06 * t;
-                return (
-                  <div
-                    key={image.src}
-                    className="absolute inset-0"
-                    style={{ opacity: t, transform: `scale(${scale})` }}
-                    aria-hidden={i !== activeStep}
-                  >
-                    <Image
-                      src={image.src}
-                      alt={image.alt}
-                      fill
-                      sizes="(max-width: 768px) 90vw, 480px"
-                      className="object-cover"
-                      priority={i === 0}
-                    />
-                  </div>
-                );
-              })}
-
-              {/* Vapor sobre la pizza horneada */}
-              <svg
-                viewBox="0 0 200 200"
-                className="animate-steam pointer-events-none absolute inset-x-0 top-0 h-1/2 w-full"
-                style={{ opacity: endT * 0.8 }}
+          <div className="relative mx-auto w-full max-w-[17rem] max-[639px]:[@media(max-height:730px)]:max-w-[13rem] sm:max-w-[20rem] md:max-w-[30rem]">
+            {/* Imagen + aro tricolor: agrupados para que el efecto bandera
+                quede ceñido a la pizza y no se solape con el texto de abajo. */}
+            <div className="relative">
+              {/* Aro tricolor decorativo */}
+              <div
+                className="absolute -inset-2 rounded-full opacity-70"
+                style={{
+                  background:
+                    "conic-gradient(#ffce00 0deg 120deg, #00247d 120deg 240deg, #cf142b 240deg 360deg)",
+                  filter: "blur(10px)",
+                }}
                 aria-hidden="true"
-              >
-                <path d="M78 95 q -6 -14 2 -25 q 7 -10 1 -21" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity="0.4" />
-                <path d="M100 90 q 8 -15 -1 -27 q -7 -10 1 -20" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity="0.5" />
-                <path d="M124 95 q 6 -14 -2 -25 q -7 -10 -1 -21" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity="0.4" />
-              </svg>
+              />
+
+              <div className="relative aspect-square overflow-hidden rounded-full shadow-[0_24px_80px_-20px_rgba(0,0,0,0.8)] ring-4 ring-white/10">
+                {builderImages.map((image, i) => {
+                  // Cada etapa hace fade-in encima de la anterior
+                  const t = i === 0 ? 1 : clamp01(stageF - (i - 1));
+                  const scale = 1.06 - 0.06 * t;
+                  return (
+                    <div
+                      key={image.src}
+                      className="absolute inset-0"
+                      style={{ opacity: t, transform: `scale(${scale})` }}
+                      aria-hidden={i !== activeStep}
+                    >
+                      <Image
+                        src={image.src}
+                        alt={image.alt}
+                        fill
+                        sizes="(max-width: 768px) 90vw, 480px"
+                        className="object-cover"
+                        priority={i === 0}
+                      />
+                    </div>
+                  );
+                })}
+
+                {/* Vapor sobre la pizza horneada */}
+                <svg
+                  viewBox="0 0 200 200"
+                  className="animate-steam pointer-events-none absolute inset-x-0 top-0 h-1/2 w-full"
+                  style={{ opacity: endT * 0.8 }}
+                  aria-hidden="true"
+                >
+                  <path d="M78 95 q -6 -14 2 -25 q 7 -10 1 -21" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity="0.4" />
+                  <path d="M100 90 q 8 -15 -1 -27 q -7 -10 1 -20" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity="0.5" />
+                  <path d="M124 95 q 6 -14 -2 -25 q -7 -10 -1 -21" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity="0.4" />
+                </svg>
+              </div>
             </div>
 
             {/* Etiqueta de la etapa actual */}
             <p
-              className="mt-3 text-center font-display text-xl tracking-wide text-brand-yellow md:mt-5 md:text-2xl"
+              className="relative z-10 mt-3 text-center font-display text-xl tracking-wide text-brand-yellow md:mt-5 md:text-2xl"
               aria-live="polite"
             >
               {STEPS[activeStep].title}
