@@ -48,6 +48,9 @@ app.use('*', async (c, next) => {
     if (allowedOrigins(c.env).length === 0) {
       return c.json({ error: 'Configuración inválida: faltan WEB_ORIGIN/CMS_ORIGIN' }, 500);
     }
+    if (!c.env.LOGIN_LIMITER || !c.env.EVENTS_LIMITER) {
+      return c.json({ error: 'Configuración inválida: faltan LOGIN_LIMITER/EVENTS_LIMITER' }, 500);
+    }
   }
   await next();
 });

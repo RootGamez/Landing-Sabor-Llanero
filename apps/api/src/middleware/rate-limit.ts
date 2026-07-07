@@ -2,9 +2,13 @@ import type { Context, MiddlewareHandler } from 'hono';
 import type { AppEnv, Bindings, RateLimit } from '../env';
 import { tooManyRequests } from '../lib/http-error';
 
-/** IP del cliente detrás de Cloudflare; 'unknown' si no viene el header. */
+/**
+ * IP del cliente detrás de Cloudflare; 'unknown' si no viene el header.
+ * Solo se confía en CF-Connecting-IP (lo pone el edge de Cloudflare): un
+ * X-Forwarded-For lo puede mandar cualquier cliente y burlar el límite.
+ */
 export function clientIp(c: Context<AppEnv>): string {
-  return c.req.header('CF-Connecting-IP') ?? c.req.header('X-Forwarded-For') ?? 'unknown';
+  return c.req.header('CF-Connecting-IP') ?? 'unknown';
 }
 
 /**

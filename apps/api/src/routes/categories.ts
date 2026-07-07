@@ -14,9 +14,10 @@ import {
 import type { AppEnv } from '../env';
 import type { CategoryPriceRow, CategoryRow, SizeRow } from '../db/rows';
 import { mapCategory, mapCategoryPrice } from '../db/rows';
-import { requireAuth, requireRole } from '../middleware/auth';
+import { authenticate, requireAuth, requireRole } from '../middleware/auth';
 import { badRequest, conflict, notFound } from '../lib/http-error';
 import { parseBody } from '../lib/validate';
+import { requireIdParam } from '../lib/params';
 
 /** Convención de claves R2 para banners: categories/{category_id}/{uuid}.{ext}. */
 function buildBannerKey(categoryId: number, ext: string): string {
@@ -47,12 +48,23 @@ async function pricesByCategory(
   return byCategory;
 }
 
-// Público: todas las categorías (incluye inactivas — el front decide qué mostrar
-// igual que Jaw, que expone /categories entero y filtra activos en /sections),
-// con sus precios por tamaño ya incluidos para no forzar un round-trip extra.
+// Con sesión válida (owner/admin, los únicos roles que existen) se listan
+// todas las categorías, incluidas inactivas, para el futuro CMS; sin sesión
+// (público) solo las activas — mismo criterio que /menu-items para no
+// filtrar borradores.
 categoryRoutes.get('/', async (c) => {
+  let isAuthenticated = false;
+  try {
+    await authenticate(c);
+    isAuthenticated = true;
+  } catch {
+    isAuthenticated = false;
+  }
+
   const { results } = await c.env.DB.prepare(
-    'SELECT * FROM categories ORDER BY display_order ASC, name_es ASC',
+    isAuthenticated
+      ? 'SELECT * FROM categories ORDER BY display_order ASC, name_es ASC'
+      : 'SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order ASC, name_es ASC',
   ).all<CategoryRow>();
   const priceMap = await pricesByCategory(c.env.DB, results.map((r) => r.id));
 
@@ -64,9 +76,24 @@ categoryRoutes.get('/', async (c) => {
 });
 
 /** Todos los tamaños del negocio, usados para validar cobertura de precios. */
-async function allSizes(db: D1Database): Promise<SizeRow[]> {
+export async function allSizes(db: D1Database): Promise<SizeRow[]> {
   const { results } = await db.prepare('SELECT * FROM sizes ORDER BY display_order ASC').all<SizeRow>();
   return results;
+}
+
+/**
+ * Rechaza cualquier sizeId que no corresponda a un tamaño real. Sin esto, un
+ * sizeId inexistente (ej. 999) pasa la validación de Zod (que no tiene acceso
+ * a la DB) y revienta a mitad del batch por violación de FK. Se exporta para
+ * reusarla en menu-items.ts, donde los priceOverrides deben ser subconjunto
+ * de los tamaños existentes (no necesitan cobertura completa).
+ */
+export function assertKnownSizeIds(prices: Array<{ sizeId: number }>, sizes: SizeRow[]): void {
+  const validIds = new Set(sizes.map((s) => s.id));
+  const unknown = [...new Set(prices.map((p) => p.sizeId).filter((id) => !validIds.has(id)))];
+  if (unknown.length > 0) {
+    throw badRequest(`sizeId inválido: no existe(n) los tamaños ${unknown.join(', ')}`);
+  }
 }
 
 /**
@@ -75,6 +102,7 @@ async function allSizes(db: D1Database): Promise<SizeRow[]> {
  * no vacío" porque no tiene acceso a la DB; acá se verifica la cobertura real).
  */
 function assertFullSizeCoverage(prices: Array<{ sizeId: number }>, sizes: SizeRow[]): void {
+  assertKnownSizeIds(prices, sizes);
   const provided = new Set(prices.map((p) => p.sizeId));
   const missing = sizes.filter((s) => !provided.has(s.id));
   if (missing.length > 0) {
@@ -112,14 +140,15 @@ categoryRoutes.post('/', requireAuth, requireRole('owner', 'admin'), async (c) =
     .first<CategoryRow>();
   const category = result!;
 
-  if (body.hasSizes && body.prices) {
-    for (const entry of body.prices) {
-      await c.env.DB.prepare(
-        'INSERT INTO category_prices (category_id, size_id, price) VALUES (?, ?, ?)',
-      )
-        .bind(category.id, entry.sizeId, entry.price)
-        .run();
-    }
+  if (body.hasSizes && body.prices && body.prices.length > 0) {
+    // batch: todos los INSERT se comitean como una sola transacción atómica.
+    await c.env.DB.batch(
+      body.prices.map((entry) =>
+        c.env.DB.prepare(
+          'INSERT INTO category_prices (category_id, size_id, price) VALUES (?, ?, ?)',
+        ).bind(category.id, entry.sizeId, entry.price),
+      ),
+    );
   }
 
   const priceMap = await pricesByCategory(c.env.DB, [category.id]);
@@ -131,7 +160,7 @@ categoryRoutes.post('/', requireAuth, requireRole('owner', 'admin'), async (c) =
 });
 
 categoryRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
   const body = await parseBody(c, updateCategorySchema);
 
   const current = await c.env.DB.prepare('SELECT * FROM categories WHERE id = ?')
@@ -178,14 +207,16 @@ categoryRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (
   if (!hasSizes) {
     await c.env.DB.prepare('DELETE FROM category_prices WHERE category_id = ?').bind(id).run();
   } else if (body.prices) {
-    await c.env.DB.prepare('DELETE FROM category_prices WHERE category_id = ?').bind(id).run();
-    for (const entry of body.prices) {
-      await c.env.DB.prepare(
-        'INSERT INTO category_prices (category_id, size_id, price) VALUES (?, ?, ?)',
-      )
-        .bind(id, entry.sizeId, entry.price)
-        .run();
-    }
+    // batch: DELETE + INSERTs en una sola transacción atómica (D1 batch), para
+    // que un fallo a mitad de camino no deje la cobertura de precios rota.
+    await c.env.DB.batch([
+      c.env.DB.prepare('DELETE FROM category_prices WHERE category_id = ?').bind(id),
+      ...body.prices.map((entry) =>
+        c.env.DB.prepare(
+          'INSERT INTO category_prices (category_id, size_id, price) VALUES (?, ?, ?)',
+        ).bind(id, entry.sizeId, entry.price),
+      ),
+    ]);
   }
 
   const priceMap = await pricesByCategory(c.env.DB, [id]);
@@ -197,7 +228,7 @@ categoryRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (
 });
 
 categoryRoutes.delete('/:id', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
   const current = await c.env.DB.prepare('SELECT * FROM categories WHERE id = ?')
     .bind(id)
     .first<CategoryRow>();
@@ -222,7 +253,7 @@ const categoryPricesInputSchema = z.object({
 });
 
 categoryRoutes.put('/:id/prices', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
   const body = await parseBody(c, categoryPricesInputSchema);
 
   const current = await c.env.DB.prepare('SELECT * FROM categories WHERE id = ?')
@@ -235,12 +266,15 @@ categoryRoutes.put('/:id/prices', requireAuth, requireRole('owner', 'admin'), as
 
   assertFullSizeCoverage(body.prices, await allSizes(c.env.DB));
 
-  await c.env.DB.prepare('DELETE FROM category_prices WHERE category_id = ?').bind(id).run();
-  for (const entry of body.prices) {
-    await c.env.DB.prepare('INSERT INTO category_prices (category_id, size_id, price) VALUES (?, ?, ?)')
-      .bind(id, entry.sizeId, entry.price)
-      .run();
-  }
+  // batch: DELETE + INSERTs atómicos (ver nota en PATCH /:id más arriba).
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM category_prices WHERE category_id = ?').bind(id),
+    ...body.prices.map((entry) =>
+      c.env.DB.prepare(
+        'INSERT INTO category_prices (category_id, size_id, price) VALUES (?, ?, ?)',
+      ).bind(id, entry.sizeId, entry.price),
+    ),
+  ]);
 
   const priceMap = await pricesByCategory(c.env.DB, [id]);
   return c.json(priceMap.get(id) ?? []);
@@ -252,7 +286,7 @@ categoryRoutes.put('/:id/prices', requireAuth, requireRole('owner', 'admin'), as
  * media de ítems (routes/media.ts).
  */
 categoryRoutes.post('/:id/banner', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
   const current = await c.env.DB.prepare('SELECT * FROM categories WHERE id = ?')
     .bind(id)
     .first<CategoryRow>();
@@ -288,7 +322,7 @@ categoryRoutes.post('/:id/banner', requireAuth, requireRole('owner', 'admin'), a
 
 /** Quita el banner de una categoría (columna a NULL + borrado del objeto R2). */
 categoryRoutes.delete('/:id/banner', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
   const current = await c.env.DB.prepare('SELECT * FROM categories WHERE id = ?')
     .bind(id)
     .first<CategoryRow>();

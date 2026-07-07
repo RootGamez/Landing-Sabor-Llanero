@@ -25,11 +25,13 @@ import type {
   MenuItemRow,
   SizeRow,
 } from '../db/rows';
-import { mapCategoryPrice, mapItemPrice, mapMedia, mapMenuItem, mapSize } from '../db/rows';
+import { mapCategory, mapCategoryPrice, mapItemPrice, mapMedia, mapMenuItem, mapSize } from '../db/rows';
 import { coverKeysByItem } from '../db/covers';
 import { authenticate, requireAuth, requireRole } from '../middleware/auth';
 import { badRequest, conflict, notFound } from '../lib/http-error';
 import { parseBody } from '../lib/validate';
+import { parsePositiveInt, requireIdParam } from '../lib/params';
+import { allSizes, assertKnownSizeIds } from './categories';
 
 export const menuItemRoutes = new Hono<AppEnv>();
 
@@ -40,14 +42,18 @@ type MenuItemWithCover = MenuItem & { coverImageKey: string | null };
 menuItemRoutes.get('/', async (c) => {
   const categoryId = c.req.query('categoryId');
   const search = c.req.query('search');
-  const page = Math.max(1, Number(c.req.query('page') ?? 1));
-  const pageSize = Math.min(100, Math.max(1, Number(c.req.query('pageSize') ?? PAGE_SIZE_DEFAULT)));
+  const page = Math.max(1, parsePositiveInt(c.req.query('page'), 1));
+  const pageSize = Math.min(100, Math.max(1, parsePositiveInt(c.req.query('pageSize'), PAGE_SIZE_DEFAULT)));
 
   const conditions = ['is_active = 1'];
   const params: unknown[] = [];
-  if (categoryId) {
+  if (categoryId !== undefined) {
+    const parsedCategoryId = Number(categoryId);
+    if (!Number.isInteger(parsedCategoryId) || parsedCategoryId <= 0) {
+      throw badRequest('categoryId inválido');
+    }
     conditions.push('category_id = ?');
-    params.push(Number(categoryId));
+    params.push(parsedCategoryId);
   }
   if (search) {
     conditions.push('(name_es LIKE ? OR name_en LIKE ?)');
@@ -99,7 +105,7 @@ interface MenuSectionResponse {
 menuItemRoutes.get('/sections', async (c) => {
   const limit = Math.min(
     SECTION_ITEMS_MAX,
-    Math.max(1, Number(c.req.query('limit') ?? SECTION_ITEMS_DEFAULT)),
+    Math.max(1, parsePositiveInt(c.req.query('limit'), SECTION_ITEMS_DEFAULT)),
   );
 
   const [{ results: categories }, { results: items }, sizeRows] = await Promise.all([
@@ -144,7 +150,7 @@ menuItemRoutes.get('/sections', async (c) => {
   for (const row of items) {
     const categoryRow = categoryById.get(row.category_id);
     if (!categoryRow) continue;
-    const category = mapCategoryFromRow(categoryRow);
+    const category = mapCategory(categoryRow);
     const item = mapMenuItem(row);
     const prices = category.hasSizes
       ? resolveItemPrices(item, category, sizes, categoryPrices, itemPrices)
@@ -164,27 +170,11 @@ menuItemRoutes.get('/sections', async (c) => {
   const sections: MenuSectionResponse[] = categories
     .filter((row) => itemsByCategory.has(row.id))
     .map((row) => ({
-      category: mapCategoryFromRow(row),
+      category: mapCategory(row),
       items: itemsByCategory.get(row.id)!,
     }));
   return c.json(sections);
 });
-
-// mapCategory vive en db/rows.ts pero se referencia acá con otro nombre para
-// evitar un import cruzado confuso entre "row de categoría" y "fila db".
-function mapCategoryFromRow(r: CategoryRow): Category {
-  return {
-    id: r.id,
-    slug: r.slug,
-    nameEs: r.name_es,
-    nameEn: r.name_en,
-    hasSizes: Boolean(r.has_sizes),
-    displayOrder: r.display_order,
-    bannerImageKey: r.banner_image_key,
-    isActive: Boolean(r.is_active),
-    createdAt: r.created_at,
-  };
-}
 
 menuItemRoutes.get('/:slug', async (c) => {
   const slug = c.req.param('slug');
@@ -216,7 +206,7 @@ menuItemRoutes.get('/:slug', async (c) => {
     c.env.DB.prepare('SELECT * FROM sizes ORDER BY display_order ASC').all<SizeRow>(),
   ]);
   if (!categoryRow) throw notFound('Categoría del ítem no encontrada');
-  const category = mapCategoryFromRow(categoryRow);
+  const category = mapCategory(categoryRow);
   const sizes: Size[] = sizeRows.map(mapSize);
 
   let prices: ResolvedPrice[] = [];
@@ -302,19 +292,27 @@ menuItemRoutes.post('/', requireAuth, requireRole('owner', 'admin'), async (c) =
     .first<MenuItemRow>();
   const item = result!;
 
-  if (category.has_sizes && body.priceOverrides) {
-    for (const entry of body.priceOverrides) {
-      await c.env.DB.prepare('INSERT INTO item_prices (item_id, size_id, price) VALUES (?, ?, ?)')
-        .bind(item.id, entry.sizeId, entry.price)
-        .run();
-    }
+  if (category.has_sizes && body.priceOverrides && body.priceOverrides.length > 0) {
+    // Los sizeIds de un override deben ser subconjunto de los tamaños reales
+    // (no cobertura completa: un override vacío hereda de category_prices).
+    assertKnownSizeIds(body.priceOverrides, await allSizes(c.env.DB));
+    // batch: todos los INSERT se comitean como una sola transacción atómica.
+    await c.env.DB.batch(
+      body.priceOverrides.map((entry) =>
+        c.env.DB.prepare('INSERT INTO item_prices (item_id, size_id, price) VALUES (?, ?, ?)').bind(
+          item.id,
+          entry.sizeId,
+          entry.price,
+        ),
+      ),
+    );
   }
 
   return c.json(mapMenuItem(item), 201);
 });
 
 menuItemRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
   const body = await parseBody(c, updateMenuItemSchema);
 
   const current = await c.env.DB.prepare('SELECT * FROM menu_items WHERE id = ?')
@@ -367,12 +365,18 @@ menuItemRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (
   if (!category.has_sizes) {
     await c.env.DB.prepare('DELETE FROM item_prices WHERE item_id = ?').bind(id).run();
   } else if (body.priceOverrides !== undefined) {
-    await c.env.DB.prepare('DELETE FROM item_prices WHERE item_id = ?').bind(id).run();
-    for (const entry of body.priceOverrides) {
-      await c.env.DB.prepare('INSERT INTO item_prices (item_id, size_id, price) VALUES (?, ?, ?)')
-        .bind(id, entry.sizeId, entry.price)
-        .run();
-    }
+    assertKnownSizeIds(body.priceOverrides, await allSizes(c.env.DB));
+    // batch: DELETE + INSERTs atómicos (ver nota en categories.ts).
+    await c.env.DB.batch([
+      c.env.DB.prepare('DELETE FROM item_prices WHERE item_id = ?').bind(id),
+      ...body.priceOverrides.map((entry) =>
+        c.env.DB.prepare('INSERT INTO item_prices (item_id, size_id, price) VALUES (?, ?, ?)').bind(
+          id,
+          entry.sizeId,
+          entry.price,
+        ),
+      ),
+    ]);
   }
 
   return c.json(mapMenuItem(updated!));
@@ -384,7 +388,7 @@ menuItemRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (
  * Solo válido si la categoría del ítem vende por tamaño.
  */
 menuItemRoutes.put('/:id/prices', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
   const body = await parseBody(c, priceOverridesInputSchema);
 
   const current = await c.env.DB.prepare('SELECT * FROM menu_items WHERE id = ?')
@@ -397,12 +401,19 @@ menuItemRoutes.put('/:id/prices', requireAuth, requireRole('owner', 'admin'), as
     throw badRequest('la categoría de este ítem no vende por tamaño (hasSizes = false)');
   }
 
-  await c.env.DB.prepare('DELETE FROM item_prices WHERE item_id = ?').bind(id).run();
-  for (const entry of body.priceOverrides) {
-    await c.env.DB.prepare('INSERT INTO item_prices (item_id, size_id, price) VALUES (?, ?, ?)')
-      .bind(id, entry.sizeId, entry.price)
-      .run();
-  }
+  assertKnownSizeIds(body.priceOverrides, await allSizes(c.env.DB));
+
+  // batch: DELETE + INSERTs atómicos (ver nota en categories.ts).
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM item_prices WHERE item_id = ?').bind(id),
+    ...body.priceOverrides.map((entry) =>
+      c.env.DB.prepare('INSERT INTO item_prices (item_id, size_id, price) VALUES (?, ?, ?)').bind(
+        id,
+        entry.sizeId,
+        entry.price,
+      ),
+    ),
+  ]);
 
   const { results } = await c.env.DB.prepare('SELECT * FROM item_prices WHERE item_id = ?')
     .bind(id)
@@ -411,7 +422,7 @@ menuItemRoutes.put('/:id/prices', requireAuth, requireRole('owner', 'admin'), as
 });
 
 menuItemRoutes.delete('/:id', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
 
   // Recolectar las claves R2 ANTES de borrar el ítem, para poder limpiar el
   // bucket (las filas de item_media caen por CASCADE, los objetos R2 no).

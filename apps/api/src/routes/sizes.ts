@@ -6,6 +6,7 @@ import { mapSize } from '../db/rows';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { notFound } from '../lib/http-error';
 import { parseBody } from '../lib/validate';
+import { requireIdParam } from '../lib/params';
 
 export const sizeRoutes = new Hono<AppEnv>();
 
@@ -30,7 +31,7 @@ const updateSizeSchema = z.object({
 });
 
 sizeRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
   const body = await parseBody(c, updateSizeSchema);
 
   const current = await c.env.DB.prepare('SELECT * FROM sizes WHERE id = ?')

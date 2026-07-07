@@ -14,12 +14,10 @@
  */
 import { z } from 'zod';
 
-const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-/**
- * El máximo acota el costo de PBKDF2 en el server: sin tope, un body con una
- * contraseña gigante fuerza 100k iteraciones sobre esa entrada (vector DoS).
- */
+const slugRegex = /^(?=.*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+
 const PASSWORD_MAX = 128;
 const passwordSchema = z
   .string()
@@ -61,7 +59,7 @@ export const sizePriceInputSchema = z.object({
 });
 
 const categoryBaseSchema = z.object({
-  slug: z.string().regex(slugRegex, 'slug inválido (usar minúsculas y guiones)'),
+  slug: z.string().regex(slugRegex, 'slug inválido (usar minúsculas, números y guiones, con al menos una letra)'),
   nameEs: z.string().min(1, 'nameEs requerido'),
   nameEn: z.string().default(''),
   hasSizes: z.boolean(),
@@ -75,12 +73,7 @@ interface CategoryPriceShape {
   prices?: Array<{ sizeId: number; price: number }>;
 }
 
-/**
- * Regla del BLUEPRINT §4.2: una categoría con tamaños debe traer precio
- * para todos los tamaños (acá solo se exige "al menos uno, sin duplicados";
- * el conteo exacto contra los tamaños activos reales lo valida la API). Una
- * categoría sin tamaños no admite `prices`.
- */
+
 function validateCategoryPrices(data: CategoryPriceShape, ctx: z.RefinementCtx): void {
   if (data.hasSizes === true) {
     if (!data.prices || data.prices.length === 0) {
@@ -116,7 +109,10 @@ export const updateCategorySchema = categoryBaseSchema.partial().superRefine(val
 
 const menuItemBaseSchema = z.object({
   categoryId: z.number().int().positive('categoryId inválido'),
-  slug: z.string().regex(slugRegex, 'slug inválido').optional(),
+  slug: z
+    .string()
+    .regex(slugRegex, 'slug inválido (usar minúsculas, números y guiones, con al menos una letra)')
+    .optional(),
   nameEs: z.string().min(1, 'nameEs requerido'),
   nameEn: z.string().default(''),
   descriptionEs: z.string().default(''),
@@ -133,12 +129,7 @@ interface MenuItemPriceShape {
   priceOverrides?: Array<{ sizeId: number; price: number }>;
 }
 
-/**
- * Regla del BLUEPRINT §4.2: `price` (categoría sin tamaños) y
- * `priceOverrides` (categoría con tamaños) son mutuamente excluyentes — cuál
- * de los dos es el válido depende de `categoryId.hasSizes`, que la API
- * resuelve contra la DB al persistir.
- */
+
 function validateMenuItemPrices(data: MenuItemPriceShape, ctx: z.RefinementCtx): void {
   if (data.price != null && data.priceOverrides && data.priceOverrides.length > 0) {
     ctx.addIssue({

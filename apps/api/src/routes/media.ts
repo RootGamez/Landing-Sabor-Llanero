@@ -13,6 +13,7 @@ import { mapMedia } from '../db/rows';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { badRequest, notFound } from '../lib/http-error';
 import { parseBody } from '../lib/validate';
+import { requireIdParam } from '../lib/params';
 
 /**
  * Convención de claves R2: items/{item_id}/{uuid}.{ext}. La extensión viene de
@@ -27,7 +28,7 @@ function buildR2Key(itemId: number, ext: string): string {
 export const itemMediaRoutes = new Hono<AppEnv>();
 
 itemMediaRoutes.post('/:id/media', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const itemId = Number(c.req.param('id'));
+  const itemId = requireIdParam(c);
   const item = await c.env.DB.prepare('SELECT id FROM menu_items WHERE id = ?').bind(itemId).first();
   if (!item) throw notFound('Ítem no encontrado');
 
@@ -89,7 +90,7 @@ mediaRoutes.get('/:key{.+}', async (c) => {
 });
 
 mediaRoutes.delete('/:id', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
   const media = await c.env.DB.prepare('SELECT * FROM item_media WHERE id = ?').bind(id).first<MediaRow>();
   if (!media) throw notFound('Media no encontrada');
 
@@ -102,7 +103,7 @@ mediaRoutes.delete('/:id', requireAuth, requireRole('owner', 'admin'), async (c)
 });
 
 mediaRoutes.patch('/:id/order', requireAuth, requireRole('owner', 'admin'), async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = requireIdParam(c);
   const { displayOrder } = await parseBody(c, mediaOrderSchema);
 
   const result = await c.env.DB.prepare('UPDATE item_media SET display_order = ? WHERE id = ? RETURNING *')
