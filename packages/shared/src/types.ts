@@ -149,3 +149,38 @@ export interface MenuItemDetail extends MenuItem {
   category: Pick<Category, 'id' | 'slug' | 'nameEs' | 'nameEn' | 'hasSizes'>;
   prices: ResolvedPrice[];
 }
+
+/**
+ * Forma común de un ítem del menú ya resuelto para vitrina: precios (vía
+ * `resolveItemPrices`/`resolveSimplePrice`, pricing.ts) y portada (vía el
+ * patrón anti-N+1 de `db/covers.ts`). La usan tanto `GET /menu-items/sections`
+ * como `GET /collections` — mismo shape, un solo lugar.
+ */
+export interface MenuItemWithPrices extends MenuItem {
+  prices: ResolvedPrice[];
+  coverImageKey: string | null;
+}
+
+/**
+ * Claves fijas y cerradas de las colecciones de merchandising del catálogo
+ * (BLUEPRINT — "colecciones configurables"). El dueño no crea ni borra
+ * colecciones desde el CMS, solo edita título/activo/orden y qué ítems
+ * contienen; por eso la clave es inmutable y viene de una lista cerrada.
+ */
+export const COLLECTION_KEYS = ['top_sellers', 'daily_featured', 'promos'] as const;
+export type CollectionKey = (typeof COLLECTION_KEYS)[number];
+
+/** Colección de merchandising configurable desde el CMS ("más pedidos", "promos especiales", …). */
+export interface Collection {
+  id: number;
+  key: CollectionKey;
+  titleEs: string;
+  titleEn: string;
+  isActive: boolean;
+  displayOrder: number;
+}
+
+/** Colección con sus ítems ya resueltos, en el orden curado por el dueño. */
+export interface CollectionWithItems extends Collection {
+  items: MenuItemWithPrices[];
+}

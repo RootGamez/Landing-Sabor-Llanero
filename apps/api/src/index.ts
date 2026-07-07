@@ -9,6 +9,7 @@ import { userRoutes } from './routes/users';
 import { sizeRoutes } from './routes/sizes';
 import { categoryRoutes } from './routes/categories';
 import { menuItemRoutes } from './routes/menu-items';
+import { collectionRoutes } from './routes/collections';
 import { itemMediaRoutes, mediaRoutes } from './routes/media';
 import { whatsappRoutes } from './routes/whatsapp';
 import { eventRoutes } from './routes/events';
@@ -75,6 +76,7 @@ app.route('/sizes', sizeRoutes);
 app.route('/categories', categoryRoutes);
 app.route('/menu-items', menuItemRoutes);
 app.route('/menu-items', itemMediaRoutes); // /menu-items/:id/media
+app.route('/collections', collectionRoutes);
 app.route('/media', mediaRoutes);
 app.route('/whatsapp', whatsappRoutes);
 app.route('/events', eventRoutes);

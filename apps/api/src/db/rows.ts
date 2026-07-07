@@ -7,6 +7,8 @@ import type {
   AnalyticsEvent,
   Category,
   CategoryPrice,
+  Collection,
+  CollectionKey,
   ItemPrice,
   MenuItem,
   MenuItemMedia,
@@ -164,6 +166,34 @@ export const mapWhatsapp = (r: WhatsappRow): WhatsappConfig => ({
   messageTemplateEn: r.message_template_en,
   updatedAt: r.updated_at,
 });
+
+export interface CollectionRow {
+  id: number;
+  key: string;
+  title_es: string;
+  title_en: string;
+  is_active: number;
+  display_order: number;
+}
+export const mapCollection = (r: CollectionRow): Collection => ({
+  id: r.id,
+  // La key es cerrada (COLLECTION_KEYS) por diseño de dominio, no por CHECK
+  // en la columna SQL; el cast es seguro porque solo el seed de la migración
+  // inserta filas y la key nunca se edita (routes/collections.ts la valida).
+  key: r.key as CollectionKey,
+  titleEs: r.title_es,
+  titleEn: r.title_en,
+  isActive: Boolean(r.is_active),
+  displayOrder: r.display_order,
+});
+
+/** Fila de collection_items sin mapper propio: solo se usa unida a menu_items en routes/collections.ts. */
+export interface CollectionItemRow {
+  id: number;
+  collection_id: number;
+  item_id: number;
+  display_order: number;
+}
 
 export interface EventRow {
   id: number;

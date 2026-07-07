@@ -11,6 +11,7 @@ import {
   type ItemPrice,
   type MenuItem,
   type MenuItemDetail,
+  type MenuItemWithPrices,
   type PaginatedResult,
   type ResolvedPrice,
   type Size,
@@ -88,13 +89,9 @@ menuItemRoutes.get('/', async (c) => {
 const SECTION_ITEMS_DEFAULT = 8;
 const SECTION_ITEMS_MAX = 24;
 
-interface SectionItem extends MenuItem {
-  prices: ResolvedPrice[];
-  coverImageKey: string | null;
-}
 interface MenuSectionResponse {
   category: Category;
-  items: SectionItem[];
+  items: MenuItemWithPrices[];
 }
 
 /**
@@ -146,7 +143,7 @@ menuItemRoutes.get('/sections', async (c) => {
   const itemPrices: ItemPrice[] = itemPriceRows.results.map(mapItemPrice);
 
   const categoryById = new Map(categories.map((r) => [r.id, r]));
-  const itemsByCategory = new Map<number, SectionItem[]>();
+  const itemsByCategory = new Map<number, MenuItemWithPrices[]>();
   for (const row of items) {
     const categoryRow = categoryById.get(row.category_id);
     if (!categoryRow) continue;

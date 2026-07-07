@@ -125,3 +125,28 @@ export interface ReportDateRangeQuery {
   from?: string; // ISO date
   to?: string; // ISO date
 }
+
+/**
+ * Edición de una colección de merchandising. La `key` es inmutable (no viene
+ * acá): se elige por la URL (`PATCH /collections/:key`) y la API valida que
+ * sea una de `COLLECTION_KEYS` antes de tocar la DB.
+ */
+export interface UpdateCollectionInput {
+  titleEs?: string;
+  titleEn?: string;
+  isActive?: boolean;
+}
+
+/** Un ítem dentro del input de reemplazo de `PUT /collections/:key/items`. */
+export interface CollectionItemInput {
+  itemId: number;
+  displayOrder?: number;
+}
+
+/**
+ * Reemplaza el set completo de ítems de una colección (curaduría manual del
+ * dueño, no más de 20 por colección para que siga siendo "lo destacado").
+ */
+export interface ReplaceCollectionItemsInput {
+  items: CollectionItemInput[];
+}

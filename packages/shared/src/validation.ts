@@ -170,3 +170,35 @@ export const whatsappUpdateSchema = z.object({
   messageTemplateEs: z.string().min(1).optional(),
   messageTemplateEn: z.string().min(1).optional(),
 });
+
+/** La `key` de una colección no se valida acá: es inmutable y va por la URL (ver routes/collections.ts). */
+export const updateCollectionSchema = z.object({
+  titleEs: z.string().min(1, 'titleEs requerido').optional(),
+  titleEn: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+const COLLECTION_ITEMS_MAX = 20;
+
+const collectionItemInputSchema = z.object({
+  itemId: z.number().int().positive('itemId inválido'),
+  displayOrder: z.number().int().min(0).optional(),
+});
+
+export const replaceCollectionItemsSchema = z.object({
+  items: z
+    .array(collectionItemInputSchema)
+    .max(COLLECTION_ITEMS_MAX, `una colección admite como máximo ${COLLECTION_ITEMS_MAX} ítems`),
+}).superRefine((data, ctx) => {
+  const seen = new Set<number>();
+  data.items.forEach((entry, index) => {
+    if (seen.has(entry.itemId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['items', index, 'itemId'],
+        message: 'itemId duplicado en items',
+      });
+    }
+    seen.add(entry.itemId);
+  });
+});
