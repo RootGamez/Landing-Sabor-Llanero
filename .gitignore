@@ -1,12 +1,16 @@
-# dependencias
-/node_modules
+# dependencias (raíz y de cada app del monorepo)
+node_modules
 
 # next.js
-/.next/
-/out/
+.next/
+out/
+
+# cloudflare / wrangler
+.wrangler/
 
 # producción
-/build
+build/
+dist/
 
 # misc
 .DS_Store

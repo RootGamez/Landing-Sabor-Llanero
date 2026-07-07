@@ -1,27 +1,15 @@
 {
-  "name": "pizzeria-sabor-llanero",
-  "version": "1.0.0",
+  "name": "sabor-llanero",
   "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@11.5.0",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "preview": "serve out",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "next": "^15.3.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "three": "^0.169.0"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.8",
-    "@types/node": "^22.15.0",
-    "@types/three": "^0.169.0",
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
-    "postcss": "^8.5.3",
-    "tailwindcss": "^4.1.8",
-    "typescript": "^5.8.3"
+    "dev:web": "pnpm --filter @sabor/web dev",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "build": "pnpm -r --if-present run build"
   }
 }
