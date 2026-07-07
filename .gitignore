@@ -26,5 +26,4 @@ npm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# notas internas de planning: repo publico, no se comitea
 docs/BLUEPRINT.md
