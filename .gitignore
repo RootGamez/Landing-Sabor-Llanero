@@ -22,6 +22,11 @@ npm-debug.log*
 # env
 .env*
 
+# cloudflare workers secrets (apps/api)
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
