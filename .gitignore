@@ -34,3 +34,7 @@ npm-debug.log*
 next-env.d.ts
 
 docs/BLUEPRINT.md
+
+# datos reales de la carta/negocio: no debe ir a git (contiene el catálogo real)
+apps/api/seed.sql
+
