@@ -1,0 +1,21 @@
+# Headers de seguridad servidos por Cloudflare (Workers assets / Pages) para
+# todo el sitio estático (BLUEPRINT §2.2). Solo aplica en producción — en dev
+# `next dev` no lee este archivo, por eso no hace falta permitir localhost.
+#
+# Notas de la CSP:
+# - script-src 'unsafe-inline': Next.js (export estático) emite <script> inline
+#   de hidratación; featurable.com es el widget de reseñas de Google.
+# - connect-src https:: fetch del catálogo hacia la API (sabor-llanero-api,
+#   Worker) y las llamadas del widget de Featurable.
+# - img-src https: data: blob:: fotos del catálogo servidas por la API desde
+#   R2 (/api/media/*), avatares de las reseñas de Google, y blob: para las
+#   texturas que GLTFLoader (Three.js) extrae del modelo pizza.glb.
+# - frame-src: iframe del mapa de la ficha de Google (Footer).
+# - Las fuentes (Bangers/Poppins) las self-hostea next/font: no se necesita
+#   fonts.googleapis.com.
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://featurable.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; connect-src 'self' https:; media-src 'self'; frame-src https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'

@@ -72,6 +72,7 @@ export const siteConfig = {
   navLinks: [
     { label: "Inicio", href: "#inicio" },
     { label: "Nosotros", href: "#nosotros" },
+    { label: "Menú", href: "#menu" },
     { label: "Galería", href: "#galeria" },
     { label: "Reseñas", href: "#resenas" },
     { label: "Ubicación", href: "#ubicacion" },

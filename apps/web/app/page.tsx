@@ -7,6 +7,7 @@ import Footer from "@/components/sections/Footer";
 import Gallery from "@/components/sections/Gallery";
 import GoogleReviews from "@/components/sections/GoogleReviews";
 import Hero from "@/components/sections/Hero";
+import Menu from "@/components/sections/Menu";
 import Navbar from "@/components/sections/Navbar";
 import PizzaBuilder from "@/components/sections/PizzaBuilder";
 import PizzaShowcase from "@/components/sections/PizzaShowcase";
@@ -23,15 +24,8 @@ export default function HomePage() {
         <Features />
         <About />
 
-        {/*
-          ── FUTURO: sección Menú / Carta ──────────────────────────
-          Cuando la carta esté lista, crea components/sections/Menu.tsx
-          y móntala aquí. El anchor #menu ya queda reservado:
-          <section id="menu"> ... </section>
-          Recuerda añadir { label: "Menú", href: "#menu" } a
-          siteConfig.navLinks.
-          ──────────────────────────────────────────────────────────
-        */}
+        {/* Carta / catálogo dinámico (anchor #menu) — hidrata client-side desde apps/api */}
+        <Menu />
 
         <PizzaBuilder />
         <AlboradaFeature />

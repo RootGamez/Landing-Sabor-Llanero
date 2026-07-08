@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev:web": "pnpm --filter @sabor/web dev",
+    "dev:cms": "pnpm --filter @sabor/cms dev",
     "typecheck": "pnpm -r --if-present run typecheck",
     "build": "pnpm -r --if-present run build"
   }

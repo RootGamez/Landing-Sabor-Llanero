@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
   // Rutas con barra final (/sobre/) → estructura de carpetas estable en CF Pages.
   trailingSlash: true,
   poweredByHeader: false,
+  // @sabor/shared es TS source-only (sin build propio): Next debe transpilarlo
+  // igual que su propio código en vez de esperar un dist/ compilado.
+  transpilePackages: ["@sabor/shared"],
 };
 
 export default nextConfig;
