@@ -66,9 +66,9 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
 
       {/* Lightbox ligero */}
       {activeImage && (
-        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions --
-        // click en el fondo para cerrar es solo un atajo de mouse; el cierre por teclado ya
-        // existe vía el listener de Escape en el useEffect de arriba.
+        /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions --
+           click en el fondo para cerrar es solo un atajo de mouse; el cierre por teclado ya
+           existe vía el listener de Escape en el useEffect de arriba. */
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm"
           role="dialog"

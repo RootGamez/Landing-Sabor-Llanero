@@ -7,7 +7,7 @@
  *   pnpm --filter @sabor/api exec tsx scripts/create-owner.ts <email> <password> <nombre>
  *
  * Copiar el INSERT resultante y correrlo con:
- *   pnpm wrangler d1 execute sabor-llanero-db --local --command "<INSERT ...>"
+ *   pnpm wrangler d1 execute sabor-llanero --local --command "<INSERT ...>"
  */
 import { hashPassword } from '../src/lib/password';
 

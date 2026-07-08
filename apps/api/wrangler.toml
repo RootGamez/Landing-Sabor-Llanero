@@ -3,23 +3,21 @@ main = "src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Reemplazar database_id tras correr:
-#   pnpm wrangler d1 create sabor-llanero-db
+# Base D1 real de la cuenta (creada 2026-07-07). En dev (`wrangler dev`) la DB
+# es local (Miniflare); este id solo se usa para comandos --remote.
 [[d1_databases]]
 binding = "DB"
-database_name = "sabor-llanero-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_name = "sabor-llanero"
+database_id = "4b4a7e86-683d-40e5-bfe0-e1e67e968695"
 migrations_dir = "migrations"
 
-# bucket_name debe ser el nombre EXACTO de tu bucket real en Cloudflare
-# (el que tiene habilitada la URL pública pub-XXXX.r2.dev).
-#   pnpm wrangler r2 bucket create sabor-llanero-media
+# bucket_name es el nombre EXACTO del bucket real en Cloudflare.
 # remote = true -> en `wrangler dev` local, este binding usa el bucket REAL de
-# Cloudflare (no el R2 local), así las subidas quedan disponibles en la URL r2.dev.
+# Cloudflare (no el R2 local), así las subidas quedan disponibles de una.
 # Requiere estar logueado: `pnpm wrangler login`. La base D1 sigue siendo local.
 [[r2_buckets]]
 binding = "MEDIA"
-bucket_name = "sabor-llanero-media"
+bucket_name = "sabor-llanero"
 remote = true
 
 [vars]
@@ -66,13 +64,13 @@ WEB_ORIGIN = "https://saborllanero.online,https://www.saborllanero.online"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "sabor-llanero-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_name = "sabor-llanero"
+database_id = "4b4a7e86-683d-40e5-bfe0-e1e67e968695"
 migrations_dir = "migrations"
 
 [[env.production.r2_buckets]]
 binding = "MEDIA"
-bucket_name = "sabor-llanero-media"
+bucket_name = "sabor-llanero"
 
 [[env.production.unsafe.bindings]]
 name = "LOGIN_LIMITER"

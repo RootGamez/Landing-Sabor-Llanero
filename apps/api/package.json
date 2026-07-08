@@ -7,9 +7,9 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --env production",
     "typecheck": "tsc --noEmit",
-    "db:migrations:apply:local": "wrangler d1 migrations apply sabor-llanero-db --local",
-    "db:migrations:apply:prod": "wrangler d1 migrations apply sabor-llanero-db --env production --remote",
-    "db:seed:local": "wrangler d1 execute sabor-llanero-db --local --file=./seed.sql",
+    "db:migrations:apply:local": "wrangler d1 migrations apply sabor-llanero --local",
+    "db:migrations:apply:prod": "wrangler d1 migrations apply sabor-llanero --env production --remote",
+    "db:seed:local": "wrangler d1 execute sabor-llanero --local --file=./seed.sql",
     "create-owner": "tsx scripts/create-owner.ts"
   },
   "dependencies": {
