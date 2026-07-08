@@ -1,27 +1,25 @@
 {
-  "name": "pizzeria-sabor-llanero",
-  "version": "1.0.0",
+  "name": "sabor-llanero",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "preview": "serve out",
-    "lint": "next lint"
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@11.5.0",
+  "engines": {
+    "node": ">=20"
   },
-  "dependencies": {
-    "next": "^15.3.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "three": "^0.169.0"
+  "scripts": {
+    "dev:web": "pnpm --filter @sabor/web dev",
+    "dev:cms": "pnpm --filter @sabor/cms dev",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "build": "pnpm -r --if-present run build",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.8",
-    "@types/node": "^22.15.0",
-    "@types/three": "^0.169.0",
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
-    "postcss": "^8.5.3",
-    "tailwindcss": "^4.1.8",
-    "typescript": "^5.8.3"
+    "@eslint/js": "^9.39.4",
+    "@next/eslint-plugin-next": "15.5.19",
+    "eslint": "^9.39.4",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript-eslint": "^8.63.0"
   }
 }

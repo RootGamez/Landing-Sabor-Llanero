@@ -1,0 +1,26 @@
+{
+  "name": "@sabor/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --env production",
+    "typecheck": "tsc --noEmit",
+    "db:migrations:apply:local": "wrangler d1 migrations apply sabor-llanero --local",
+    "db:migrations:apply:prod": "wrangler d1 migrations apply sabor-llanero --env production --remote",
+    "db:seed:local": "wrangler d1 execute sabor-llanero --local --file=./seed.sql",
+    "create-owner": "tsx scripts/create-owner.ts"
+  },
+  "dependencies": {
+    "@sabor/shared": "workspace:*",
+    "hono": "^4.6.13",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.37.0"
+  }
+}

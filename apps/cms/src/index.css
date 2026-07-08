@@ -1,0 +1,147 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/*
+ * Design tokens del CMS — Sabor Llanero.
+ * Self-contained (no depende de packages/shared: ese paquete todavía no trae
+ * tokens.css compartido — ver BLUEPRINT §2.5/§5). Misma arquitectura que el
+ * CMS de referencia (Jaw): paleta base -> semánticos (:root) -> @theme de
+ * Tailwind v4. Paleta: tricolor de marca (amarillo/azul/rojo), tomada de
+ * apps/web/app/globals.css.
+ */
+:root {
+  /* ---- Paleta base (tricolor de marca) ---- */
+  --lime: #ffce00; /* amarillo — CTA, acentos */
+  --forest: #00247d; /* azul — superficie premium, texto, primario */
+  --sky: #cf142b; /* rojo — secundario */
+  --bone: #fdf8ef; /* crema — fondo claro */
+  --ink: #16120e; /* casi-negro para scrims/sombras */
+
+  /* ---- Derivados ---- */
+  --lime-strong: #e6b800;
+  --lime-soft: #fff3c2;
+  --forest-deep: #001a5c;
+  --forest-mid: #0a1133;
+  --forest-line: #24408f; /* bordes sobre fondo oscuro */
+  --sky-strong: #a80f22;
+  --sky-soft: #f8d9dd;
+  --bone-2: #f6edda;
+
+  --onyx: var(--ink);
+
+  /* ---- Semánticos: superficie ---- */
+  --bg: var(--bone);
+  --surface: #f9f7f2;
+  --surface-2: var(--bone-2);
+  --surface-dark: var(--forest);
+  --card: #fbf9f4;
+  --card-foreground: var(--forest);
+  --popover: #fbf9f4;
+  --popover-foreground: var(--forest);
+
+  /* ---- Semánticos: texto y bordes ---- */
+  --text: var(--forest);
+  --text-muted: #5b5f6b;
+  --text-inverse: var(--bone);
+  --border: #ddd6c4;
+  --input: #ddd6c4;
+
+  /* ---- Semánticos: acción ---- */
+  --primary: var(--forest);
+  --primary-foreground: var(--lime);
+  --secondary: var(--sky);
+  --secondary-foreground: #ffffff;
+  --success: #2e7d4f;
+  --success-foreground: #ffffff;
+  --accent: var(--lime);
+  --accent-foreground: var(--forest-mid);
+  --destructive: var(--sky-strong);
+  --destructive-foreground: #ffffff;
+  --muted: var(--bone-2);
+  --muted-foreground: var(--text-muted);
+  --ring: var(--forest);
+
+  --radius: 1rem;
+}
+
+@theme inline {
+  --color-lime: var(--lime);
+  --color-forest: var(--forest);
+  --color-sky: var(--sky);
+  --color-bone: var(--bone);
+  --color-onyx: var(--onyx);
+
+  --color-lime-strong: var(--lime-strong);
+  --color-lime-soft: var(--lime-soft);
+  --color-forest-deep: var(--forest-deep);
+  --color-forest-mid: var(--forest-mid);
+  --color-forest-line: var(--forest-line);
+  --color-sky-strong: var(--sky-strong);
+  --color-sky-soft: var(--sky-soft);
+
+  --color-bg: var(--bg);
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-dark: var(--surface-dark);
+  --color-foreground: var(--text);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverse: var(--text-inverse);
+  --color-border: var(--border);
+  --color-input: var(--input);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl2: calc(var(--radius) + 12px);
+
+  --shadow-glow: 0 12px 44px -10px color-mix(in srgb, var(--lime) 50%, transparent);
+  --shadow-glow-sky: 0 12px 44px -10px color-mix(in srgb, var(--sky) 55%, transparent);
+  --shadow-sticker: 5px 5px 0 0 var(--forest);
+  --shadow-sticker-lime: 5px 5px 0 0 var(--lime);
+  --shadow-sticker-sky: 5px 5px 0 0 var(--sky);
+
+  /* Sistema (CSP del CMS no permite fuentes externas): stack nativo. */
+  --font-display: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@layer components {
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--lime);
+}

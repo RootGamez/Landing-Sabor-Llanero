@@ -1,0 +1,85 @@
+name = "sabor-llanero-api-dev"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Base D1 real de la cuenta (creada 2026-07-07). En dev (`wrangler dev`) la DB
+# es local (Miniflare); este id solo se usa para comandos --remote.
+[[d1_databases]]
+binding = "DB"
+database_name = "sabor-llanero"
+database_id = "4b4a7e86-683d-40e5-bfe0-e1e67e968695"
+migrations_dir = "migrations"
+
+# bucket_name es el nombre EXACTO del bucket real en Cloudflare.
+# remote = true -> en `wrangler dev` local, este binding usa el bucket REAL de
+# Cloudflare (no el R2 local), así las subidas quedan disponibles de una.
+# Requiere estar logueado: `pnpm wrangler login`. La base D1 sigue siendo local.
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "sabor-llanero"
+remote = true
+
+[vars]
+# JWT_SECRET real va como secret, NO acá:
+#   pnpm wrangler secret put JWT_SECRET
+ENVIRONMENT = "development"
+# CORS: en producción, descomentar y poner los dominios reales de web y (a futuro) cms.
+# En development (ENVIRONMENT="development") se permiten localhost:3000/5173/5174 automáticamente.
+# WEB_ORIGIN = "https://saborllanero.online"
+# CMS_ORIGIN = "https://cms.saborllanero.online" # el CMS aún no existe (fase 4)
+
+# Rate limiting nativo de Cloudflare (period solo admite 10 o 60 segundos).
+# namespace_id debe ser único por limitador dentro de la cuenta. Esta cuenta ya usa
+# 1001/1002 en Jaw-Project, por eso acá se usan 2001/2002.
+# LOGIN_LIMITER: frena fuerza bruta en /api/auth/login (10 intentos/min por IP).
+[[unsafe.bindings]]
+name = "LOGIN_LIMITER"
+type = "ratelimit"
+namespace_id = "2001"
+simple = { limit = 10, period = 60 }
+
+# EVENTS_LIMITER: frena flood de /api/events (público) — 60 eventos/min por IP.
+[[unsafe.bindings]]
+name = "EVENTS_LIMITER"
+type = "ratelimit"
+namespace_id = "2002"
+simple = { limit = 60, period = 60 }
+
+# ============================================================================
+# PRODUCCIÓN — desplegar con:  pnpm wrangler deploy --env production
+# Los entornos de wrangler NO heredan vars ni bindings del nivel superior: todo
+# se redeclara acá.
+# Secret de producción (una sola vez):
+#   pnpm wrangler secret put JWT_SECRET --env production
+# ============================================================================
+[env.production]
+name = "sabor-llanero-api"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+# CORS: orígenes permitidos (se aceptan varios separados por coma).
+WEB_ORIGIN = "https://saborllanero.online,https://www.saborllanero.online"
+# CMS_ORIGIN = "https://cms.saborllanero.online" # el CMS aún no existe (fase 4)
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "sabor-llanero"
+database_id = "4b4a7e86-683d-40e5-bfe0-e1e67e968695"
+migrations_dir = "migrations"
+
+[[env.production.r2_buckets]]
+binding = "MEDIA"
+bucket_name = "sabor-llanero"
+
+[[env.production.unsafe.bindings]]
+name = "LOGIN_LIMITER"
+type = "ratelimit"
+namespace_id = "2001"
+simple = { limit = 10, period = 60 }
+
+[[env.production.unsafe.bindings]]
+name = "EVENTS_LIMITER"
+type = "ratelimit"
+namespace_id = "2002"
+simple = { limit = 60, period = 60 }
