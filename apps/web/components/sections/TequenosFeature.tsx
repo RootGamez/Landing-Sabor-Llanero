@@ -1,4 +1,5 @@
 import Image from "next/image";
+import MenuCta from "@/components/ui/MenuCta";
 import Reveal from "@/components/ui/Reveal";
 import { StarIcon, WhatsAppIcon } from "@/components/ui/icons";
 import { siteConfig } from "@/lib/siteConfig";
@@ -74,15 +75,18 @@ export default function TequenosFeature() {
           </ul>
 
           <Reveal delay={580}>
-            <a
-              href={siteConfig.whatsapp.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-shine mt-8 inline-flex items-center gap-2.5 rounded-full bg-brand-red px-9 py-4 text-base font-semibold text-white shadow-glow-red transition-all duration-300 hover:scale-[1.04] hover:bg-brand-red-deep active:scale-95"
-            >
-              <WhatsAppIcon className="h-5 w-5" />
-              Pedir tequeños
-            </a>
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center md:justify-start sm:gap-4">
+              <a
+                href={siteConfig.whatsapp.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-shine inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-brand-red px-9 py-4 text-base font-semibold text-white shadow-glow-red transition-all duration-300 hover:scale-[1.04] hover:bg-brand-red-deep active:scale-95 sm:w-auto"
+              >
+                <WhatsAppIcon className="h-5 w-5" />
+                Pedir tequeños
+              </a>
+              <MenuCta variant="outline" className="w-full sm:w-auto" />
+            </div>
           </Reveal>
         </div>
 

@@ -61,10 +61,12 @@ reales de Google. Para mostrarlo como **carrusel automático**:
 2. Abre tu widget → **Layout** → elige **Carousel** y activa el autoplay.
 3. Guarda. No hay que tocar código: el cambio se refleja solo.
 
-## Sección Menú (futuro)
+## Carta online (`/menu/`)
 
-Aún no existe carta online. El anchor `#menu` está reservado en
-`app/page.tsx` (ver comentario) para montarla cuando esté lista.
+La carta vive en su propia ruta `app/menu/page.tsx` (export estático →
+`out/menu/index.html`) y reutiliza `components/sections/Menu.tsx`, que se
+hidrata client-side desde `apps/api`. En la landing, los botones "Ver menú"
+(`components/ui/MenuCta.tsx`) y el link "Menú" del navbar llevan a esa ruta.
 
 ## Deploy
 

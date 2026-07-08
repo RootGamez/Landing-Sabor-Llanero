@@ -78,13 +78,13 @@ function buildRestaurantJsonLd(): string {
     servesCuisine: ["Pizza", "Venezolana", "Peruana"],
     areaServed: ["Pisco", "San Andrés"],
     priceRange: "$$",
-    // Referencia ESTÁTICA a la carta (#menu). Los ítems del catálogo se
+    // Referencia ESTÁTICA a la carta (ruta /menu). Los ítems del catálogo se
     // hidratan client-side (export estático): incluirlos acá sería declarar
     // en el HTML servido datos que no están en él.
     hasMenu: {
       "@type": "Menu",
       name: `Carta de ${siteConfig.fullName}`,
-      url: `${siteConfig.url}/#menu`,
+      url: `${siteConfig.url}/menu/`,
       inLanguage: ["es", "en"],
     },
     image: `${siteConfig.url}/images/featured/pizza-alborada.jpg`,

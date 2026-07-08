@@ -7,12 +7,12 @@ import Footer from "@/components/sections/Footer";
 import Gallery from "@/components/sections/Gallery";
 import GoogleReviews from "@/components/sections/GoogleReviews";
 import Hero from "@/components/sections/Hero";
-import Menu from "@/components/sections/Menu";
 import Navbar from "@/components/sections/Navbar";
 import PizzaBuilder from "@/components/sections/PizzaBuilder";
 import PizzaShowcase from "@/components/sections/PizzaShowcase";
 import CursorGlow from "@/components/ui/CursorGlow";
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
+import LegacyMenuRedirect from "@/components/ui/LegacyMenuRedirect";
 
 export default function HomePage() {
   return (
@@ -23,10 +23,6 @@ export default function HomePage() {
         <DeliveryBar />
         <Features />
         <About />
-
-        {/* Carta / catálogo dinámico (anchor #menu) — hidrata client-side desde apps/api */}
-        <Menu />
-
         <PizzaBuilder />
         <AlboradaFeature />
         <TequenosFeature />
@@ -37,6 +33,7 @@ export default function HomePage() {
       <Footer />
       <CursorGlow />
       <FloatingWhatsApp />
+      <LegacyMenuRedirect />
     </>
   );
 }

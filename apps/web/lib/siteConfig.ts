@@ -69,13 +69,15 @@ export const siteConfig = {
     { name: "WhatsApp", url: "https://wa.me/51932770766" },
   ] satisfies SocialLink[],
 
+  // Hrefs absolutos: desde la landing siguen haciendo scroll al anchor;
+  // desde /menu navegan de vuelta a la home. "Menú" va a su ruta dedicada.
   navLinks: [
-    { label: "Inicio", href: "#inicio" },
-    { label: "Nosotros", href: "#nosotros" },
-    { label: "Menú", href: "#menu" },
-    { label: "Galería", href: "#galeria" },
-    { label: "Reseñas", href: "#resenas" },
-    { label: "Ubicación", href: "#ubicacion" },
+    { label: "Inicio", href: "/#inicio" },
+    { label: "Nosotros", href: "/#nosotros" },
+    { label: "Menú", href: "/menu/" },
+    { label: "Galería", href: "/#galeria" },
+    { label: "Reseñas", href: "/#resenas" },
+    { label: "Ubicación", href: "/#ubicacion" },
   ] satisfies NavLink[],
 
   /** Rutas de medios de marca */

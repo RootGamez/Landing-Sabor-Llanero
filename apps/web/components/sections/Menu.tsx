@@ -23,11 +23,11 @@ import { CollectionsSkeleton, SectionsSkeleton } from "@/components/menu/MenuSke
 import PromosBlock from "@/components/menu/PromosBlock";
 
 /**
- * Sección "Nuestra Carta", montada en el anchor #menu reservado en
- * app/page.tsx (BLUEPRINT fase 5). Todo el catálogo se hidrata client-side
+ * Sección "Nuestra Carta", montada en la ruta dedicada /menu
+ * (app/menu/page.tsx). Todo el catálogo se hidrata client-side
  * contra apps/api (el sitio es export estático, sin SSR) y el fetch recién
- * arranca cuando la sección se acerca al viewport, para no competir con la
- * carga inicial de la landing (Core Web Vitals).
+ * arranca cuando la sección se acerca al viewport — en /menu el gate
+ * dispara de inmediato porque la sección está arriba del todo.
  *
  * Degradación por bloque: si fallan solo las colecciones, los rails
  * simplemente no aparecen; si falla el catálogo por categorías, se ofrece

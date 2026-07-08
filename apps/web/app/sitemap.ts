@@ -12,5 +12,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 1,
     },
+    {
+      url: `${siteConfig.url}/menu/`,
+      lastModified: new Date(),
+      // La carta cambia seguido (promos del día, destacados)
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
   ];
 }

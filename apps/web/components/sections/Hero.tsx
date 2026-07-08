@@ -1,4 +1,5 @@
 import HeroCarousel from "@/components/ui/HeroCarousel";
+import MenuCta from "@/components/ui/MenuCta";
 import OpenBadge from "@/components/ui/OpenBadge";
 import ParticlesCanvas from "@/components/ui/ParticlesCanvas";
 import Reveal from "@/components/ui/Reveal";
@@ -74,16 +75,9 @@ export default function Hero() {
           </Reveal>
 
           <Reveal delay={420}>
-          <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center md:justify-start sm:gap-4">
-            <a
-              href={siteConfig.googleMapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-shine inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-brand-red px-9 py-4 text-base font-semibold text-white shadow-glow-red transition-all duration-300 hover:scale-[1.04] hover:bg-brand-red-deep active:scale-95 sm:w-auto"
-            >
-              <MapPinIcon className="h-5 w-5" />
-              Cómo llegar
-            </a>
+          <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start sm:gap-4">
+            {/* CTA primario: la carta en su ruta dedicada */}
+            <MenuCta label="Ver el menú" className="w-full sm:w-auto" />
             <a
               href={siteConfig.whatsapp.url}
               target="_blank"
@@ -92,6 +86,15 @@ export default function Hero() {
             >
               <WhatsAppIcon className="h-5 w-5" />
               Escríbenos
+            </a>
+            <a
+              href={siteConfig.googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-white/10 px-9 py-4 text-base font-semibold text-white ring-2 ring-white/50 backdrop-blur-md transition-all duration-300 hover:scale-[1.04] hover:bg-white hover:text-brand-blue active:scale-95 sm:w-auto"
+            >
+              <MapPinIcon className="h-5 w-5" />
+              Cómo llegar
             </a>
           </div>
           </Reveal>
