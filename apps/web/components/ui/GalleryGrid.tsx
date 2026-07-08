@@ -32,6 +32,9 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [lightbox, images.length, close]);
 
+  // Imagen activa del lightbox (narrowing explícito por noUncheckedIndexedAccess)
+  const activeImage = lightbox !== null ? images[lightbox] : undefined;
+
   return (
     <>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-5">
@@ -62,12 +65,15 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
       </div>
 
       {/* Lightbox ligero */}
-      {lightbox !== null && (
+      {activeImage && (
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions --
+        // click en el fondo para cerrar es solo un atajo de mouse; el cierre por teclado ya
+        // existe vía el listener de Escape en el useEffect de arriba.
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-label={images[lightbox].alt}
+          aria-label={activeImage.alt}
           onClick={close}
         >
           <button
@@ -78,19 +84,22 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
           >
             <CloseIcon className="h-5 w-5" />
           </button>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions --
+              onClick aquí solo detiene la propagación hacia el fondo (evita cerrar el lightbox
+              al hacer click sobre la imagen); no es un control interactivo. */}
           <figure
             className="relative h-[80vh] w-full max-w-4xl"
             onClick={(e) => e.stopPropagation()}
           >
             <Image
-              src={images[lightbox].src}
-              alt={images[lightbox].alt}
+              src={activeImage.src}
+              alt={activeImage.alt}
               fill
               sizes="100vw"
               className="object-contain"
             />
             <figcaption className="absolute inset-x-0 -bottom-2 translate-y-full text-center text-sm text-white/70">
-              {images[lightbox].alt}
+              {activeImage.alt}
             </figcaption>
           </figure>
         </div>

@@ -21,7 +21,7 @@ const TIME_ZONE = "America/Lima";
 /** Convierte "HH:mm" a minutos desde medianoche */
 function toMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
+  return (h ?? 0) * 60 + (m ?? 0);
 }
 
 /** Día de semana (0–6) y minutos actuales en la zona horaria de Lima */

@@ -17,12 +17,14 @@ export interface WhatsappLinkParams {
 export function buildWhatsappLink(params: WhatsappLinkParams): string {
   const { phoneNumber, messageTemplate, itemName, sizeLabel, price, itemUrl } = params;
 
+  // replaceAll: si la plantilla repite algún placeholder, se sustituyen todas
+  // las ocurrencias (con .replace() solo se reemplazaba la primera).
   let message = messageTemplate
-    .replace('[nombre]', itemName)
-    .replace('[precio]', price)
-    .replace('[link]', itemUrl);
+    .replaceAll('[nombre]', itemName)
+    .replaceAll('[precio]', price)
+    .replaceAll('[link]', itemUrl);
 
-  message = sizeLabel ? message.replace('[tamaño]', sizeLabel) : stripSizePlaceholder(message);
+  message = sizeLabel ? message.replaceAll('[tamaño]', sizeLabel) : stripSizePlaceholder(message);
 
   const digits = phoneNumber.replace(/\D/g, '');
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;

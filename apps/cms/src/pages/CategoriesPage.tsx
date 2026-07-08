@@ -187,6 +187,9 @@ export function CategoriesPage() {
                 />
               </div>
 
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- el texto
+                  accesible está anidado 3 niveles bajo <label> (label > span.flex-col > span de
+                  texto), uno más que el depth:2 por defecto de la regla; sigue siendo accesible. */}
               <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl2 border-2 border-border bg-surface p-4">
                 <span className="flex flex-col">
                   <span className="text-sm font-bold text-text">Vende por tamaño</span>
@@ -220,6 +223,8 @@ export function CategoriesPage() {
                   <p className="text-sm text-text-muted">Cargando tamaños…</p>
                 ))}
 
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- ver comentario
+                  del label anterior (mismo patrón, texto anidado 3 niveles bajo <label>). */}
               <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl2 border-2 border-border bg-surface p-4">
                 <span className="flex flex-col">
                   <span className="text-sm font-bold text-text">Categoría activa</span>

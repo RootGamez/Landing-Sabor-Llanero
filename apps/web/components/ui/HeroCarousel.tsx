@@ -35,11 +35,15 @@ export default function HeroCarousel({ images }: HeroCarouselProps) {
 
   // Swipe táctil en móvil
   const onTouchStart = (e: React.TouchEvent): void => {
-    touchStartX.current = e.touches[0].clientX;
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartX.current = touch.clientX;
   };
   const onTouchEnd = (e: React.TouchEvent): void => {
     if (touchStartX.current === null) return;
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    const delta = touch.clientX - touchStartX.current;
     if (Math.abs(delta) > 50) goTo(delta < 0 ? current + 1 : current - 1);
     touchStartX.current = null;
   };

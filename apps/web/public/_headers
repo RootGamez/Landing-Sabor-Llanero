@@ -13,6 +13,11 @@
 # - frame-src: iframe del mapa de la ficha de Google (Footer).
 # - Las fuentes (Bangers/Poppins) las self-hostea next/font: no se necesita
 #   fonts.googleapis.com.
+#
+# TODO(fase 6): cuando exista la URL definitiva del Worker sabor-llanero-api,
+# endurecer connect-src e img-src de "https:" a la lista explícita de
+# orígenes reales (la API + https://featurable.com + los avatares de Google,
+# ej. https://lh3.googleusercontent.com), en vez del wildcard de esquema.
 /*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff

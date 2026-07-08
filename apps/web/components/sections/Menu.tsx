@@ -19,7 +19,7 @@ import CategoryBlock from "@/components/menu/CategoryBlock";
 import CollectionRail from "@/components/menu/CollectionRail";
 import ErrorRetry from "@/components/menu/ErrorRetry";
 import LangToggle from "@/components/menu/LangToggle";
-import { RailSkeleton, SectionsSkeleton } from "@/components/menu/MenuSkeletons";
+import { CollectionsSkeleton, SectionsSkeleton } from "@/components/menu/MenuSkeletons";
 import PromosBlock from "@/components/menu/PromosBlock";
 
 /**
@@ -98,8 +98,8 @@ function MenuContent() {
           <ErrorRetry lang={lang} onRetry={retryAll} />
         ) : (
           <div className="space-y-14 md:space-y-20">
-            {/* Carrusel "Destacados del día" */}
-            {collections.loading && <RailSkeleton label={ui.loading} />}
+            {/* Carrusel "Destacados del día" (+ los otros 2 rails posibles, ver CollectionsSkeleton) */}
+            {collections.loading && <CollectionsSkeleton label={ui.loading} />}
             {dailyFeatured && (
               <Reveal>
                 <CollectionRail

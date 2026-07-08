@@ -16,6 +16,7 @@ export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDiv
   return <div className={cn('flex flex-col gap-1.5 p-5', className)} {...props} />;
 }
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  // eslint-disable-next-line jsx-a11y/heading-has-content -- se cierra vía `{...props}` (incluye `children`); el linter no ve texto a través de un spread.
   return <h3 className={cn('font-display text-lg font-bold leading-tight', className)} {...props} />;
 }
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

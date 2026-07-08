@@ -42,6 +42,21 @@ export function RailSkeleton({ label }: { label: string }) {
   );
 }
 
+/**
+ * Tres rails en carga: mientras `collections` resuelve pueden aparecer hasta
+ * 3 bloques reales (daily_featured, top_sellers, promos). Reservar solo 1
+ * skeleton producía layout shift al resolver los 3; se reutiliza RailSkeleton.
+ */
+export function CollectionsSkeleton({ label }: { label: string }) {
+  return (
+    <>
+      {[0, 1, 2].map((i) => (
+        <RailSkeleton key={i} label={label} />
+      ))}
+    </>
+  );
+}
+
 /** Grid del catálogo por categorías en carga. */
 export function SectionsSkeleton({ label }: { label: string }) {
   return (

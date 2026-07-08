@@ -15,7 +15,7 @@ import {
 } from "@sabor/shared";
 import { StarIcon } from "@/components/ui/icons";
 import { siteConfig } from "@/lib/siteConfig";
-import { CATALOG_UI } from "@/lib/catalogUi";
+import { CATALOG_UI, SIZE_KEY_FALLBACK } from "@/lib/catalogUi";
 import { buildItemOrderLink } from "@/lib/whatsapp";
 import MenuImage from "@/components/menu/MenuImage";
 import OrderButton from "@/components/menu/OrderButton";
@@ -33,7 +33,11 @@ interface ItemCardProps {
 function sizeLabelFor(price: ResolvedPrice, sizes: Size[], lang: Lang): string {
   const size = sizes.find((s) => s.id === price.sizeId);
   if (size) return displaySizeLabel(size, lang);
-  // Fallback si /sizes no cargó: el key legible ('mediana' → 'Mediana').
+  // Fallback si /sizes no cargó: primero el diccionario bilingüe de keys
+  // conocidos ('mediana' → 'Medium' en inglés); si el key no está mapeado,
+  // se capitaliza el key crudo como último recurso.
+  const known = SIZE_KEY_FALLBACK[lang][price.sizeKey];
+  if (known) return known;
   return price.sizeKey.charAt(0).toUpperCase() + price.sizeKey.slice(1);
 }
 
@@ -117,14 +121,17 @@ export default function ItemCard({
         {hasSizes && (
           <fieldset className="mt-3">
             <legend className="sr-only">{copy.sizes}</legend>
-            <div className="flex flex-wrap gap-2">
+            {/* role=radiogroup: la selección de tamaño es excluyente, no un
+                grupo de toggles independientes (aria-pressed no aplicaba). */}
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={copy.sizes}>
               {item.prices.map((price) => {
                 const active = price.sizeId === selectedSizeId;
                 return (
                   <button
                     key={price.sizeId}
                     type="button"
-                    aria-pressed={active}
+                    role="radio"
+                    aria-checked={active}
                     onClick={() => setSelectedSizeId(active ? null : price.sizeId)}
                     className={`min-h-11 cursor-pointer rounded-xl border px-3 py-1.5 text-left transition-all duration-200 ${
                       active

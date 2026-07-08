@@ -75,6 +75,8 @@ export default function PizzaBuilder() {
   const stageF = Math.min(stageCount - 1, (p / 0.92) * (stageCount - 1));
   const activeStep = Math.min(stageCount - 1, Math.floor(stageF + 0.001));
   const endT = phase(p, 0.88, 0.98); // CTA + vapor al final
+  // activeStep siempre cae dentro de STEPS (0..4); el fallback es solo para el tipado estricto
+  const currentStep = STEPS[activeStep] ?? STEPS[4];
 
   return (
     <section
@@ -217,7 +219,7 @@ export default function PizzaBuilder() {
               className="relative z-10 mt-3 text-center font-display text-xl tracking-wide text-brand-yellow md:mt-5 md:text-2xl"
               aria-live="polite"
             >
-              {STEPS[activeStep].title}
+              {currentStep.title}
             </p>
 
             {/* Barra de progreso del armado */}

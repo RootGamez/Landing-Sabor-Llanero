@@ -87,6 +87,8 @@ export default function App() {
           path="/usuarios"
           element={
             <Protected>
+              {/* eslint-disable-next-line jsx-a11y/aria-role -- `role` es una prop propia de
+                  RequireRole (control de acceso), no un atributo ARIA de un elemento DOM. */}
               <RequireRole role="owner">
                 <UsersPage />
               </RequireRole>

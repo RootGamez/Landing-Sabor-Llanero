@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { CATALOG_COPY, type Lang } from "@sabor/shared";
 import { WhatsAppIcon } from "@/components/ui/icons";
 import { trackOrderClick } from "@/lib/events";
@@ -23,6 +24,7 @@ interface OrderButtonProps {
  */
 export default function OrderButton({ href, itemId, lang, disabledHint, compact = false }: OrderButtonProps) {
   const copy = CATALOG_COPY[lang];
+  const hintId = useId();
   const baseClasses = `inline-flex w-full items-center justify-center gap-2 rounded-full font-semibold transition-all duration-300 ${
     compact ? "px-4 py-2.5 text-sm" : "px-5 py-3 text-sm md:text-base"
   }`;
@@ -30,12 +32,17 @@ export default function OrderButton({ href, itemId, lang, disabledHint, compact 
   if (!href) {
     return (
       <div>
-        <button type="button" disabled className={`${baseClasses} cursor-not-allowed bg-ink/10 text-ink/40`}>
+        <button
+          type="button"
+          disabled
+          aria-describedby={disabledHint ? hintId : undefined}
+          className={`${baseClasses} cursor-not-allowed bg-ink/10 text-ink/40`}
+        >
           <WhatsAppIcon className="h-4 w-4" />
           {copy.orderOnWhatsapp}
         </button>
         {disabledHint && (
-          <p className="mt-1.5 text-center text-xs text-ink/50" role="status">
+          <p id={hintId} className="mt-1.5 text-center text-xs text-ink/50" role="status">
             {disabledHint}
           </p>
         )}

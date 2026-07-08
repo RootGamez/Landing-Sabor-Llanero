@@ -65,3 +65,14 @@ export function displayCollectionTitle(
 ): string {
   return lang === "en" && collection.titleEn ? collection.titleEn : collection.titleEs;
 }
+
+/**
+ * Fallback bilingüe de los `sizeKey` conocidos (seed.sql: mediana/grande/
+ * familiar) para cuando GET /sizes falla y ItemCard no tiene el label real
+ * de la BD. Antes se capitalizaba el key crudo, lo que mostraba "Mediana"
+ * incluso en inglés.
+ */
+export const SIZE_KEY_FALLBACK: Record<Lang, Record<string, string>> = {
+  es: { mediana: "Mediana", grande: "Grande", familiar: "Familiar" },
+  en: { mediana: "Medium", grande: "Large", familiar: "Family" },
+};

@@ -55,7 +55,8 @@ export default function ParticlesCanvas() {
       sway: 14 + Math.random() * 26,
       phase: Math.random() * Math.PI * 2,
       alpha: 0.25 + Math.random() * 0.5,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      // índice siempre válido en runtime; el literal final solo satisface el tipado estricto
+      color: COLORS[Math.floor(Math.random() * COLORS.length)] ?? "#FFCE00",
     });
 
     let particles: Particle[] = Array.from({ length: COUNT }, () => spawn(true));

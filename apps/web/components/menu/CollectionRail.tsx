@@ -35,11 +35,12 @@ export default function CollectionRail({
   if (!collection || !collection.isActive || collection.items.length === 0) return null;
 
   const ui = CATALOG_UI[lang];
+  const title = displayCollectionTitle(collection, lang);
 
   return (
     <div>
-      <MenuHeading icon={icon} title={displayCollectionTitle(collection, lang)} light={dark} />
-      <Carousel prevLabel={ui.prev} nextLabel={ui.next} dark={dark}>
+      <MenuHeading icon={icon} title={title} light={dark} />
+      <Carousel prevLabel={ui.prev} nextLabel={ui.next} dark={dark} railTitle={title}>
         {collection.items.map((item) => (
           <div key={item.id} className="w-[16rem] shrink-0 snap-start sm:w-[18rem]">
             <ItemCard

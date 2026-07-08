@@ -2,8 +2,9 @@
  * Cliente HTTP hacia apps/api (Worker Hono), mismo patrón que Jaw-Project
  * (BLUEPRINT §2.6): `request<T>()` prefija la base de la API, lanza
  * `ApiError(status, message)` en respuestas no-2xx (leyendo `body.error`),
- * y devuelve `undefined` en 204. El sitio es `output: "export"` (sin SSR),
- * así que todas las llamadas ocurren client-side en el navegador.
+ * y devuelve `undefined` cuando el body viene vacío (204/205, o 201 sin
+ * contenido como `POST /api/events`). El sitio es `output: "export"` (sin
+ * SSR), así que todas las llamadas ocurren client-side en el navegador.
  */
 
 /** Base pública de la API. Fallback razonable a `wrangler dev` local (:8787). */
@@ -49,9 +50,13 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (!response.ok) {
     throw new ApiError(response.status, await readErrorMessage(response));
   }
-  if (response.status === 204) return undefined;
 
-  return (await response.json()) as T;
+  // Algunas respuestas 2xx no traen body (204/205, o 201 de POST /api/events):
+  // response.json() lanzaría SyntaxError sobre un body vacío.
+  const text = await response.text();
+  if (text === "") return undefined;
+
+  return JSON.parse(text) as T;
 }
 
 export const api = {

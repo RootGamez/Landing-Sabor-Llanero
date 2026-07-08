@@ -8,7 +8,6 @@
     "moduleResolution": "bundler",
     "jsx": "preserve",
     "incremental": true,
-    "noUncheckedIndexedAccess": false,
     "plugins": [{ "name": "next" }],
     "paths": { "@/*": ["./*"] }
   },
