@@ -104,6 +104,133 @@ body {
   transform: translateX(110%);
 }
 
+/* ── Cards con relieve 3D del catálogo ─────── */
+
+/*
+ * El color lo inyecta ItemCard vía --accent / --accent-deep (lib/catalogAccent).
+ * El relieve es una sombra dura sin blur (la "cara" inferior de la card) más
+ * una sombra difusa que la despega del fondo. Al presionar, la card baja y la
+ * cara se achica: se siente como un botón físico.
+ */
+.card-3d {
+  border: 2px solid var(--accent, var(--color-brand-blue));
+  box-shadow:
+    0 6px 0 0 var(--accent-deep, var(--color-brand-blue-deep)),
+    0 14px 26px -10px rgb(26 26 26 / 0.25);
+  transition:
+    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-3d:hover {
+  transform: translateY(-6px);
+  box-shadow:
+    0 12px 0 0 var(--accent-deep, var(--color-brand-blue-deep)),
+    0 28px 44px -14px rgb(26 26 26 / 0.3);
+}
+
+.card-3d:active {
+  transform: translateY(-1px);
+  box-shadow:
+    0 3px 0 0 var(--accent-deep, var(--color-brand-blue-deep)),
+    0 10px 18px -10px rgb(26 26 26 / 0.28);
+}
+
+/*
+ * Stretched link: el botón que abre el modal se estira sobre toda la card, de
+ * modo que un toque en cualquier parte la abre sin anidar controles dentro de
+ * un botón (los chips de tamaño y el CTA quedan encima con z-index).
+ */
+.card-open-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.card-open-btn:focus-visible {
+  outline: none;
+}
+
+.card-open-btn:focus-visible::after {
+  outline: 3px solid var(--color-brand-blue);
+  outline-offset: 4px;
+  border-radius: 1rem;
+}
+
+/* ── Manchas de pintura tricolor del fondo ─── */
+
+.splash {
+  position: absolute;
+  filter: blur(6px);
+  mix-blend-mode: multiply;
+  will-change: transform;
+}
+
+@keyframes splash-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(1.5rem, -1.25rem, 0) rotate(6deg);
+  }
+}
+
+.animate-splash-drift {
+  animation: splash-drift 26s ease-in-out infinite;
+}
+
+/* ── Entrada del modal de producto ─────────── */
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-overlay-in {
+  animation: overlay-in 0.2s ease-out;
+}
+
+/* Escala + subida: el panel "crece" desde la card que lo abrió. */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-modal-in {
+  animation: modal-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/*
+ * WebKit/Blink dibujan su propia "x" dentro de input[type="search"], que se
+ * sumaba al botón de limpiar con estilo de marca (dos equis). Se oculta la
+ * nativa y se conserva el type="search" por su semántica y por el teclado de
+ * búsqueda que ofrece en móvil.
+ */
+.search-input::-webkit-search-cancel-button,
+.search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Fila de chips desplazable sin barra de scroll visible */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Animación de aparición al hacer scroll (activada por Reveal.tsx) */
 .reveal {
   opacity: 0;
@@ -192,10 +319,21 @@ body {
   .animate-float-down,
   .animate-ken-burns,
   .animate-steam,
-  .animate-float-y {
+  .animate-float-y,
+  .animate-splash-drift,
+  .animate-overlay-in,
+  .animate-modal-in {
     animation: none;
   }
   .btn-shine::after {
     display: none;
+  }
+  /* El relieve se conserva (es identidad visual, no movimiento); lo que se
+     apaga es el desplazamiento al hover/press. */
+  .card-3d,
+  .card-3d:hover,
+  .card-3d:active {
+    transform: none;
+    transition: none;
   }
 }

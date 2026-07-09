@@ -1,6 +1,13 @@
 "use client";
 
-import { CATALOG_COPY, displayName, type Lang, type Size, type WhatsappConfig } from "@sabor/shared";
+import {
+  CATALOG_COPY,
+  displayName,
+  type Lang,
+  type MenuItemWithPrices,
+  type Size,
+  type WhatsappConfig,
+} from "@sabor/shared";
 import type { CatalogSection } from "@/lib/menuData";
 import ItemCard from "@/components/menu/ItemCard";
 import MenuHeading from "@/components/menu/MenuHeading";
@@ -10,6 +17,7 @@ interface CategoryBlockProps {
   sizes: Size[];
   lang: Lang;
   whatsapp: WhatsappConfig;
+  onOpen: (item: MenuItemWithPrices) => void;
 }
 
 /**
@@ -17,7 +25,7 @@ interface CategoryBlockProps {
  * encabezado h3 bilingüe + grid responsivo de cards. El backend ya omite
  * categorías sin ítems activos; el estado vacío es solo un backstop.
  */
-export default function CategoryBlock({ section, sizes, lang, whatsapp }: CategoryBlockProps) {
+export default function CategoryBlock({ section, sizes, lang, whatsapp, onOpen }: CategoryBlockProps) {
   const copy = CATALOG_COPY[lang];
 
   return (
@@ -28,7 +36,14 @@ export default function CategoryBlock({ section, sizes, lang, whatsapp }: Catego
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-3">
           {section.items.map((item) => (
-            <ItemCard key={item.id} item={item} sizes={sizes} lang={lang} whatsapp={whatsapp} />
+            <ItemCard
+              key={item.id}
+              item={item}
+              sizes={sizes}
+              lang={lang}
+              whatsapp={whatsapp}
+              onOpen={onOpen}
+            />
           ))}
         </div>
       )}

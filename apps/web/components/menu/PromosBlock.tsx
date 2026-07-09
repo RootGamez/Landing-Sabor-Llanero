@@ -1,6 +1,12 @@
 "use client";
 
-import type { CollectionWithItems, Lang, Size, WhatsappConfig } from "@sabor/shared";
+import type {
+  CollectionWithItems,
+  Lang,
+  MenuItemWithPrices,
+  Size,
+  WhatsappConfig,
+} from "@sabor/shared";
 import { TagIcon } from "@/components/ui/icons";
 import CollectionRail from "@/components/menu/CollectionRail";
 
@@ -9,6 +15,7 @@ interface PromosBlockProps {
   sizes: Size[];
   lang: Lang;
   whatsapp: WhatsappConfig;
+  onOpen: (item: MenuItemWithPrices) => void;
 }
 
 /**
@@ -17,7 +24,7 @@ interface PromosBlockProps {
  * landing: texture-dots-light + resplandores), con las cards blancas
  * brillando encima. Si la colección está vacía o inactiva, no se renderiza.
  */
-export default function PromosBlock({ collection, sizes, lang, whatsapp }: PromosBlockProps) {
+export default function PromosBlock({ collection, sizes, lang, whatsapp, onOpen }: PromosBlockProps) {
   if (!collection || !collection.isActive || collection.items.length === 0) return null;
 
   return (
@@ -33,6 +40,7 @@ export default function PromosBlock({ collection, sizes, lang, whatsapp }: Promo
           sizes={sizes}
           lang={lang}
           whatsapp={whatsapp}
+          onOpen={onOpen}
           icon={<TagIcon className="h-5 w-5" />}
           dark
         />

@@ -42,7 +42,7 @@ export default function OrderButton({ href, itemId, lang, disabledHint, compact 
           {copy.orderOnWhatsapp}
         </button>
         {disabledHint && (
-          <p id={hintId} className="mt-1.5 text-center text-xs text-ink/50" role="status">
+          <p id={hintId} className="mt-1.5 text-center text-xs text-ink/70" role="status">
             {disabledHint}
           </p>
         )}

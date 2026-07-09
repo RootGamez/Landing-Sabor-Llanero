@@ -18,22 +18,33 @@ import { reportRoutes } from './routes/reports';
 const app = new Hono<AppEnv>().basePath('/api');
 
 /**
- * Orígenes permitidos por CORS. En producción se toman de WEB_ORIGIN/CMS_ORIGIN
- * (vars de wrangler); cada una acepta varios orígenes separados por coma
- * (útil mientras conviven el dominio *.pages.dev/*.workers.dev de prueba y el
- * definitivo). En desarrollo se agregan los puertos locales: la landing corre
- * en Next (:3000) y el futuro CMS reusará los puertos Vite típicos (:5173/:5174).
+ * Orígenes configurados por CORS: WEB_ORIGIN/CMS_ORIGIN (vars de wrangler),
+ * cada una con varios orígenes separados por coma (útil mientras conviven el
+ * dominio *.pages.dev/*.workers.dev de prueba y el definitivo).
  */
-function allowedOrigins(env: Bindings): string[] {
-  const list = [env.WEB_ORIGIN, env.CMS_ORIGIN]
+function configuredOrigins(env: Bindings): string[] {
+  return [env.WEB_ORIGIN, env.CMS_ORIGIN]
     .filter((value): value is string => Boolean(value))
     .flatMap((value) => value.split(','))
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0);
-  if (env.ENVIRONMENT === 'development') {
-    list.push('http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174');
-  }
-  return list;
+}
+
+/**
+ * Cualquier puerto de loopback sobre http. Next y Vite no siempre levantan en
+ * su puerto por defecto (si :3000 está tomado, Next salta a :3001), así que
+ * fijar la lista de puertos rompía el desarrollo local con un error de CORS.
+ */
+const LOCALHOST_ORIGIN = /^http:\/\/(?:localhost|127\.0\.0\.1):\d{1,5}$/;
+
+/**
+ * Solo en `development` se abre el loopback. En producción manda la lista
+ * exacta de WEB_ORIGIN/CMS_ORIGIN: aceptar `localhost` en prod dejaría que
+ * cualquier página servida localmente llamara a la API real.
+ */
+function isAllowedOrigin(origin: string, env: Bindings): boolean {
+  if (env.ENVIRONMENT === 'development' && LOCALHOST_ORIGIN.test(origin)) return true;
+  return configuredOrigins(env).includes(origin);
 }
 
 /**
@@ -46,7 +57,7 @@ app.use('*', async (c, next) => {
     if (!c.env.JWT_SECRET) {
       return c.json({ error: 'Configuración inválida: falta JWT_SECRET' }, 500);
     }
-    if (allowedOrigins(c.env).length === 0) {
+    if (configuredOrigins(c.env).length === 0) {
       return c.json({ error: 'Configuración inválida: faltan WEB_ORIGIN/CMS_ORIGIN' }, 500);
     }
     if (!c.env.LOGIN_LIMITER || !c.env.EVENTS_LIMITER) {
@@ -61,10 +72,7 @@ app.use('*', secureHeaders({ crossOriginResourcePolicy: false }));
 
 app.use('*', (c, next) =>
   cors({
-    origin: (origin) => {
-      const allowed = allowedOrigins(c.env);
-      return allowed.includes(origin) ? origin : null;
-    },
+    origin: (origin) => (isAllowedOrigin(origin, c.env) ? origin : null),
     allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
   })(c, next),

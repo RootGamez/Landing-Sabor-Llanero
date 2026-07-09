@@ -1,7 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { CollectionWithItems, Lang, Size, WhatsappConfig } from "@sabor/shared";
+import type {
+  CollectionWithItems,
+  Lang,
+  MenuItemWithPrices,
+  Size,
+  WhatsappConfig,
+} from "@sabor/shared";
 import { CATALOG_UI, displayCollectionTitle } from "@/lib/catalogUi";
 import Carousel from "@/components/menu/Carousel";
 import ItemCard from "@/components/menu/ItemCard";
@@ -13,6 +19,7 @@ interface CollectionRailProps {
   sizes: Size[];
   lang: Lang;
   whatsapp: WhatsappConfig;
+  onOpen: (item: MenuItemWithPrices) => void;
   icon?: ReactNode;
   /** Para rails montados sobre fondo oscuro (bloque de promos). */
   dark?: boolean;
@@ -29,6 +36,7 @@ export default function CollectionRail({
   sizes,
   lang,
   whatsapp,
+  onOpen,
   icon,
   dark = false,
 }: CollectionRailProps) {
@@ -48,6 +56,7 @@ export default function CollectionRail({
               sizes={sizes}
               lang={lang}
               whatsapp={whatsapp}
+              onOpen={onOpen}
               imageSizes="(max-width: 640px) 16rem, 18rem"
               compact
             />

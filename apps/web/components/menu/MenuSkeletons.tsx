@@ -7,7 +7,7 @@
 
 export function ItemCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-card" aria-hidden="true">
+    <div className="overflow-hidden rounded-2xl border-2 border-brand-blue/10 bg-white shadow-card" aria-hidden="true">
       <div className="aspect-[4/3] w-full animate-pulse bg-brand-blue/8" />
       <div className="animate-pulse space-y-3 p-5">
         <div className="h-5 w-2/3 rounded bg-brand-blue/10" />
