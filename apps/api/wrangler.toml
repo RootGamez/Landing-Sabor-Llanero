@@ -60,7 +60,7 @@ name = "sabor-llanero-api"
 ENVIRONMENT = "production"
 # CORS: orígenes permitidos (se aceptan varios separados por coma).
 WEB_ORIGIN = "https://saborllanero.online,https://www.saborllanero.online"
-# CMS_ORIGIN = "https://cms.saborllanero.online" # el CMS aún no existe (fase 4)
+CMS_ORIGIN = "https://cms.saborllanero.online"
 
 [[env.production.d1_databases]]
 binding = "DB"
