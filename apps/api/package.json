@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "build": "tsc --noEmit",
     "deploy": "wrangler deploy --env production",
     "typecheck": "tsc --noEmit",
     "db:migrations:apply:local": "wrangler d1 migrations apply sabor-llanero --local",
