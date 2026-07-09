@@ -23,6 +23,7 @@ npm-debug.log*
 .env*
 !.env.example
 !apps/web/.env.example
+!apps/web/.env.production
 
 # cloudflare workers secrets (apps/api)
 .dev.vars
