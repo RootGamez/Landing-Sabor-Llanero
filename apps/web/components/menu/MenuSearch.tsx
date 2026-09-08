@@ -22,9 +22,9 @@ interface MenuSearchProps {
 }
 
 /**
- * Barra de búsqueda + chips de categoría del catálogo. Se pega bajo el navbar
- * (`sticky`) para que en una carta larga el usuario nunca tenga que volver
- * arriba a filtrar.
+ * Barra de búsqueda + chips de categoría del catálogo. Vive al principio de la
+ * sección (no es sticky): en móvil una barra pegada comía demasiada pantalla y
+ * tapaba las primeras tarjetas de cada categoría.
  *
  * El filtrado es instantáneo por tecla (sin debounce): son decenas de ítems ya
  * en memoria, no una llamada de red. El contador vive en un `aria-live` para
@@ -52,9 +52,8 @@ export default function MenuSearch({
     }`;
 
   return (
-    <div className="sticky top-[4.25rem] z-30 -mx-4 mb-10 px-4 py-3 md:top-[4.75rem] md:mb-12">
-      {/* Panel translúcido: deja ver las manchas de pintura al hacer scroll */}
-      <div className="rounded-2xl border border-ink/5 bg-cream/85 p-3 shadow-card backdrop-blur-md md:p-4">
+    <div className="mb-10 md:mb-12">
+      <div className="rounded-2xl border border-ink/5 bg-white/70 p-3 shadow-card backdrop-blur-sm md:p-4">
         <label htmlFor={inputId} className="sr-only">
           {ui.searchLabel}
         </label>

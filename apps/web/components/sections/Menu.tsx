@@ -136,7 +136,7 @@ function MenuContent() {
   };
 
   return (
-    <section id="menu" className="texture-dots relative bg-linear-to-b from-cream-deep to-cream py-24 md:py-32">
+    <section id="menu" className="texture-dots relative bg-linear-to-b from-cream-deep to-cream py-16 md:py-28">
       {/* Manchas tricolor: recortan dentro de su propio contenedor, para que la
           sección no necesite overflow-hidden (rompería el buscador sticky). */}
       <PaintSplashes />
@@ -170,7 +170,7 @@ function MenuContent() {
               />
             )}
 
-            <div className="space-y-14 md:space-y-20">
+            <div className="space-y-12 md:space-y-20">
               {!isFiltering && (
                 <>
                   {/* Carrusel "Destacados del día" (+ los otros 2 rails posibles) */}

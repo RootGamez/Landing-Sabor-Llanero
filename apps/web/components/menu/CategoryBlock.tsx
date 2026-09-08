@@ -34,7 +34,7 @@ export default function CategoryBlock({ section, sizes, lang, whatsapp, onOpen }
       {section.items.length === 0 ? (
         <p className="text-sm text-ink/60">{copy.noItems}</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 md:gap-5 lg:grid-cols-3">
           {section.items.map((item) => (
             <ItemCard
               key={item.id}

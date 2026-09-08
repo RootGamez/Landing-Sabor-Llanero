@@ -200,16 +200,31 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
         </button>
 
         <div className="grid md:grid-cols-2">
-          {/* Foto */}
-          <div className="relative aspect-[4/3] w-full bg-cream-deep md:aspect-auto md:min-h-[26rem]">
+          {/* Foto. En móvil la mayoría de las fotos son verticales (3:4, 9:16):
+              con `object-cover` se recortaban muchísimo. Acá se muestran
+              completas con `object-contain` sobre un fondo desenfocado de la
+              misma foto, así se ve el producto entero sin franjas vacías. En
+              desktop el panel es alto y `object-cover` llena la mitad sin
+              recortar de más. */}
+          <div className="relative aspect-[4/5] max-h-[46dvh] w-full overflow-hidden bg-cream-deep md:aspect-auto md:max-h-none md:min-h-[28rem]">
             {item.coverImageKey ? (
-              <Image
-                src={mediaUrl(item.coverImageKey)}
-                alt={`${ui.photoOf} ${name}`}
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
-              />
+              <>
+                <Image
+                  src={mediaUrl(item.coverImageKey)}
+                  alt=""
+                  aria-hidden="true"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="scale-110 object-cover opacity-35 blur-2xl md:hidden"
+                />
+                <Image
+                  src={mediaUrl(item.coverImageKey)}
+                  alt={`${ui.photoOf} ${name}`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-contain md:object-cover"
+                />
+              </>
             ) : (
               <div className="flex h-full w-full items-center justify-center" aria-hidden="true">
                 <PizzaSliceIcon className="h-20 w-20 text-brand-blue/20" />
