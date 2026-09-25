@@ -120,8 +120,9 @@ clean: ## Borra node_modules, dist, out, .next y .wrangler de todo el monorepo
 cf-login: ## Inicia sesión en tu cuenta de Cloudflare (abre el navegador)
 	cd $(API_DIR) && pnpm wrangler login
 
-secrets: ## Configura el JWT_SECRET de producción (prompt interactivo)
+secrets: ## Configura JWT_SECRET y CUSTOMER_JWT_SECRET de producción (prompt interactivo, uno por vez)
 	cd $(API_DIR) && pnpm wrangler secret put JWT_SECRET --env production
+	cd $(API_DIR) && pnpm wrangler secret put CUSTOMER_JWT_SECRET --env production
 
 db-migrate-remote: ## Aplica las migraciones en la base D1 real de Cloudflare
 	cd $(API_DIR) && pnpm wrangler d1 migrations apply $(D1_NAME) --env production --remote
