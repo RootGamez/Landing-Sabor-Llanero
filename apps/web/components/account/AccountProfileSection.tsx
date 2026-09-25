@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Customer } from "@sabor/shared";
 import { ApiError, api } from "@/lib/api";
 import AccountFormField from "@/components/account/AccountFormField";
@@ -18,6 +18,16 @@ export default function AccountProfileSection({ customer, onSaved }: AccountProf
   const [phone, setPhone] = useState(customer.phone);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const editButtonRef = useRef<HTMLButtonElement>(null);
+  // Guarda el `editing` del render anterior (no un flag de "ya until pasó el
+  // primer render"): con React Strict Mode, el efecto de abajo se invoca DOS
+  // veces seguidas en el montaje con el mismo `editing`, y un flag booleano
+  // que se apaga en la primera invocación ya no protege a la segunda —
+  // comparar contra el valor anterior sí es a prueba de esa doble invocación.
+  const previousEditingRef = useRef(editing);
 
   useEffect(() => {
     // Si el formulario está abierto, no pisar lo que el usuario ya tipeó: un
@@ -28,6 +38,20 @@ export default function AccountProfileSection({ customer, onSaved }: AccountProf
     setName(customer.name);
     setPhone(customer.phone);
   }, [customer.name, customer.phone, editing]);
+
+  // Mueve el foco al abrir/cerrar el formulario: el botón "Editar" (o
+  // "Cancelar"/"Guardar") que disparó el cambio se desmonta, y sin esto el
+  // foco cae a <body> — mismo problema que ya se resolvió en CartPageContent
+  // (headingRef) y en el modal de producto (focus-trap). No corre en el
+  // montaje inicial (cuando `editing` no cambió respecto del render anterior)
+  // para no robarle el foco a quien haya llegado a la página por otro camino
+  // (ej. tabulando desde el header).
+  useEffect(() => {
+    if (previousEditingRef.current === editing) return;
+    previousEditingRef.current = editing;
+    if (editing) nameInputRef.current?.focus();
+    else editButtonRef.current?.focus();
+  }, [editing]);
 
   const handleCancel = (): void => {
     setEditing(false);
@@ -44,6 +68,8 @@ export default function AccountProfileSection({ customer, onSaved }: AccountProf
       await api.patch<Customer>("/customers/me", { name, phone });
       await onSaved();
       setEditing(false);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 4000);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo guardar");
     } finally {
@@ -57,9 +83,10 @@ export default function AccountProfileSection({ customer, onSaved }: AccountProf
         <h2 className="font-display text-xl tracking-wide text-ink">Tus datos</h2>
         {!editing && (
           <button
+            ref={editButtonRef}
             type="button"
             onClick={() => setEditing(true)}
-            className="cursor-pointer text-sm font-semibold text-brand-blue hover:text-brand-red"
+            className="inline-flex min-h-11 cursor-pointer items-center px-2 text-sm font-semibold text-brand-blue hover:text-brand-red"
           >
             Editar
           </button>
@@ -68,7 +95,14 @@ export default function AccountProfileSection({ customer, onSaved }: AccountProf
 
       {editing ? (
         <form onSubmit={handleSubmit} className="mt-3 space-y-4">
-          <AccountFormField label="Nombre" name="name" required value={name} onChange={(e) => setName(e.target.value)} />
+          <AccountFormField
+            ref={nameInputRef}
+            label="Nombre"
+            name="name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
           <AccountFormField
             label="Celular"
             name="phone"
@@ -102,16 +136,23 @@ export default function AccountProfileSection({ customer, onSaved }: AccountProf
           </div>
         </form>
       ) : (
-        <dl className="mt-3 space-y-1 text-sm text-ink/70">
-          <div className="flex gap-2">
-            <dt className="font-semibold text-ink">Nombre:</dt>
-            <dd>{customer.name}</dd>
-          </div>
-          <div className="flex gap-2">
-            <dt className="font-semibold text-ink">Celular:</dt>
-            <dd>{customer.phone}</dd>
-          </div>
-        </dl>
+        <>
+          <dl className="mt-3 space-y-1 text-sm text-ink/70">
+            <div className="flex gap-2">
+              <dt className="font-semibold text-ink">Nombre:</dt>
+              <dd>{customer.name}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="font-semibold text-ink">Celular:</dt>
+              <dd>{customer.phone}</dd>
+            </div>
+          </dl>
+          {justSaved && (
+            <p role="status" className="mt-2 text-sm font-semibold text-brand-blue">
+              Datos actualizados.
+            </p>
+          )}
+        </>
       )}
     </section>
   );

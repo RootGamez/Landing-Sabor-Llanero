@@ -42,7 +42,11 @@ export default function AccountPageContent() {
   }, [customer, pointsOverride]);
 
   if (loading || !customer) {
-    return <div className="mx-auto max-w-3xl px-4 py-20 text-center text-sm text-ink/60">Cargando tu cuenta…</div>;
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center text-sm text-ink/70" role="status">
+        {loading ? "Cargando tu cuenta…" : "Redirigiendo…"}
+      </div>
+    );
   }
 
   const pointsBalance = pointsOverride ?? customer.pointsBalance;
@@ -66,7 +70,7 @@ export default function AccountPageContent() {
           <h1 className="font-display text-3xl tracking-wide text-ink md:text-4xl">
             Hola, {customer.name.split(" ")[0]}
           </h1>
-          <p className="mt-1 text-sm text-ink/60">{customer.email}</p>
+          <p className="mt-1 text-sm text-ink/70">{customer.email}</p>
         </div>
         <button
           type="button"
@@ -88,10 +92,14 @@ export default function AccountPageContent() {
       <section className="mt-10">
         <h2 className="font-display text-xl tracking-wide text-ink">Premios</h2>
         <div className="mt-4">
-          {rewardsState.loading && <p className="text-sm text-ink/60">Cargando premios…</p>}
+          {rewardsState.loading && (
+            <p className="text-sm text-ink/70" role="status">
+              Cargando premios…
+            </p>
+          )}
           {rewardsState.error && <p className="text-sm text-brand-red">No pudimos cargar los premios.</p>}
           {rewardsState.data && rewardsState.data.length === 0 && (
-            <p className="text-sm text-ink/60">Todavía no hay premios disponibles.</p>
+            <p className="text-sm text-ink/70">Todavía no hay premios disponibles.</p>
           )}
           {rewardsState.data && rewardsState.data.length > 0 && (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -106,7 +114,11 @@ export default function AccountPageContent() {
       <section className="mt-10">
         <h2 className="font-display text-xl tracking-wide text-ink">Tus pedidos</h2>
         <div className="mt-4">
-          {ordersState.loading && <p className="text-sm text-ink/60">Cargando pedidos…</p>}
+          {ordersState.loading && (
+            <p className="text-sm text-ink/70" role="status">
+              Cargando pedidos…
+            </p>
+          )}
           {ordersState.error && <p className="text-sm text-brand-red">No pudimos cargar tus pedidos.</p>}
           {ordersState.data && <OrderHistoryList orders={ordersState.data} />}
         </div>

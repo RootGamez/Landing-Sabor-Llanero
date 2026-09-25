@@ -10,7 +10,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 const STATUS_BADGE: Record<OrderStatus, string> = {
   pending: "bg-brand-yellow/25 text-ink",
   confirmed: "bg-brand-blue/10 text-brand-blue",
-  cancelled: "bg-ink/10 text-ink/50",
+  cancelled: "bg-ink/10 text-ink/70",
 };
 
 function formatOrderDate(iso: string): string {
@@ -40,7 +40,7 @@ export default function OrderHistoryList({ orders }: OrderHistoryListProps) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="font-display text-lg tracking-wide text-ink">Pedido #{order.code}</p>
-              <p className="text-xs text-ink/50">{formatOrderDate(order.createdAt)}</p>
+              <p className="text-xs text-ink/70">{formatOrderDate(order.createdAt)}</p>
             </div>
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_BADGE[order.status]}`}>
               {STATUS_LABEL[order.status]}

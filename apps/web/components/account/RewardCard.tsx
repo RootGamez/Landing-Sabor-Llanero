@@ -20,6 +20,7 @@ interface RewardCardProps {
 export default function RewardCard({ reward, pointsBalance, onRedeemed }: RewardCardProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justRedeemed, setJustRedeemed] = useState(false);
   const canRedeem = pointsBalance >= reward.pointsCost;
 
   const handleRedeem = async (): Promise<void> => {
@@ -29,6 +30,11 @@ export default function RewardCard({ reward, pointsBalance, onRedeemed }: Reward
       const res = await api.post<RedeemRewardResponse>(`/rewards/${reward.id}/redeem`);
       if (!res) throw new ApiError(500, "Respuesta inesperada del servidor");
       onRedeemed(res.pointsBalance);
+      // El resto de la card no cambia visualmente (el saldo se muestra en otro
+      // lado de la página), así que sin esto un canje exitoso no tiene ninguna
+      // confirmación perceptible ni anunciada a lectores de pantalla.
+      setJustRedeemed(true);
+      setTimeout(() => setJustRedeemed(false), 4000);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo canjear el premio");
     } finally {
@@ -69,6 +75,11 @@ export default function RewardCard({ reward, pointsBalance, onRedeemed }: Reward
         {error && (
           <p role="alert" className="text-xs text-brand-red">
             {error}
+          </p>
+        )}
+        {justRedeemed && (
+          <p role="status" className="text-xs font-semibold text-brand-blue">
+            ¡Premio canjeado!
           </p>
         )}
       </div>

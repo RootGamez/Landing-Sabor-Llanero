@@ -30,6 +30,7 @@ export default function CartPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [manualLink, setManualLink] = useState<string | null>(null);
+  const manualLinkRef = useRef<HTMLAnchorElement>(null);
 
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -37,6 +38,14 @@ export default function CartPageContent() {
       mountedRef.current = false;
     };
   }, []);
+
+  // El pedido ya se creó y el carrito ya se vació para cuando esto puede
+  // aparecer (ver `confirmLoggedIn`) — es la única forma que le queda al
+  // cliente de llegar a WhatsApp, así que el foco debe ir ahí solo, no
+  // quedarse en el botón "Confirmar" que disparó el intento fallido.
+  useEffect(() => {
+    if (manualLink) manualLinkRef.current?.focus();
+  }, [manualLink]);
 
   const focusHeading = (): void => headingRef.current?.focus();
 
@@ -164,6 +173,25 @@ export default function CartPageContent() {
         Tu carrito
       </h1>
 
+      {manualLink && (
+        // Fuera del if de abajo a propósito: para cuando esto aparece, `clear()`
+        // ya vació `lines` y de otro modo quedaría atrapado dentro de la rama
+        // que ya no se renderiza (se muestra <EmptyCart /> en su lugar).
+        <p role="alert" className="mt-4 text-sm text-ink/70">
+          Tu pedido ya se creó, pero el navegador bloqueó la pestaña de WhatsApp.{" "}
+          <a
+            ref={manualLinkRef}
+            href={manualLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-brand-blue hover:text-brand-red"
+          >
+            Tocá acá para abrirla
+          </a>
+          .
+        </p>
+      )}
+
       {lines.length === 0 ? (
         <EmptyCart />
       ) : (
@@ -204,21 +232,6 @@ export default function CartPageContent() {
             {checkoutError && (
               <p role="alert" className="mt-2 text-sm text-brand-red">
                 {checkoutError}
-              </p>
-            )}
-
-            {manualLink && (
-              <p role="alert" className="mt-2 text-sm text-ink/70">
-                Tu pedido ya se creó, pero el navegador bloqueó la pestaña de WhatsApp.{" "}
-                <a
-                  href={manualLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-brand-blue hover:text-brand-red"
-                >
-                  Tocá acá para abrirla
-                </a>
-                .
               </p>
             )}
 
