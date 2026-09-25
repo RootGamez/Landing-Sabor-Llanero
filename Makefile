@@ -137,5 +137,5 @@ create-owner-remote: ## Crea el owner en producción. Uso: make create-owner-rem
 	pnpm wrangler d1 execute $(D1_NAME) --env production --remote --command "$$SQL"
 	echo "Owner creado en producción: $(EMAIL)"
 
-deploy-api: ## Despliega el Worker sabor-llanero-api a Cloudflare
+deploy-api: ## Aplica migraciones pendientes y despliega el Worker sabor-llanero-api a Cloudflare
 	cd $(API_DIR) && pnpm run deploy
