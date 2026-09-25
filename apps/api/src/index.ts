@@ -6,6 +6,7 @@ import { HttpError } from './lib/http-error';
 
 import { authRoutes } from './routes/auth';
 import { customerAuthRoutes } from './routes/customer-auth';
+import { ordersRoutes } from './routes/orders';
 import { userRoutes } from './routes/users';
 import { sizeRoutes } from './routes/sizes';
 import { categoryRoutes } from './routes/categories';
@@ -90,6 +91,7 @@ app.use('*', (c, next) =>
 
 app.route('/auth', authRoutes);
 app.route('/customers', customerAuthRoutes);
+app.route('/orders', ordersRoutes);
 app.route('/users', userRoutes);
 app.route('/sizes', sizeRoutes);
 app.route('/categories', categoryRoutes);

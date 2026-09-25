@@ -106,9 +106,11 @@ CREATE TABLE loyalty_config (
 
 CREATE INDEX idx_orders_customer      ON orders(customer_id);
 CREATE INDEX idx_orders_status        ON orders(status);
+CREATE INDEX idx_orders_confirmed_by  ON orders(confirmed_by);
 CREATE INDEX idx_orderitems_order     ON order_items(order_id);
 CREATE INDEX idx_orderitems_item      ON order_items(item_id);
 CREATE INDEX idx_ledger_customer      ON points_ledger(customer_id);
+CREATE INDEX idx_ledger_order         ON points_ledger(order_id);
 CREATE INDEX idx_raffle_period        ON raffle_entries(period);
 CREATE INDEX idx_raffle_customer      ON raffle_entries(customer_id);
 CREATE INDEX idx_redemptions_customer ON reward_redemptions(customer_id);
