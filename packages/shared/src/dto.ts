@@ -1,7 +1,6 @@
 /**
- * Contratos de request/response de la API (aún no implementada — fase 3 del
- * refactor). Web, CMS y API importarán estos tipos para no desincronizarse,
- * igual que en Jaw.
+ * Contratos de request/response de la API. Web, CMS y API importan estos
+ * tipos para no desincronizarse, igual que en Jaw.
  */
 import type { Category, EventType, MenuItem } from './types';
 
@@ -29,6 +28,20 @@ export interface ChangePasswordRequest {
  */
 export interface ChangePasswordResponse {
   token: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+/** Respuesta genérica de un solo mensaje (ej. forgot-password: mismo 200 exista o no la cuenta). */
+export interface MessageResponse {
+  message: string;
 }
 
 /** Precio de un tamaño dentro de un input de categoría o ítem. */

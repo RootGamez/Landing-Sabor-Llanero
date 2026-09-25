@@ -63,6 +63,9 @@ app.use('*', async (c, next) => {
     if (!c.env.LOGIN_LIMITER || !c.env.EVENTS_LIMITER) {
       return c.json({ error: 'Configuración inválida: faltan LOGIN_LIMITER/EVENTS_LIMITER' }, 500);
     }
+    if (!c.env.EMAIL) {
+      return c.json({ error: 'Configuración inválida: falta EMAIL' }, 500);
+    }
   }
   await next();
 });

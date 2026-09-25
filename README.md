@@ -44,4 +44,7 @@ make clean             # borra node_modules/.next/out/.wrangler
 
 - [`docs/BLUEPRINT.md`](docs/BLUEPRINT.md) — arquitectura completa (catálogo,
   CMS, API, D1) y fases del refactor.
+- [`docs/PLAN_IMPLEMENTACION.md`](docs/PLAN_IMPLEMENTACION.md) — plan de
+  ejecución vivo (seguridad de cuentas admin, carrito, puntos y sorteo). Se
+  actualiza fase por fase a medida que se implementa.
 - [`apps/web/README.md`](apps/web/README.md) — guía de la landing actual.

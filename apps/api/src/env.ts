@@ -9,6 +9,24 @@ export interface RateLimit {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
+/**
+ * Binding nativo de Cloudflare Email Sending. El tipo aún no viene en
+ * @cloudflare/workers-types@^4.20241127.0 (producto 2025, posterior a esa
+ * versión), se declara acá con el mismo criterio que `RateLimit` — solo la
+ * forma que este repo usa, no la API completa.
+ * Ver: https://developers.cloudflare.com/email-service/
+ */
+export interface SendEmail {
+  send(message: {
+    to: string | string[];
+    from: string | { email: string; name?: string };
+    subject: string;
+    html?: string;
+    text?: string;
+    replyTo?: string;
+  }): Promise<{ messageId: string }>;
+}
+
 /** Bindings de Cloudflare declarados en wrangler.toml */
 export interface Bindings {
   DB: D1Database;
@@ -24,6 +42,8 @@ export interface Bindings {
    */
   LOGIN_LIMITER?: RateLimit;
   EVENTS_LIMITER?: RateLimit;
+  /** Envío de forgot-password (P1.4). Requiere el dominio habilitado en Cloudflare Email Sending. */
+  EMAIL?: SendEmail;
 }
 
 /** Datos del usuario autenticado, adjuntados al contexto por el middleware de auth */

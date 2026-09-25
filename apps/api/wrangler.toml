@@ -20,6 +20,16 @@ binding = "MEDIA"
 bucket_name = "sabor-llanero"
 remote = true
 
+# Cloudflare Email Sending (binding nativo, sin API keys ni SMTP). Requiere
+# habilitar el dominio una vez fuera de código:
+#   pnpm wrangler email sending enable saborllanero.online
+#   pnpm wrangler email sending dns get saborllanero.online   # confirma SPF/DKIM
+# remote = true -> en `wrangler dev` local, los envíos van al servicio real
+# (no hay emulador local), igual que MEDIA/R2.
+[[send_email]]
+name = "EMAIL"
+remote = true
+
 [vars]
 # JWT_SECRET real va como secret, NO acá:
 #   pnpm wrangler secret put JWT_SECRET
@@ -71,6 +81,9 @@ migrations_dir = "migrations"
 [[env.production.r2_buckets]]
 binding = "MEDIA"
 bucket_name = "sabor-llanero"
+
+[[env.production.send_email]]
+name = "EMAIL"
 
 [[env.production.unsafe.bindings]]
 name = "LOGIN_LIMITER"

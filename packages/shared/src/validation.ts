@@ -52,6 +52,15 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('email inválido'),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'token requerido').max(200, 'token inválido'),
+  newPassword: passwordSchema,
+});
+
 /** Precio de un tamaño dentro de un input de categoría o ítem. */
 export const sizePriceInputSchema = z.object({
   sizeId: z.number().int().positive('sizeId inválido'),
