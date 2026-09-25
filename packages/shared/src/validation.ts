@@ -252,6 +252,13 @@ export const loyaltyConfigUpdateSchema = z.object({
   minOrderAmountForPoints: z.number().min(0).optional(),
 });
 
+const periodRegex = /^\d{4}-\d{2}$/;
+
+/** Si se omite `period`, la API sortea/lista el mes calendario actual. */
+export const drawRaffleSchema = z.object({
+  period: z.string().regex(periodRegex, 'formato inválido, se espera YYYY-MM').optional(),
+});
+
 export const replaceCollectionItemsSchema = z.object({
   items: z
     .array(collectionItemInputSchema)

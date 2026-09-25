@@ -31,6 +31,7 @@ import {
   mapSize,
 } from '../db/rows';
 import { generateOrderCode } from '../lib/order-code';
+import { currentPeriod } from '../lib/period';
 import { badRequest, conflict, notFound } from '../lib/http-error';
 import { parseBody } from '../lib/validate';
 import { parsePositiveInt, requireIdParam } from '../lib/params';
@@ -189,7 +190,7 @@ async function awardLoyaltyForOrder(db: D1Database, order: OrderRow): Promise<vo
   // de error de 1.005 * 100), lo que restaría 1 punto por redondeo binario.
   const rawPoints = order.subtotal >= minOrderAmount ? order.subtotal * pointsPerUnit : 0;
   const pointsAwarded = Math.floor(Math.round(rawPoints * 1e6) / 1e6);
-  const period = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+  const period = currentPeriod();
 
   await db.batch([
     db.prepare('UPDATE customers SET points_balance = points_balance + ? WHERE id = ?').bind(

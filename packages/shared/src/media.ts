@@ -33,11 +33,14 @@ export const MEDIA_KEY_PREFIX = 'items/';
 /** Prefijo bajo el cual viven los banners de categoría en R2. */
 export const CATEGORY_MEDIA_KEY_PREFIX = 'categories/';
 
+/** Prefijo bajo el cual viven las imágenes de premios (rewards) en R2. */
+export const REWARD_MEDIA_KEY_PREFIX = 'rewards/';
+
 /**
  * Prefijos R2 servibles públicamente. El endpoint público de media solo
  * entrega objetos bajo estos prefijos, nunca claves arbitrarias del bucket.
  */
-export const PUBLIC_MEDIA_PREFIXES = [MEDIA_KEY_PREFIX, CATEGORY_MEDIA_KEY_PREFIX] as const;
+export const PUBLIC_MEDIA_PREFIXES = [MEDIA_KEY_PREFIX, CATEGORY_MEDIA_KEY_PREFIX, REWARD_MEDIA_KEY_PREFIX] as const;
 
 /** Límite en MB para mensajes de error legibles. */
 export const MEDIA_MAX_UPLOAD_MB = Math.floor(MEDIA_MAX_UPLOAD_BYTES / (1024 * 1024));

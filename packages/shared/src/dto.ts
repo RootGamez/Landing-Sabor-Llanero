@@ -2,7 +2,7 @@
  * Contratos de request/response de la API. Web, CMS y API importan estos
  * tipos para no desincronizarse, igual que en Jaw.
  */
-import type { Category, EventType, MenuItem, Order, OrderItem, OrderStatus } from './types';
+import type { Category, EventType, MenuItem, Order, OrderItem, OrderStatus, RewardRedemption } from './types';
 
 export interface LoginRequest {
   email: string;
@@ -225,4 +225,15 @@ export interface LoyaltyConfigUpdateInput {
 /** Saldo de puntos del cliente logueado (GET /rewards o similar en P2.4/P2.8). */
 export interface PointsBalanceDto {
   pointsBalance: number;
+}
+
+/** Respuesta de POST /rewards/:id/redeem: la redención creada + el saldo restante. */
+export interface RedeemRewardResponse {
+  redemption: RewardRedemption;
+  pointsBalance: number;
+}
+
+/** Si se omite `period`, la API sortea/lista el mes calendario actual ('YYYY-MM'). */
+export interface DrawRaffleInput {
+  period?: string;
 }
