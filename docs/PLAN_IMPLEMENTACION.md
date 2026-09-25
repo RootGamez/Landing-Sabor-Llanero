@@ -62,7 +62,7 @@ contrario.
 | P2.5 | CMS | Página "Pedidos" | P2.3 | ✅ Completada | 2026-09-24 |
 | P2.6 | CMS | Páginas "Premios" / "Sorteo" / config de puntos | P2.4 | ✅ Completada | 2026-09-25 |
 | P2.7 | Web | Carrito (funciona sin cuenta) | — | ✅ Completada | 2026-09-25 |
-| P2.8 | Web | Cuenta de cliente + checkout logueado | P2.2, P2.3, P2.7 | ⬜ Pendiente | |
+| P2.8 | Web | Cuenta de cliente + checkout logueado | P2.2, P2.3, P2.7 | ✅ Completada (falta revisión dedicada de a11y, ver nota) | 2026-09-25 |
 
 ---
 
@@ -590,17 +590,84 @@ guard — defensa en profundidad, no solo "confiar en que el `if` de rol esté b
 
 ### P2.8 — Web: cuenta de cliente + checkout logueado
 
-- **Estado**: ⬜ Pendiente
+- **Estado**: ✅ Completada (2026-09-25) — falta una revisión dedicada de `ecc:a11y-architect`
+  (ver nota abajo), el resto de la fase está cerrado.
 - **Archivos**: `apps/web/lib/customerAuth.tsx` (CREATE, Context, mismo patrón que
-  `lib/lang.tsx` — sin agregar Zustand a `apps/web`, que hoy no lo tiene y no lo necesita),
-  `apps/web/lib/api.ts` (UPDATE: hoy solo expone `get`/`post` — agregar `patch` y adjuntar
-  `Authorization` cuando haya sesión de cliente, mismo criterio que ya usa `apps/cms/src/lib/api.ts`),
-  `apps/web/app/cuenta/login/page.tsx`, `.../registro/page.tsx`, `.../page.tsx` (perfil: saldo
-  de puntos, historial, catálogo de premios + canje) (CREATE).
-- **Skills/Agentes**: `ui-ux-pro-max` antes de cada pantalla nueva · `ecc:react-reviewer` ·
-  `ecc:security-review` (formularios de registro/login del lado cliente) · `ecc:accessibility`.
+  `lib/lang.tsx`/`lib/cart.tsx` — sin Zustand, `apps/web` no lo tiene y no lo necesita; expone
+  `customer`/`loading`/`login`/`register`/`logout`/`refresh`), `apps/web/lib/accountData.ts`
+  (CREATE: `fetchRewards`/`fetchMyOrders`), `apps/web/lib/api.ts` (UPDATE: token de cliente en
+  `localStorage` con `getCustomerToken`/`setCustomerToken`/`clearCustomerToken`, header
+  `Authorization` automático, limpieza en 401, método `patch` nuevo), `apps/web/lib/cart.tsx`
+  (UPDATE: campo `sizeId` agregado a `CartLine`, necesario para armar `POST /orders`),
+  `apps/web/lib/whatsapp.ts` (UPDATE: `orderCode` opcional en `buildCartOrderLink`),
+  `apps/web/components/cart/CartPageContent.tsx` (UPDATE: checkout logueado — crea el pedido
+  real antes de abrir WhatsApp), `apps/web/components/account/*` (CREATE: `AccountFormField`,
+  `LoginForm`, `RegisterForm`, `AccountProfileSection`, `AccountPageContent`, `RewardCard`,
+  `OrderHistoryList`, `AccountNavLink`), `apps/web/app/cuenta/login/page.tsx`,
+  `.../registro/page.tsx`, `.../page.tsx` (perfil: saldo de puntos + edición inline, historial
+  de pedidos, catálogo de premios + canje) (CREATE), `apps/web/app/layout.tsx`
+  (`<CustomerAuthProvider>`), `apps/web/components/sections/Navbar.tsx` (`AccountNavLink`, ver
+  desvío abajo), `apps/web/components/ui/icons.tsx` (`UserIcon`/`GiftIcon`/`LogOutIcon`).
+- **Desvío del plan original**: se agregó `AccountNavLink` al Navbar (no estaba en el plan) —
+  sin un punto de entrada visible a `/cuenta` fuera del flujo del carrito, la cuenta no era
+  descubrible. Mismo criterio que la extensión a `ItemModal` en P2.7.
+- **Checkout logueado — detalle técnico**: `POST /orders` se dispara ANTES de abrir WhatsApp.
+  Para no perder el pedido si el navegador bloquea el pop-up (la llamada a la API es async, así
+  que abrir la pestaña recién después del `await` perdería el gesto de usuario), se abre una
+  pestaña en blanco de forma síncrona dentro del propio click y se le asigna la URL final
+  recién cuando el pedido ya existe — para eso hace falta la referencia a la pestaña, que
+  `window.open(..., "noopener")` no permite devolver, así que se corta `tab.opener = null` a
+  mano antes de navegarla (mismo efecto contra reverse-tabnabbing, confirmado por
+  `ecc:security-reviewer`). Si la pestaña no se puede abrir/redirigir igual (el cliente la
+  cerró a mano mientras esperaba), se muestra un link manual — nunca se pierde el pedido ya
+  creado ni se dan mensajes de error falsos.
+- **Skills/Agentes**: `ui-ux-pro-max` antes de las pantallas nuevas · `ecc:react-reviewer`,
+  `ecc:security-reviewer` y `ecc:code-reviewer` en paralelo (regla fija de auth/dinero/datos de
+  clientes) después de escribir. Corregidos: 1 bug real coincidente en las 3 revisiones (el
+  `try/catch` de `confirmLoggedIn` envolvía tanto la creación del pedido como la navegación de
+  la pestaña — si el pedido se creaba pero la navegación fallaba, se mostraba "no se pudo crear
+  el pedido" sin vaciar el carrito, arriesgando un pedido real duplicado si el cliente
+  reintentaba; separado en dos pasos, con fallback de link manual), 1 HIGH (un 401 de
+  `/customers/login` por contraseña incorrecta borraba el token de una sesión YA válida si el
+  cliente logueado visitaba `/cuenta/login/` por bookmark y erraba la contraseña — el 401 de
+  esos dos endpoints ahora está excluido de la limpieza automática de token; validado en vivo:
+  el token no cambia tras un intento de login fallido estando logueado), 1 MEDIUM (`loadMe`
+  trataba cualquier error, no solo un 401 real, como sesión inválida — un refetch transitorio
+  fallido tras guardar un cambio con éxito deslogueaba en silencio; ahora solo un `ApiError`
+  con `status === 401` limpia `customer`), 1 MEDIUM (`loadMe`/`refresh` sin secuenciar — dos
+  llamadas casi simultáneas podían resolver fuera de orden y pisar el estado con datos viejos;
+  se agregó una guarda de "última solicitud vigente" con un contador, mismo criterio que
+  `useAsync`), 1 MEDIUM (`AccountProfileSection` sincronizaba `name`/`phone` con el `customer`
+  del contexto en un efecto sin condición — un `refresh()` disparado por OTRA acción de la
+  página, ej. canjear un premio, pisaba una edición de perfil en curso sin guardar; ahora el
+  efecto no corre mientras `editing` es `true`), 1 HIGH de UX (el saldo de puntos se
+  sincronizaba vía `useEffect` + `useState(0)`, mostrando "0" un frame antes del valor real al
+  entrar a la página — ahora se computa en el render con un override opcional solo para el
+  feedback optimista post-canje, que se limpia solo cuando `refresh()` ya trajo un valor
+  coincidente), y 2 LOW/MEDIUM (`order?.code`/`res?.pointsBalance` seguían el camino feliz si
+  la API devolvía 2xx sin body — ahora se tratan como error explícito). Se aceptó sin resolver:
+  el JWT de cliente en `localStorage` (superficie de XSS inherente a cualquier SPA sin cookies
+  httpOnly) — no es una regresión de P2.8, replica el mismo patrón ya aceptado para el staff en
+  `apps/cms/src/store/sessionStore.ts` desde P1.1, y migrar a cookies httpOnly excede el
+  alcance de esta fase; el header `Authorization` viajando en requests públicas y la limpieza
+  de token acotada solo a un puñado de rutas quedaron como LOW aceptados (bajo riesgo real,
+  ningún endpoint público hoy devuelve 401).
+- **Nota — revisión de accesibilidad incompleta**: `ecc:a11y-architect` no llegó a correr para
+  esta fase (falló por límite de uso de la cuenta, "session limit", indoendiente del código).
+  Los formularios (`AccountFormField`, `LoginForm`, `RegisterForm`) siguen el mismo patrón ya
+  auditado y aprobado en P1.5 (labels asociados, `role="alert"` para errores, `aria-describedby`
+  para hints). Pendiente: correr `ecc:a11y-architect` dedicado sobre `apps/web/components/account/*`
+  y `CartPageContent.tsx` cuando se pueda, antes de considerar la Parte 2 100% cerrada.
+- **Validado en vivo en el navegador** (Chrome DevTools MCP + `wrangler dev` + `next dev` + CMS
+  local): registro con auto-login, login, logout; visitar `/cuenta` sin sesión redirige a
+  login; checkout logueado crea un pedido real (`POST /orders`) visible como pendiente en el
+  CMS, confirmado desde ahí, con los puntos reflejados en `/cuenta` tras recargar; canje de
+  premio de prueba descuenta el saldo y el botón se deshabilita solo cuando no alcanza; edición
+  inline de nombre/teléfono guarda correctamente; un intento de login fallido estando ya
+  logueado NO cierra la sesión (token verificado igual en `localStorage` antes y después).
 - **Validar**: registrarse → loguearse → agregar al carrito → confirmar → pedido en estado
-  `pending` visible en CMS (P2.5) → dueño confirma → puntos reflejados en `/cuenta`.
+  `pending` visible en CMS (P2.5) → dueño confirma → puntos reflejados en `/cuenta`. ✅ (ver
+  validación en vivo arriba)
 
 ---
 
@@ -695,3 +762,4 @@ make dev                                                     # api :8787 + web :
 | 2026-09-25 | P2.5 (re-verificación) | Se re-levantaron los servers y se repitió la prueba visual del refactor de `OrderCard` (confirmar un pedido y cancelar otro, por separado): ambas acciones funcionan de forma independiente, el foco vuelve al `<h1>` tras cada acción (confirmado por accesibilidad en el snapshot), badges y pestañas correctos. | Ninguno — quedó cerrado el pendiente de la fila anterior |
 | 2026-09-25 | P2.6 | `PremiosPage.tsx` (CRUD + upload de imagen), `SorteoPage.tsx` (entradas + sortear + historial), `LoyaltyConfigPage.tsx` (calco de `WhatsappConfigPage.tsx`), 3 rutas + links de sidebar. Se agregó `GET /raffle/draws` a la API (gap del plan, ver nota de la fase). Review consolidado en un solo agente (React+a11y+código juntos, por restricción de costo/contexto de la sesión, no 3 separados como en fases anteriores). Corregido 1 HIGH (el input de archivo oculto usaba `sr-only` en vez de `hidden` — quedaba tabbable e invisible, trampa de foco para teclado/lector de pantalla) y varios MEDIUM (estado "subiendo imagen" no comunicado a tecnología asistiva — se agregó `aria-busy`; el mensaje de "N entradas en este período" no tenía `role="status"` mientras que el de "ya se sorteó" sí, feedback inconsistente entre las dos razones por las que el botón de sortear puede estar deshabilitado — parejo ahora; skeleton de carga de `PremiosPage` no tenía forma de lista como su página espejo `UsersPage.tsx` — ahora usa `TableSkeleton`) y 1 LOW (atributo `accept` del input de imagen menos específico que su espejo). Validado en vivo en el navegador: crear/editar premio, sortear con entrada real generada por un pedido confirmado de verdad → historial correcto con cliente y fecha, botón se auto-deshabilita tras sortear ese período; config de puntos carga y guarda. | El MEDIUM de que `alreadyDrawn` solo mira los primeros 100 sorteos (no filtra por período server-side) se aceptó sin resolver — el propio reviewer lo calificó de riesgo cosmético dado el `UNIQUE(period)` de la DB como backstop real y el bajo volumen de un sorteo mensual; no se corrió `ui-ux-pro-max` antes de estas 3 páginas a propósito (espejos casi 1:1 de páginas ya diseñadas), lo que sí causó el desvío del skeleton, ya corregido |
 | 2026-09-25 | P2.7 | Carrito multi-ítem de invitado en `apps/web`: `lib/cart.tsx` (Context+localStorage, 2 contextos separados acción/estado), `AddToCartButton.tsx`, `CartButton.tsx` (Navbar), `CartLineRow.tsx`/`CartPageContent.tsx` (página `/carrito`), `buildCartOrderLink` en `lib/whatsapp.ts` (mensaje multi-ítem en español). Extendido a `ItemModal.tsx` además de `ItemCard.tsx` (ver desvío en la fase — el modal es la única vía de compra en mobile para el grid por categorías). Revisado por `ecc:react-reviewer`, `ecc:a11y-architect` y `ecc:code-reviewer` en paralelo (mismo criterio que P2.5). Corregidos: 1 bug real (`addLine` pisaba nombre/tamaño con datos viejos al fusionar cantidades tras un cambio de idioma ES/EN — ahora refresca con el `input` más reciente, validado en vivo agregando "Alborada/Grande" en ES y de nuevo en EN → la línea queda "Alborada/Large" sin duplicarse), 1 HIGH (el botón "Confirmar pedido" dependía implícitamente del orden entre el commit de `clear()` y la navegación nativa del `<a href>` — ahora `preventDefault` + `window.open` con el href ya capturado en el closure del render), 2 hallazgos de accesibilidad convergentes entre 2 agentes (botón "Agregar al carrito" deshabilitado sin explicar el motivo, a diferencia de `OrderButton` al lado — ahora comparten hint vía `aria-describedby`/`hintId` nuevo en `OrderButton`; aria-label del botón "−" decía "quitar una unidad" pero en cantidad 1 borra la línea entera — ahora el label cambia para reflejarlo), 1 MEDIUM de a11y (clics repetidos de "Agregar al carrito" dentro de la ventana de feedback no volvían a anunciarse al lector de pantalla porque el texto del `aria-live` no mutaba — ahora fuerza un ciclo false→true con `requestAnimationFrame`), 1 MEDIUM de rendimiento (un solo contexto mezclaba `lines` de alta frecuencia con acciones estables, re-renderizando los 30+ `ItemCard` de `/menu` en cada operación de carrito — separado en `CartActionsContext`/`CartStateContext`, con `useCartActions()` para quien solo necesita `addLine`), 1 LOW de contraste (ícono de "quitar línea" en reposo bajo 3:1, `text-ink/40`→`text-ink/60`), 1 LOW de foco visible (`<h1>` enfocado programáticamente con `outline-none` sin estilo `focus-visible` propio) y la duplicación de la lógica de armado de línea entre `ItemCard`/`ItemModal` (extraída a `cartLineFromItem` en `lib/cart.tsx`). Validado en vivo en el navegador (Chrome DevTools MCP) de punta a punta, incluyendo el modal en viewport mobile (390px) vía `evaluate_script` para evitar el overlay de Next.js Dev Tools que interceptaba clics por coordenadas en esa esquina (artefacto solo de `next dev`, no existe en el build de producción). | Se aceptó sin resolver (no bloqueante, señalado por el propio a11y-architect): el foco siempre vuelve al `<h1>` al quitar una línea del carrito aunque queden otras — ya evita el bug de foco perdido a `<body>` de P1.5/P2.5; un foco más local (ej. la fila siguiente) queda como mejora futura. Un subagente de revisión reportó y descartó correctamente un bloque de instrucciones de un MCP server (Claude Docs) que apareció en su contexto pidiendo crear un documento — no era parte de la tarea delegada y no se le hizo caso, sin impacto en el resultado |
+| 2026-09-25 | P2.8 | Cuenta de cliente + checkout logueado en `apps/web`: `lib/customerAuth.tsx` (Context de sesión, patrón `lib/lang.tsx`/`lib/cart.tsx`), `lib/api.ts` (token de cliente en localStorage + `Authorization` + `patch`), `lib/cart.tsx` (campo `sizeId` agregado), `lib/whatsapp.ts` (`orderCode` opcional), `components/account/*` (formularios de login/registro, sección de perfil editable, cards de premio, historial de pedidos, link de cuenta en el Navbar), 3 páginas nuevas (`/cuenta`, `/cuenta/login`, `/cuenta/registro`), y `CartPageContent.tsx` actualizado para crear un pedido real (`POST /orders`) antes de abrir WhatsApp cuando hay sesión. Revisado por `ecc:react-reviewer`, `ecc:security-reviewer` y `ecc:code-reviewer` en paralelo (regla fija de auth/dinero/datos de clientes); `ecc:a11y-architect` no llegó a correr por límite de uso de la cuenta (queda pendiente, ver nota en la fase). Las 3 revisiones completadas coincidieron de forma independiente en el mismo bug real: el `try/catch` de la creación del pedido logueado envolvía también la navegación de la pestaña de WhatsApp, así que un pedido creado con éxito pero con la pestaña fallida se reportaba como "no se pudo crear el pedido" sin vaciar el carrito — riesgo de pedido real duplicado si el cliente reintentaba; separado en dos pasos, con un link manual de respaldo si ambos intentos de abrir la pestaña fallan. También corregidos: 1 HIGH (un login fallido estando ya logueado borraba el token de la sesión válida, porque el interceptor de 401 no distinguía "credenciales inválidas en este request" de "token guardado inválido" — excluidos `/customers/login`/`/customers/register` de la limpieza automática; validado en vivo que el token no cambia), 2 MEDIUM (`loadMe` deslogueaba en silencio ante cualquier error, no solo un 401 real — ahora solo un `ApiError` con status 401 limpia la sesión; llamadas a `loadMe`/`refresh` sin secuenciar podían resolver fuera de orden — se agregó una guarda de "última solicitud vigente"), 1 MEDIUM (`AccountProfileSection` podía pisar una edición de perfil en curso si otra acción de la página disparaba un `refresh()` — el efecto de sincronización ahora respeta `editing`), 1 HIGH de UX (el saldo de puntos parpadeaba en "0" un frame al entrar a `/cuenta` por depender de un `useEffect` — se computa en el render, con un override solo para el feedback optimista post-canje), y 2 hallazgos de manejo de errores (`order?.code`/`res?.pointsBalance` seguían el camino feliz si la API devolvía 2xx sin body — ahora es un error explícito). Validado en vivo de punta a punta con `wrangler dev`+`next dev`+CMS local: registro con auto-login, login/logout, guardia de sesión en `/cuenta`, checkout logueado crea un pedido real visible como pendiente en el CMS, confirmado desde ahí, puntos reflejados en `/cuenta`; canje de premio de prueba (creado ad-hoc en D1 local) descuenta el saldo y deshabilita el botón cuando no alcanza; edición inline de perfil guarda correctamente; un login fallido estando logueado no cierra la sesión. | El JWT de cliente en `localStorage` quedó señalado por un reviewer como riesgo de superficie de XSS — se documenta como aceptado porque replica el mismo patrón ya asumido para el staff desde P1.1 (`apps/cms/src/store/sessionStore.ts`), no es una regresión nueva de esta fase, y migrar a cookies httpOnly excede su alcance. Los servers de desarrollo (api/web/cms) se cayeron a mitad de sesión por un reinicio ligado al límite de uso de la cuenta — se relevantaron y se re-validó todo lo que dependía de ellos antes de seguir |

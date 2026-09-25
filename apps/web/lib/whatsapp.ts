@@ -61,16 +61,23 @@ interface CartOrderLinkParams {
   subtotal: number;
   /** Link de vuelta al carrito, mismo criterio que `itemUrl` de OrderLinkParams. */
   cartUrl: string;
+  /**
+   * Código corto del pedido ya creado en D1 (checkout logueado, P2.8) — le da
+   * al dueño una referencia exacta para ubicarlo en la card de "Pedidos" del
+   * CMS. Se omite en el checkout de invitado (P2.7), que no crea pedido real.
+   */
+  orderCode?: string;
 }
 
 /**
- * Mensaje de WhatsApp para el carrito multi-ítem (checkout de invitado, P2.7).
- * A diferencia de `buildItemOrderLink`, NO usa la plantilla editable del dueño
- * (`messageTemplateEs/En`) — esa plantilla tiene placeholders pensados para UN
- * solo ítem (BLUEPRINT §4.1/§4.3) y no generaliza a una lista de N líneas.
- * Arma su propio formato, siempre en español: el toggle ES/EN solo cubre la
- * sección de menú (`lib/lang.tsx`), el resto de la landing —esta página
- * incluida— queda en español, igual que `siteConfig.whatsapp.message`.
+ * Mensaje de WhatsApp para el carrito multi-ítem (checkout de invitado, P2.7,
+ * o logueado, P2.8). A diferencia de `buildItemOrderLink`, NO usa la
+ * plantilla editable del dueño (`messageTemplateEs/En`) — esa plantilla tiene
+ * placeholders pensados para UN solo ítem (BLUEPRINT §4.1/§4.3) y no
+ * generaliza a una lista de N líneas. Arma su propio formato, siempre en
+ * español: el toggle ES/EN solo cubre la sección de menú (`lib/lang.tsx`), el
+ * resto de la landing —esta página incluida— queda en español, igual que
+ * `siteConfig.whatsapp.message`.
  */
 export function buildCartOrderLink(params: CartOrderLinkParams): string {
   const itemLines = params.lines
@@ -83,13 +90,16 @@ export function buildCartOrderLink(params: CartOrderLinkParams): string {
 
   const message = [
     "Hola 👋 Quiero hacer este pedido:",
+    params.orderCode ? `Pedido #${params.orderCode}` : null,
     "",
     itemLines,
     "",
     `Total: ${formatPrice(params.subtotal)}`,
     "",
     params.cartUrl,
-  ].join("\n");
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
 
   const digits = params.phoneNumber.replace(/\D/g, "");
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;

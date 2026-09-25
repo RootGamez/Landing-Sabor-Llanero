@@ -6,6 +6,7 @@ import Link from "next/link";
 import { siteConfig } from "@/lib/siteConfig";
 import TricolorBar from "@/components/ui/TricolorBar";
 import { WhatsAppIcon } from "@/components/ui/icons";
+import AccountNavLink from "@/components/account/AccountNavLink";
 import CartButton from "@/components/cart/CartButton";
 
 interface NavbarProps {
@@ -97,6 +98,7 @@ export default function Navbar({ solid: alwaysSolid = false }: NavbarProps) {
           </ul>
 
           <div className="flex items-center gap-1">
+            <AccountNavLink solid={solid} />
             <CartButton solid={solid} />
 
             {/* Botón hamburguesa (móvil) */}

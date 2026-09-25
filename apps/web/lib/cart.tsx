@@ -30,6 +30,8 @@ export interface CartLine {
   itemSlug: string;
   /** Nombre ya resuelto en el idioma activo al momento de agregar (snapshot, igual que order_items). */
   name: string;
+  /** `null` si el ítem no vende por tamaño. Necesario (no solo el label) para armar `POST /orders` en el checkout logueado (P2.8). */
+  sizeId: number | null;
   sizeLabel: string | null;
   unitPrice: number;
   quantity: number;
@@ -88,6 +90,7 @@ export function cartLineFromItem(candidate: CartLineCandidate): CartLineInput | 
       itemId: item.id,
       itemSlug: item.slug,
       name,
+      sizeId: selectedPrice.sizeId,
       sizeLabel,
       unitPrice: selectedPrice.price,
     };
@@ -98,6 +101,7 @@ export function cartLineFromItem(candidate: CartLineCandidate): CartLineInput | 
     itemId: item.id,
     itemSlug: item.slug,
     name,
+    sizeId: null,
     sizeLabel: null,
     unitPrice: item.price,
   };
@@ -111,6 +115,7 @@ function isCartLine(value: unknown): value is CartLine {
     typeof line.itemId === "number" &&
     typeof line.itemSlug === "string" &&
     typeof line.name === "string" &&
+    (line.sizeId === null || typeof line.sizeId === "number") &&
     (line.sizeLabel === null || typeof line.sizeLabel === "string") &&
     typeof line.unitPrice === "number" &&
     typeof line.quantity === "number" &&
