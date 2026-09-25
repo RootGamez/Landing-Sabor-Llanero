@@ -6,6 +6,7 @@ import Link from "next/link";
 import { siteConfig } from "@/lib/siteConfig";
 import TricolorBar from "@/components/ui/TricolorBar";
 import { WhatsAppIcon } from "@/components/ui/icons";
+import CartButton from "@/components/cart/CartButton";
 
 interface NavbarProps {
   /** Fuerza el estado sólido desde el inicio (páginas sin hero oscuro, ej. /menu) */
@@ -95,30 +96,34 @@ export default function Navbar({ solid: alwaysSolid = false }: NavbarProps) {
             </li>
           </ul>
 
-          {/* Botón hamburguesa (móvil) */}
-          <button
-            type="button"
-            className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 md:hidden"
-            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            <span
-              className={`h-0.5 w-6 rounded transition-all duration-300 ${
-                solid ? "bg-ink" : "bg-white"
-              } ${menuOpen ? "translate-y-2 rotate-45" : ""}`}
-            />
-            <span
-              className={`h-0.5 w-6 rounded transition-all duration-300 ${
-                solid ? "bg-ink" : "bg-white"
-              } ${menuOpen ? "opacity-0" : ""}`}
-            />
-            <span
-              className={`h-0.5 w-6 rounded transition-all duration-300 ${
-                solid ? "bg-ink" : "bg-white"
-              } ${menuOpen ? "-translate-y-2 -rotate-45" : ""}`}
-            />
-          </button>
+          <div className="flex items-center gap-1">
+            <CartButton solid={solid} />
+
+            {/* Botón hamburguesa (móvil) */}
+            <button
+              type="button"
+              className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 md:hidden"
+              aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <span
+                className={`h-0.5 w-6 rounded transition-all duration-300 ${
+                  solid ? "bg-ink" : "bg-white"
+                } ${menuOpen ? "translate-y-2 rotate-45" : ""}`}
+              />
+              <span
+                className={`h-0.5 w-6 rounded transition-all duration-300 ${
+                  solid ? "bg-ink" : "bg-white"
+                } ${menuOpen ? "opacity-0" : ""}`}
+              />
+              <span
+                className={`h-0.5 w-6 rounded transition-all duration-300 ${
+                  solid ? "bg-ink" : "bg-white"
+                } ${menuOpen ? "-translate-y-2 -rotate-45" : ""}`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Línea tricolor de marca como borde inferior */}

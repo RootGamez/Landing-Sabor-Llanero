@@ -45,6 +45,10 @@ interface CatalogUiCopy {
   close: string;
   /** Encabezado de la lista de ingredientes en el modal. */
   ingredients: string;
+  /** aria-label de AddToCartButton: "{addToCart}: {nombre del ítem}". */
+  addToCart: string;
+  /** Anuncio para lectores de pantalla tras agregar: "{nombre} — {addedToCart}". */
+  addedToCart: string;
 }
 
 export const CATALOG_UI: Record<Lang, CatalogUiCopy> = {
@@ -74,6 +78,8 @@ export const CATALOG_UI: Record<Lang, CatalogUiCopy> = {
     viewDetails: "Ver detalles",
     close: "Cerrar",
     ingredients: "Ingredientes",
+    addToCart: "Agregar al carrito",
+    addedToCart: "Agregado al carrito",
   },
   en: {
     kicker: "The Menu",
@@ -101,6 +107,8 @@ export const CATALOG_UI: Record<Lang, CatalogUiCopy> = {
     viewDetails: "View details",
     close: "Close",
     ingredients: "Ingredients",
+    addToCart: "Add to cart",
+    addedToCart: "Added to cart",
   },
 };
 

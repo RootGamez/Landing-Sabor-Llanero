@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bangers, Poppins } from "next/font/google";
 import { businessHours } from "@/lib/businessHours";
+import { CartProvider } from "@/lib/cart";
 import { siteConfig } from "@/lib/siteConfig";
 import "./globals.css";
 
@@ -119,7 +120,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${bangers.variable} ${poppins.variable}`}>
       <body>
-        {children}
+        <CartProvider>{children}</CartProvider>
         <script
           type="application/ld+json"
           // JSON-LD para Google: datos estructurados del restaurante

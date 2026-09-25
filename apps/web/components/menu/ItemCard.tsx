@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   CATALOG_COPY,
   displayDescription,
@@ -14,9 +14,11 @@ import {
 import { ChevronRightIcon, ExpandIcon, StarIcon } from "@/components/ui/icons";
 import { siteConfig } from "@/lib/siteConfig";
 import { accentStyle } from "@/lib/catalogAccent";
+import { cartLineFromItem, useCartActions } from "@/lib/cart";
 import { CATALOG_UI, sizeLabelFor } from "@/lib/catalogUi";
 import { buildItemOrderLink } from "@/lib/whatsapp";
 // sizeLabelFor sigue usándose para el label del deep link de WhatsApp.
+import AddToCartButton from "@/components/menu/AddToCartButton";
 import MenuImage from "@/components/menu/MenuImage";
 import OrderButton from "@/components/menu/OrderButton";
 import SizeSelector from "@/components/menu/SizeSelector";
@@ -62,6 +64,8 @@ export default function ItemCard({
   compact = false,
 }: ItemCardProps) {
   const [selectedSizeId, setSelectedSizeId] = useState<number | null>(null);
+  const { addLine } = useCartActions();
+  const disabledHintId = useId();
 
   const copy = CATALOG_COPY[lang];
   const ui = CATALOG_UI[lang];
@@ -70,6 +74,18 @@ export default function ItemCard({
   const hasSizes = item.prices.length > 0;
   const selectedPrice = hasSizes ? (item.prices.find((p) => p.sizeId === selectedSizeId) ?? null) : null;
   const fromPrice = hasSizes ? Math.min(...item.prices.map((p) => p.price)) : null;
+
+  const canAddToCart = hasSizes ? selectedPrice != null : item.price != null;
+  const addToCart = (): void => {
+    const line = cartLineFromItem({
+      item,
+      hasSizes,
+      selectedPrice,
+      name,
+      sizeLabel: selectedPrice ? sizeLabelFor(selectedPrice, sizes, lang) : null,
+    });
+    if (line) addLine(line);
+  };
 
   const itemUrl = `${siteConfig.url}/menu/#item-${item.slug}`;
   let orderHref: string | null = null;
@@ -196,15 +212,26 @@ export default function ItemCard({
         </div>
 
         <div
-          className={`relative z-10 mt-auto pt-4 ${compact ? "" : "hidden sm:block"}`}
+          className={`relative z-10 mt-auto items-start gap-2 pt-4 ${compact ? "flex" : "hidden sm:flex"}`}
         >
-          <OrderButton
-            href={orderHref}
-            itemId={item.id}
-            lang={lang}
-            disabledHint={hasSizes && !selectedPrice ? ui.chooseSize : undefined}
+          <AddToCartButton
+            onAdd={addToCart}
+            disabled={!canAddToCart}
             compact={compact}
+            label={`${ui.addToCart}: ${name}`}
+            addedAnnouncement={`${name} — ${ui.addedToCart}`}
+            ariaDescribedBy={hasSizes && !selectedPrice ? disabledHintId : undefined}
           />
+          <div className="min-w-0 flex-1">
+            <OrderButton
+              href={orderHref}
+              itemId={item.id}
+              lang={lang}
+              disabledHint={hasSizes && !selectedPrice ? ui.chooseSize : undefined}
+              compact={compact}
+              hintId={disabledHintId}
+            />
+          </div>
         </div>
       </div>
 

@@ -14,6 +14,13 @@ interface OrderButtonProps {
   disabledHint?: string;
   /** Tratamiento visual: primario rojo (default) o compacto para cards de rail. */
   compact?: boolean;
+  /**
+   * id externo del `<p>` de hint, para que OTRO control deshabilitado por el
+   * mismo motivo (ej. AddToCartButton, deshabilitado por la misma falta de
+   * tamaño) lo referencie vía `aria-describedby` sin duplicar el texto
+   * visible. Por defecto genera uno propio.
+   */
+  hintId?: string;
 }
 
 /**
@@ -22,9 +29,17 @@ interface OrderButtonProps {
  * pestaña. Es un <a> real — no window.open — para no pelear con bloqueadores
  * de pop-ups; deshabilitado se degrada a <button disabled> con hint visible.
  */
-export default function OrderButton({ href, itemId, lang, disabledHint, compact = false }: OrderButtonProps) {
+export default function OrderButton({
+  href,
+  itemId,
+  lang,
+  disabledHint,
+  compact = false,
+  hintId: externalHintId,
+}: OrderButtonProps) {
   const copy = CATALOG_COPY[lang];
-  const hintId = useId();
+  const generatedHintId = useId();
+  const hintId = externalHintId ?? generatedHintId;
   const baseClasses = `inline-flex w-full items-center justify-center gap-2 rounded-full font-semibold transition-all duration-300 ${
     compact ? "px-4 py-2.5 text-sm" : "px-5 py-3 text-sm md:text-base"
   }`;

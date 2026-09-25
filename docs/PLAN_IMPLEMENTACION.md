@@ -61,7 +61,7 @@ contrario.
 | P2.4 | API | Premios, sorteo y config de puntos | P2.3 | ✅ Completada | 2026-09-24 |
 | P2.5 | CMS | Página "Pedidos" | P2.3 | ✅ Completada | 2026-09-24 |
 | P2.6 | CMS | Páginas "Premios" / "Sorteo" / config de puntos | P2.4 | ✅ Completada | 2026-09-25 |
-| P2.7 | Web | Carrito (funciona sin cuenta) | — | ⬜ Pendiente | |
+| P2.7 | Web | Carrito (funciona sin cuenta) | — | ✅ Completada | 2026-09-25 |
 | P2.8 | Web | Cuenta de cliente + checkout logueado | P2.2, P2.3, P2.7 | ⬜ Pendiente | |
 
 ---
@@ -526,22 +526,67 @@ guard — defensa en profundidad, no solo "confiar en que el `if` de rol esté b
 
 ### P2.7 — Web: carrito (sin cuenta)
 
-- **Estado**: ⬜ Pendiente
-- **Archivos**: `apps/web/lib/cart.tsx` (CREATE: Context+`localStorage`, mismo patrón
-  hidratación-segura que `lib/lang.tsx` — verificado línea por línea, default en servidor y
-  valor real recién en `useEffect` para no romper el export estático),
-  `apps/web/components/cart/CartButton.tsx` (CREATE), `apps/web/app/carrito/page.tsx`
-  (CREATE), `apps/web/components/menu/ItemCard.tsx` (UPDATE, `ItemCard.tsx:198-208` — el
-  bloque de `OrderButton` gana al lado un control "Agregar al carrito"), `apps/web/lib/whatsapp.ts`
-  (UPDATE: nueva función para armar un mensaje multi-ítem, además de `buildItemOrderLink`
-  existente que se conserva para el pedido directo de un ítem suelto).
+- **Estado**: ✅ Completada (2026-09-25)
+- **Archivos**: `apps/web/lib/cart.tsx` (CREATE: dos Context —`CartActionsContext` de
+  referencia estable y `CartStateContext` que cambia con `lines`— más `localStorage`, mismo
+  patrón de hidratación segura que `lib/lang.tsx`; expone `useCart()` combinado y
+  `useCartActions()` solo-acciones, y los helpers `buildCartLineKey`/`cartLineFromItem`),
+  `apps/web/components/menu/AddToCartButton.tsx` (CREATE), `apps/web/components/cart/CartButton.tsx`
+  (CREATE), `apps/web/components/cart/CartLineRow.tsx` (CREATE), `apps/web/components/cart/CartPageContent.tsx`
+  (CREATE), `apps/web/app/carrito/page.tsx` (CREATE), `apps/web/app/layout.tsx` (UPDATE:
+  `<CartProvider>` envolviendo `{children}`, para que el badge del Navbar y `/carrito`
+  compartan estado entre navegaciones client-side sin releer `localStorage`),
+  `apps/web/components/sections/Navbar.tsx` (UPDATE: `CartButton` junto al botón de
+  hamburguesa, visible en todos los breakpoints), `apps/web/components/menu/ItemCard.tsx`
+  (UPDATE, bloque de `OrderButton` — el control "Agregar al carrito" va al lado),
+  `apps/web/components/menu/ItemModal.tsx` (UPDATE, mismo control — ver desvío abajo),
+  `apps/web/components/menu/OrderButton.tsx` (UPDATE menor: prop `hintId` opcional para
+  compartir el hint de "Elige un tamaño" con `AddToCartButton`), `apps/web/lib/catalogUi.ts`
+  (UPDATE: strings bilingües `addToCart`/`addedToCart`), `apps/web/components/ui/icons.tsx`
+  (UPDATE: `CartIcon`, `CheckIcon`, `MinusIcon`, `PlusIcon`, `TrashIcon`), `apps/web/lib/whatsapp.ts`
+  (UPDATE: `buildCartOrderLink`, mensaje multi-ítem SIEMPRE en español —no reusa la plantilla
+  editable del dueño, pensada para un solo ítem—, además de `buildItemOrderLink` existente que
+  se conserva intacto para el pedido directo de un ítem suelto).
+- **Desvío del plan original**: el archivo original no listaba `ItemModal.tsx`, pero
+  `ItemCard.tsx` oculta el bloque de precio/tamaño/CTA en mobile para las cards NO compactas
+  (`hidden sm:flex`) — en el grid por categorías, el modal es la ÚNICA vía de compra en
+  celular ("Elegir tamaño y pedir viven en el modal", comentario ya existente en el propio
+  componente). Sin extender el modal, el carrito hubiera sido inutilizable en mobile para la
+  mayoría del catálogo. Se agregó ahí también, con el mismo helper `cartLineFromItem`.
 - **Nota**: esta fase NO depende de cuentas de cliente — funciona para invitados de punta a
-  punta y no cambia el comportamiento actual salvo agrupar "N ítems → 1 WhatsApp".
-- **Skills/Agentes**: `ui-ux-pro-max` (carrito es UI de cara al cliente, la de mayor
-  visibilidad de todo el plan) · `ecc:react-reviewer` · `ecc:frontend-a11y`/`ecc:accessibility`
-  (carrito con foco/teclado accesible).
-- **Validar**: agregar varios ítems sin sesión → confirmar → un solo WhatsApp con el resumen
-  correcto y ningún registro nuevo en D1.
+  punta y no cambia el comportamiento actual salvo agrupar "N ítems → 1 WhatsApp"; confirmar
+  vacía el carrito local (ningún registro nuevo en D1 — el pedido real con cuenta es P2.8).
+- **Skills/Agentes**: `ui-ux-pro-max` antes de maquetar (carrito es UI de cara al cliente, la
+  de mayor visibilidad de todo el plan) · `ecc:react-reviewer`, `ecc:a11y-architect` y
+  `ecc:code-reviewer` (3 agentes en paralelo, mismo criterio que P2.5) después de escribir.
+  Corregidos: 1 bug real de lógica (`addLine` pisaba nombre/tamaño con datos viejos al
+  fusionar cantidades si el usuario agregaba el mismo ítem tras cambiar el toggle ES/EN — ahora
+  refresca con el `input` más reciente), 1 HIGH de robustez (el botón "Confirmar pedido"
+  dependía implícitamente del orden entre el commit de `clear()` y la navegación nativa del
+  `<a href>` — ahora usa `preventDefault` + `window.open` con el href ya capturado en el
+  closure del render), 2 HIGH/MEDIUM de accesibilidad (el botón "Agregar al carrito"
+  deshabilitado no explicaba el motivo, a diferencia de `OrderButton` al lado — ahora comparten
+  el mismo hint vía `aria-describedby`; el aria-label del botón "−" del stepper decía "quitar
+  una unidad" pero en cantidad 1 borra toda la línea — ahora el label cambia para reflejarlo),
+  1 MEDIUM de accesibilidad (agregar el mismo ítem dos veces seguidas dentro de la ventana de
+  feedback no volvía a anunciarse al lector de pantalla porque el texto del `aria-live` no
+  mutaba — ahora fuerza un ciclo false→true), 1 MEDIUM de rendimiento (un solo contexto
+  mezclaba `lines` de alta frecuencia con acciones estables, re-renderizando los 30+ `ItemCard`
+  de `/menu` en cada operación del carrito — separado en `CartActionsContext`/`CartStateContext`),
+  1 LOW de contraste (ícono de "quitar línea" en reposo no llegaba a 3:1), 1 LOW de foco visible
+  (el `<h1>` enfocado programáticamente usaba `outline-none` sin estilo `focus-visible` propio),
+  y la duplicación de la lógica de armado de línea entre `ItemCard`/`ItemModal` (extraída a
+  `cartLineFromItem` en `lib/cart.tsx`). Se aceptó sin resolver (no bloqueante, documentado por
+  el propio a11y-architect): el foco siempre vuelve al `<h1>` al quitar una línea aunque queden
+  otras — simple y ya evita el bug de foco perdido a `<body>` de P1.5/P2.5, perfeccionarlo
+  (foco más local) queda como mejora futura.
+- **Validado en vivo en el navegador** (Chrome DevTools MCP, `wrangler dev` + `next dev`
+  locales): agregar ítem sin tamaño y con tamaño, desde la card y desde el modal en viewport
+  mobile (390px); badge del Navbar actualiza en vivo; stepper de cantidad; quitar línea con el
+  foco cayendo en el `<h1>` (no en `<body>`); agregar el mismo ítem+tamaño en ES y después en
+  EN confirma que el `sizeLabel` de la línea se actualiza ("Grande"→"Large") sin duplicar fila;
+  confirmar abre el wa.me correcto (verificado con 2 ítems, mensaje y total exactos) y vacía el
+  carrito; estado vacío.
 
 ### P2.8 — Web: cuenta de cliente + checkout logueado
 
@@ -649,3 +694,4 @@ make dev                                                     # api :8787 + web :
 | 2026-09-24 | P2.5 | `PedidosPage.tsx` + `components/orders/OrderCard.tsx` (CREATE), `hooks/useCmsData.ts` (`useOrders`), ruta `/pedidos` y link de sidebar (posición 2, alta prioridad). Validado en vivo en el navegador antes del refactor de abajo (ver nota de "Validar" en la fase). Revisado por `ecc:react-reviewer`, `ecc:a11y-architect` y `ecc:code-reviewer` — los tres coincidieron en el mismo hallazgo desde ángulos distintos: react-reviewer lo marcó **HIGH** (la página tenía un único `useMutation`+`actingOnId` compartido entre todas las cards; actuar sobre el pedido B mientras A todavía tenía un PATCH en vuelo pisaba el "en curso" de A, reactivando sus botones antes de que su request terminara — riesgo real de doble submit sobre pedidos con puntos/sorteo real), a11y-architect lo marcó HIGH desde el ángulo de accesibilidad (el spinner/`aria-busy` aparecía siempre en "Confirmar" aunque el usuario hubiera clickeado "Cancelar"), code-reviewer lo marcó MEDIUM (mismo síntoma). Se corrigió moviendo la mutación DENTRO de `OrderCard` (un `useMutation` por card en vez de uno compartido en la página, con `pendingAction` local para saber qué botón mostrar como cargando) — elimina la colisión entre cards de raíz y de paso deja el spinner en el botón correcto. También se agregó manejo de foco (MEDIUM de a11y: la card que sale de la lista al confirmar/cancelar se llevaba el foco, cayendo a `<body>` — ahora vuelve al `<h1>`) y se corrigieron 2 LOW (skeleton de carga con forma de card-grid en vez de `TableSkeleton`; tipo de status reusado de `OrderStatusUpdateInput` en vez de duplicado inline). No se tocó el LOW de `aria-pressed` en el filtro de tabs (mutuamente excluyente, debería ser `radiogroup`/`tablist`) porque ya existe igual en `MenuItemsPage.tsx` — arreglarlo solo acá sería inconsistente; queda como deuda de accesibilidad a resolver en ambas páginas juntas. | El refactor post-review (mover la mutación a `OrderCard`) no se re-validó visualmente en el navegador — el server de dev se cayó por un corte de conexión de la sesión y no se relevantó por costo; sí pasó `pnpm typecheck` y el cambio es mecánico (mismo patrón que ya recomendó el reviewer) |
 | 2026-09-25 | P2.5 (re-verificación) | Se re-levantaron los servers y se repitió la prueba visual del refactor de `OrderCard` (confirmar un pedido y cancelar otro, por separado): ambas acciones funcionan de forma independiente, el foco vuelve al `<h1>` tras cada acción (confirmado por accesibilidad en el snapshot), badges y pestañas correctos. | Ninguno — quedó cerrado el pendiente de la fila anterior |
 | 2026-09-25 | P2.6 | `PremiosPage.tsx` (CRUD + upload de imagen), `SorteoPage.tsx` (entradas + sortear + historial), `LoyaltyConfigPage.tsx` (calco de `WhatsappConfigPage.tsx`), 3 rutas + links de sidebar. Se agregó `GET /raffle/draws` a la API (gap del plan, ver nota de la fase). Review consolidado en un solo agente (React+a11y+código juntos, por restricción de costo/contexto de la sesión, no 3 separados como en fases anteriores). Corregido 1 HIGH (el input de archivo oculto usaba `sr-only` en vez de `hidden` — quedaba tabbable e invisible, trampa de foco para teclado/lector de pantalla) y varios MEDIUM (estado "subiendo imagen" no comunicado a tecnología asistiva — se agregó `aria-busy`; el mensaje de "N entradas en este período" no tenía `role="status"` mientras que el de "ya se sorteó" sí, feedback inconsistente entre las dos razones por las que el botón de sortear puede estar deshabilitado — parejo ahora; skeleton de carga de `PremiosPage` no tenía forma de lista como su página espejo `UsersPage.tsx` — ahora usa `TableSkeleton`) y 1 LOW (atributo `accept` del input de imagen menos específico que su espejo). Validado en vivo en el navegador: crear/editar premio, sortear con entrada real generada por un pedido confirmado de verdad → historial correcto con cliente y fecha, botón se auto-deshabilita tras sortear ese período; config de puntos carga y guarda. | El MEDIUM de que `alreadyDrawn` solo mira los primeros 100 sorteos (no filtra por período server-side) se aceptó sin resolver — el propio reviewer lo calificó de riesgo cosmético dado el `UNIQUE(period)` de la DB como backstop real y el bajo volumen de un sorteo mensual; no se corrió `ui-ux-pro-max` antes de estas 3 páginas a propósito (espejos casi 1:1 de páginas ya diseñadas), lo que sí causó el desvío del skeleton, ya corregido |
+| 2026-09-25 | P2.7 | Carrito multi-ítem de invitado en `apps/web`: `lib/cart.tsx` (Context+localStorage, 2 contextos separados acción/estado), `AddToCartButton.tsx`, `CartButton.tsx` (Navbar), `CartLineRow.tsx`/`CartPageContent.tsx` (página `/carrito`), `buildCartOrderLink` en `lib/whatsapp.ts` (mensaje multi-ítem en español). Extendido a `ItemModal.tsx` además de `ItemCard.tsx` (ver desvío en la fase — el modal es la única vía de compra en mobile para el grid por categorías). Revisado por `ecc:react-reviewer`, `ecc:a11y-architect` y `ecc:code-reviewer` en paralelo (mismo criterio que P2.5). Corregidos: 1 bug real (`addLine` pisaba nombre/tamaño con datos viejos al fusionar cantidades tras un cambio de idioma ES/EN — ahora refresca con el `input` más reciente, validado en vivo agregando "Alborada/Grande" en ES y de nuevo en EN → la línea queda "Alborada/Large" sin duplicarse), 1 HIGH (el botón "Confirmar pedido" dependía implícitamente del orden entre el commit de `clear()` y la navegación nativa del `<a href>` — ahora `preventDefault` + `window.open` con el href ya capturado en el closure del render), 2 hallazgos de accesibilidad convergentes entre 2 agentes (botón "Agregar al carrito" deshabilitado sin explicar el motivo, a diferencia de `OrderButton` al lado — ahora comparten hint vía `aria-describedby`/`hintId` nuevo en `OrderButton`; aria-label del botón "−" decía "quitar una unidad" pero en cantidad 1 borra la línea entera — ahora el label cambia para reflejarlo), 1 MEDIUM de a11y (clics repetidos de "Agregar al carrito" dentro de la ventana de feedback no volvían a anunciarse al lector de pantalla porque el texto del `aria-live` no mutaba — ahora fuerza un ciclo false→true con `requestAnimationFrame`), 1 MEDIUM de rendimiento (un solo contexto mezclaba `lines` de alta frecuencia con acciones estables, re-renderizando los 30+ `ItemCard` de `/menu` en cada operación de carrito — separado en `CartActionsContext`/`CartStateContext`, con `useCartActions()` para quien solo necesita `addLine`), 1 LOW de contraste (ícono de "quitar línea" en reposo bajo 3:1, `text-ink/40`→`text-ink/60`), 1 LOW de foco visible (`<h1>` enfocado programáticamente con `outline-none` sin estilo `focus-visible` propio) y la duplicación de la lógica de armado de línea entre `ItemCard`/`ItemModal` (extraída a `cartLineFromItem` en `lib/cart.tsx`). Validado en vivo en el navegador (Chrome DevTools MCP) de punta a punta, incluyendo el modal en viewport mobile (390px) vía `evaluate_script` para evitar el overlay de Next.js Dev Tools que interceptaba clics por coordenadas en esa esquina (artefacto solo de `next dev`, no existe en el build de producción). | Se aceptó sin resolver (no bloqueante, señalado por el propio a11y-architect): el foco siempre vuelve al `<h1>` al quitar una línea del carrito aunque queden otras — ya evita el bug de foco perdido a `<body>` de P1.5/P2.5; un foco más local (ej. la fila siguiente) queda como mejora futura. Un subagente de revisión reportó y descartó correctamente un bloque de instrucciones de un MCP server (Claude Docs) que apareció en su contexto pidiendo crear un documento — no era parte de la tarea delegada y no se le hizo caso, sin impacto en el resultado |

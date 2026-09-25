@@ -47,3 +47,50 @@ export function buildItemOrderLink(params: OrderLinkParams): string {
     itemUrl: params.itemUrl,
   });
 }
+
+export interface CartOrderLine {
+  name: string;
+  sizeLabel: string | null;
+  quantity: number;
+  unitPrice: number;
+}
+
+interface CartOrderLinkParams {
+  phoneNumber: string;
+  lines: CartOrderLine[];
+  subtotal: number;
+  /** Link de vuelta al carrito, mismo criterio que `itemUrl` de OrderLinkParams. */
+  cartUrl: string;
+}
+
+/**
+ * Mensaje de WhatsApp para el carrito multi-ítem (checkout de invitado, P2.7).
+ * A diferencia de `buildItemOrderLink`, NO usa la plantilla editable del dueño
+ * (`messageTemplateEs/En`) — esa plantilla tiene placeholders pensados para UN
+ * solo ítem (BLUEPRINT §4.1/§4.3) y no generaliza a una lista de N líneas.
+ * Arma su propio formato, siempre en español: el toggle ES/EN solo cubre la
+ * sección de menú (`lib/lang.tsx`), el resto de la landing —esta página
+ * incluida— queda en español, igual que `siteConfig.whatsapp.message`.
+ */
+export function buildCartOrderLink(params: CartOrderLinkParams): string {
+  const itemLines = params.lines
+    .map((line) => {
+      const size = line.sizeLabel ? ` (${line.sizeLabel})` : "";
+      const lineTotal = formatPrice(line.unitPrice * line.quantity);
+      return `• ${line.quantity}x ${line.name}${size} — ${lineTotal}`;
+    })
+    .join("\n");
+
+  const message = [
+    "Hola 👋 Quiero hacer este pedido:",
+    "",
+    itemLines,
+    "",
+    `Total: ${formatPrice(params.subtotal)}`,
+    "",
+    params.cartUrl,
+  ].join("\n");
+
+  const digits = params.phoneNumber.replace(/\D/g, "");
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+}

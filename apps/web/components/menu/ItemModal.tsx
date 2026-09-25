@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
@@ -14,10 +14,12 @@ import {
   type WhatsappConfig,
 } from "@sabor/shared";
 import { CloseIcon, PizzaSliceIcon, StarIcon } from "@/components/ui/icons";
+import AddToCartButton from "@/components/menu/AddToCartButton";
 import OrderButton from "@/components/menu/OrderButton";
 import SizeSelector from "@/components/menu/SizeSelector";
 import { mediaUrl } from "@/lib/api";
 import { accentStyle } from "@/lib/catalogAccent";
+import { cartLineFromItem, useCartActions } from "@/lib/cart";
 import { CATALOG_UI, sizeLabelFor } from "@/lib/catalogUi";
 import { parseIngredients } from "@/lib/catalogText";
 import { siteConfig } from "@/lib/siteConfig";
@@ -55,6 +57,8 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
   const description = displayDescription(item, lang);
   const ingredients = description ? parseIngredients(description) : null;
   const hasSizes = item.prices.length > 0;
+  const { addLine } = useCartActions();
+  const disabledHintId = useId();
 
   const [selectedSizeId, setSelectedSizeId] = useState<number | null>(
     () => item.prices[0]?.sizeId ?? null,
@@ -157,6 +161,18 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
       itemUrl,
     });
   }
+
+  const canAddToCart = hasSizes ? selectedPrice != null : item.price != null;
+  const addToCart = (): void => {
+    const line = cartLineFromItem({
+      item,
+      hasSizes,
+      selectedPrice,
+      name,
+      sizeLabel: selectedPrice ? sizeLabelFor(selectedPrice, sizes, lang) : null,
+    });
+    if (line) addLine(line);
+  };
 
   return createPortal(
     <div
@@ -286,13 +302,23 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
               />
             )}
 
-            <div className="mt-auto pt-1">
-              <OrderButton
-                href={orderHref}
-                itemId={item.id}
-                lang={lang}
-                disabledHint={hasSizes && !selectedPrice ? ui.chooseSize : undefined}
+            <div className="mt-auto flex items-start gap-2 pt-1">
+              <AddToCartButton
+                onAdd={addToCart}
+                disabled={!canAddToCart}
+                label={`${ui.addToCart}: ${name}`}
+                addedAnnouncement={`${name} — ${ui.addedToCart}`}
+                ariaDescribedBy={hasSizes && !selectedPrice ? disabledHintId : undefined}
               />
+              <div className="min-w-0 flex-1">
+                <OrderButton
+                  href={orderHref}
+                  itemId={item.id}
+                  lang={lang}
+                  disabledHint={hasSizes && !selectedPrice ? ui.chooseSize : undefined}
+                  hintId={disabledHintId}
+                />
+              </div>
             </div>
           </div>
         </div>
