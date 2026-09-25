@@ -1,5 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { MenuItemsPage } from './pages/MenuItemsPage';
 import { MenuItemFormPage } from './pages/MenuItemFormPage';
 import { CategoriesPage } from './pages/CategoriesPage';
@@ -27,6 +29,8 @@ export default function App() {
     <>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/"
           element={

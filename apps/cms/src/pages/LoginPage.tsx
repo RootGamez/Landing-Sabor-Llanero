@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import type { LoginResponse } from '@sabor/shared';
 import { BRAND } from '@sabor/shared';
 import { api, ApiError } from '../lib/api';
@@ -92,6 +92,13 @@ export function LoginPage() {
         <Button type="submit" loading={loading} className="mt-6 w-full">
           Ingresar
         </Button>
+
+        <Link
+          to="/forgot-password"
+          className="mt-4 block text-center text-sm font-semibold text-primary hover:underline"
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
       </form>
     </div>
   );
