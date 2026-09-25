@@ -184,3 +184,119 @@ export interface Collection {
 export interface CollectionWithItems extends Collection {
   items: MenuItemWithPrices[];
 }
+
+/**
+ * Cliente final. Tabla y JWT separados de `users` (staff) a propósito — ver
+ * "Seguridad: JWT de cliente separado" en PLAN_IMPLEMENTACION.md.
+ */
+export interface Customer {
+  id: number;
+  email: string;
+  phone: string;
+  name: string;
+  /** Contador rápido desnormalizado; la fuente de verdad auditable es `PointsLedgerEntry`. */
+  pointsBalance: number;
+  createdAt: string;
+  lastLoginAt: string | null;
+}
+
+export type OrderStatus = 'pending' | 'confirmed' | 'cancelled';
+
+/**
+ * Pedido de un cliente. `subtotal` y `pointsAwarded` siempre se calculan
+ * server-side — nunca se confía en lo que manda el cliente. `status` pasa a
+ * `confirmed`/`cancelled` solo cuando el dueño lo confirma desde el CMS; el
+ * pago se sigue coordinando por WhatsApp.
+ */
+export interface Order {
+  id: number;
+  customerId: number;
+  /** Identificador corto (ej. "A1B2C3") para referenciar el pedido en WhatsApp y en el CMS. */
+  code: string;
+  status: OrderStatus;
+  subtotal: number;
+  /** null hasta que se confirma; recién ahí se calculan y acreditan los puntos. */
+  pointsAwarded: number | null;
+  confirmedAt: string | null;
+  confirmedBy: number | null;
+  createdAt: string;
+}
+
+/** Snapshot de nombre/precio del ítem al momento del pedido: el menú puede cambiar después. */
+export interface OrderItem {
+  id: number;
+  orderId: number;
+  itemId: number;
+  nameEs: string;
+  nameEn: string;
+  sizeLabel: string | null;
+  unitPrice: number;
+  quantity: number;
+}
+
+export type PointsLedgerReason = 'order_confirmed' | 'reward_redeemed' | 'manual_adjustment';
+
+/** Historial auditable de movimientos de puntos; `Customer.pointsBalance` es su contador rápido. */
+export interface PointsLedgerEntry {
+  id: number;
+  customerId: number;
+  orderId: number | null;
+  delta: number;
+  reason: PointsLedgerReason;
+  createdAt: string;
+}
+
+/** Premio canjeable por puntos, del catálogo que arma el dueño desde el CMS. */
+export interface Reward {
+  id: number;
+  nameEs: string;
+  nameEn: string;
+  descriptionEs: string;
+  descriptionEn: string;
+  pointsCost: number;
+  imageR2Key: string | null;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+}
+
+export type RedemptionStatus = 'pending' | 'fulfilled' | 'cancelled';
+
+export interface RewardRedemption {
+  id: number;
+  customerId: number;
+  rewardId: number;
+  pointsSpent: number;
+  status: RedemptionStatus;
+  createdAt: string;
+  fulfilledAt: string | null;
+  fulfilledBy: number | null;
+}
+
+/** Entrada al sorteo mensual, una por pedido confirmado (UNIQUE(orderId) en la DB). */
+export interface RaffleEntry {
+  id: number;
+  customerId: number;
+  orderId: number;
+  /** Período del sorteo, formato 'YYYY-MM'. */
+  period: string;
+  createdAt: string;
+}
+
+/** Resultado del sorteo de un período (UNIQUE(period) en la DB: uno solo por mes). */
+export interface RaffleDraw {
+  id: number;
+  period: string;
+  winnerCustomerId: number;
+  winnerEntryId: number;
+  drawnAt: string;
+  drawnBy: number;
+}
+
+/** Config singleton (mismo patrón que `WhatsappConfig`) de cómo se calculan los puntos por compra. */
+export interface LoyaltyConfig {
+  id: number;
+  pointsPerCurrencyUnit: number;
+  minOrderAmountForPoints: number;
+  updatedAt: string;
+}

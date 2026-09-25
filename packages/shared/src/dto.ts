@@ -2,7 +2,7 @@
  * Contratos de request/response de la API. Web, CMS y API importan estos
  * tipos para no desincronizarse, igual que en Jaw.
  */
-import type { Category, EventType, MenuItem } from './types';
+import type { Category, EventType, MenuItem, Order, OrderItem, OrderStatus } from './types';
 
 export interface LoginRequest {
   email: string;
@@ -162,4 +162,67 @@ export interface CollectionItemInput {
  */
 export interface ReplaceCollectionItemsInput {
   items: CollectionItemInput[];
+}
+
+export interface CustomerRegisterInput {
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+}
+
+export interface CustomerLoginInput {
+  email: string;
+  password: string;
+}
+
+/** Mismo shape que `LoginResponse` de staff, pero firmado con `CUSTOMER_JWT_SECRET` (ver P2.2). */
+export interface CustomerLoginResponse {
+  token: string;
+}
+
+export interface UpdateCustomerProfileInput {
+  name?: string;
+  phone?: string;
+}
+
+/** Un ítem del carrito al crear un pedido. El precio SIEMPRE se recalcula server-side (P2.3). */
+export interface OrderItemInput {
+  itemId: number;
+  sizeId?: number;
+  quantity: number;
+}
+
+export interface CreateOrderInput {
+  items: OrderItemInput[];
+}
+
+/** `pending` no es un destino válido: solo lo asigna la API al crear el pedido. */
+export interface OrderStatusUpdateInput {
+  status: Extract<OrderStatus, 'confirmed' | 'cancelled'>;
+}
+
+/** Pedido con sus ítems, como lo devuelve la API (GET /orders, GET /orders/me). */
+export interface OrderDto extends Order {
+  items: OrderItem[];
+}
+
+export interface RewardInput {
+  nameEs: string;
+  nameEn?: string;
+  descriptionEs?: string;
+  descriptionEn?: string;
+  pointsCost: number;
+  isActive?: boolean;
+  displayOrder?: number;
+}
+
+export interface LoyaltyConfigUpdateInput {
+  pointsPerCurrencyUnit?: number;
+  minOrderAmountForPoints?: number;
+}
+
+/** Saldo de puntos del cliente logueado (GET /rewards o similar en P2.4/P2.8). */
+export interface PointsBalanceDto {
+  pointsBalance: number;
 }

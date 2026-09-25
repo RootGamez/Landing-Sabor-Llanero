@@ -55,7 +55,7 @@ contrario.
 | P1.4 | API | Endpoints forgot/reset-password | P1.2, P1.3 | ✅ Completada (código; envío real pendiente de P1.3) | 2026-09-24 |
 | P1.5 | CMS | Pantallas de recuperación de contraseña | P1.4 | ✅ Completada | 2026-09-24 |
 | P1.6 | API | (Opcional) Tests de la superficie nueva de auth | P1.4 | ⬜ Pendiente | |
-| P2.1 | API/DB | Migración `loyalty` + tipos/schemas compartidos | P1.2 | ⬜ Pendiente | |
+| P2.1 | API/DB | Migración `loyalty` + tipos/schemas compartidos | P1.2 | ✅ Completada | 2026-09-24 |
 | P2.2 | API | Auth de clientes (`customers`, JWT separado) | P2.1 | ⬜ Pendiente | |
 | P2.3 | API | Pedidos (`orders`) + confirmación atómica | P2.2 | ⬜ Pendiente | |
 | P2.4 | API | Premios, sorteo y config de puntos | P2.3 | ⬜ Pendiente | |
@@ -247,6 +247,17 @@ ocurrió — así se evita fraude/errores de puntos por pedidos que nunca se pag
 > Renumerada de `0003` a `0004` respecto del borrador original — `0003` ya la ocupa
 > `password_reset_tokens` (Parte 1, P1.2). Ver "Decisiones de integración".
 
+> **El SQL de abajo es el borrador original.** La migración real (ya aplicada) difiere
+> tras la revisión de `ecc:database-reviewer` — ver el archivo `0004_loyalty.sql` para la
+> versión definitiva. Cambios: `customers.points_balance` con `CHECK (>= 0)`;
+> `orders.points_awarded` con `CHECK (IS NULL OR >= 0)`; `loyalty_config` con `CHECK`
+> en ambos campos numéricos; índices agregados en `order_items.item_id`,
+> `raffle_entries.customer_id`, `reward_redemptions.reward_id`/`status`; `period` en
+> `raffle_entries`/`raffle_draws` con `CHECK (... GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]')`;
+> y un índice único parcial `idx_ledger_order_once ON points_ledger(order_id) WHERE
+> reason = 'order_confirmed'` — mismo motivo que `UNIQUE(order_id)` en `raffle_entries`,
+> a prueba de que el handler de confirmación (P2.3) corra dos veces sobre el mismo pedido.
+
 Convenciones de `0001_init.sql`/`0002_collections.sql`: PK autoincrement, snake_case, FKs
 explícitas, índices `idx_<tabla>_<col>`, `IF NOT EXISTS` (idempotente). El `ON DELETE` de los
 FKs hacia `users(id)` no estaba especificado en el borrador original; se fija acá con el
@@ -382,7 +393,7 @@ guard — defensa en profundidad, no solo "confiar en que el `if` de rol esté b
 
 ### P2.1 — Migración + tipos/schemas compartidos
 
-- **Estado**: ⬜ Pendiente
+- **Estado**: ✅ Completada (2026-09-24)
 - **Archivos**: `apps/api/migrations/0004_loyalty.sql` (CREATE, SQL arriba),
   `apps/api/src/db/rows.ts` (UPDATE — un `XRow`/`mapX` por tabla nueva, regla ya escrita en
   el header de ese archivo), `packages/shared/src/types.ts` (UPDATE: `Customer`, `Order`,
@@ -603,3 +614,4 @@ make dev                                                     # api :8787 + web :
 | 2026-09-24 | P1.3 (investigación) | Usuario intentó habilitar el dominio vía `wrangler email sending enable` (CLI) → `Unauthorized [code: 2036]` (bug conocido del token OAuth de `wrangler login` con este endpoint beta). Redirigido a Dashboard → confirmó que Email Sending a destinatarios arbitrarios requiere plan Workers Paid ($5/mes); Email Routing (gratis) es un producto distinto que NO habilita el binding de sending. Usuario decidió pausar P1.3 y seguir con otras fases. | Ninguno en código; deja la fase explícitamente en manos del usuario (pagar plan, verificar direcciones destino gratis, o seguir pausada) |
 | 2026-09-24 | P1.4 | Endpoints `POST /auth/forgot-password` y `POST /auth/reset-password` en `routes/auth.ts` + `lib/reset-token.ts` (token de 32 bytes random, hash SHA-256 base64url) + schemas/DTOs en `packages/shared`. Revisado por `ecc:security-reviewer` y `ecc:code-reviewer`. Corregido 1 issue MEDIUM (timing side-channel: el `DB.batch()` de invalidación solo corría cuando el usuario existía, delatando por tiempo de respuesta si el email existe pese a que el mensaje de respuesta es idéntico — ahora las 2 DELETE corren siempre en ambas ramas, solo el INSERT queda condicional) y 2 LOW (token del link ahora va en fragment `#token=` en vez de query string; `resetPasswordSchema.token` con `.max(200)`). `pnpm typecheck` OK en `@sabor/api` y `@sabor/shared`. También se corrigió el header obsoleto de `dto.ts` que el propio plan marcaba como desviado ("aún no implementada — fase 3"). | Ninguno respecto del diseño de P1.4; nota agregada a P1.5 para que `ResetPasswordPage.tsx` lea el token de `window.location.hash`, no de query params |
 | 2026-09-24 | P1.5 | `ForgotPasswordPage.tsx` y `ResetPasswordPage.tsx` (CREATE, fuera de `Protected` en `App.tsx`), link "¿Olvidaste tu contraseña?" en `LoginPage.tsx`. Revisado por `ecc:react-reviewer`, `ecc:a11y-architect` y `ecc:code-reviewer`. Corregidos: 1 HIGH (foco perdido en la transición form→confirmación: el form con el botón enfocado desaparece del DOM y el foco cae a `<body>`; se agregó `ref`+`tabIndex={-1}`+`useEffect` para mover el foco al mensaje resultante) y 2 MEDIUM (el `role="alert"` de "token inválido" en `ResetPasswordPage` está presente desde el primer render y algunos lectores de pantalla no lo anuncian si no es insertado por una mutación posterior — mismo fix de foco lo cubre; links standalone bajo el tamaño mínimo de 24px de SC 2.5.8 — se agregó `py-2`/`inline-block`). También se agregó `window.history.replaceState` para sacar el token del URL visible tras capturarlo, `aria-busy` en el `Button` compartido, y un hint de "Mínimo 8 caracteres" en el campo de contraseña nueva. `pnpm typecheck` OK. | Ninguno respecto del diseño; 3 issues LOW del a11y-architect (aria-describedby en `FormField`, trim de inputs) quedan sin resolver a propósito — no afectan a estas dos páginas y tocarían un componente compartido sin necesidad actual (YAGNI) |
+| 2026-09-24 | P2.1 | Migración `0004_loyalty.sql` (9 tablas), tipos en `types.ts`, schemas en `validation.ts`, DTOs en `dto.ts`, Row/mapper en `db/rows.ts`. Revisado por `ecc:database-reviewer` (dedicado, 9 tablas nuevas) y `ecc:typescript-reviewer`. Corregidos 2 HIGH del schema (`customers.points_balance` sin piso — se agregó `CHECK (>= 0)`; `points_ledger` sin protección contra doble acreditación por reintento del handler de confirmación — se agregó índice único parcial `idx_ledger_order_once ... WHERE reason = 'order_confirmed'`, mismo idiom que `UNIQUE(order_id)` de `raffle_entries`) y varios MEDIUM/LOW (CHECK faltante en `orders.points_awarded` y en ambos campos de `loyalty_config`; índices faltantes en `order_items.item_id`, `raffle_entries.customer_id`, `reward_redemptions.reward_id`/`status`; formato de `period` sin validar — se agregó `CHECK (... GLOB 'YYYY-MM')`). Del lado de tipos: se agregó `updateRewardSchema` que faltaba (patrón `create*`/`update*.partial()` ya usado por categorías/ítems, `rewardSchema` se renombró a `createRewardSchema`). La migración ya estaba aplicada en local sin datos reales; se dropearon las 9 tablas vacías, se desregistró del tracking de wrangler y se reaplicó corregida + reseed. `pnpm typecheck` OK en `shared`/`api`/`cms`. | El bloque SQL original de este documento (arriba) quedó desactualizado respecto de la migración real — se agregó una nota señalando la diferencia en vez de reescribir todo el bloque |

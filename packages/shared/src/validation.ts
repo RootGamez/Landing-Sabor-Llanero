@@ -194,6 +194,60 @@ const collectionItemInputSchema = z.object({
   displayOrder: z.number().int().min(0).optional(),
 });
 
+export const customerRegisterSchema = z.object({
+  email: z.string().email('email inválido'),
+  password: passwordSchema,
+  name: z.string().min(1, 'name requerido'),
+  phone: z.string().min(1, 'phone requerido'),
+});
+
+export const customerLoginSchema = z.object({
+  email: z.string().email('email inválido'),
+  password: z.string().min(1, 'password requerido').max(PASSWORD_MAX, 'password inválido'),
+});
+
+/** Edición del perfil propio del cliente: email y contraseña van por endpoints separados. */
+export const updateCustomerProfileSchema = z.object({
+  name: z.string().min(1, 'name requerido').optional(),
+  phone: z.string().min(1, 'phone requerido').optional(),
+});
+
+const orderItemInputSchema = z.object({
+  itemId: z.number().int().positive('itemId inválido'),
+  sizeId: z.number().int().positive('sizeId inválido').optional(),
+  quantity: z.number().int().positive('quantity debe ser mayor a 0'),
+});
+
+const ORDER_ITEMS_MAX = 50;
+
+export const createOrderSchema = z.object({
+  items: z
+    .array(orderItemInputSchema)
+    .min(1, 'el pedido necesita al menos un ítem')
+    .max(ORDER_ITEMS_MAX, `un pedido admite como máximo ${ORDER_ITEMS_MAX} ítems`),
+});
+
+/** Transición de estado desde el CMS: `pending` es solo el estado inicial, nunca un destino. */
+export const orderStatusUpdateSchema = z.object({
+  status: z.enum(['confirmed', 'cancelled']),
+});
+
+export const createRewardSchema = z.object({
+  nameEs: z.string().min(1, 'nameEs requerido'),
+  nameEn: z.string().default(''),
+  descriptionEs: z.string().default(''),
+  descriptionEn: z.string().default(''),
+  pointsCost: z.number().int().positive('pointsCost debe ser mayor a 0'),
+  isActive: z.boolean().optional(),
+  displayOrder: z.number().int().min(0).optional(),
+});
+export const updateRewardSchema = createRewardSchema.partial();
+
+export const loyaltyConfigUpdateSchema = z.object({
+  pointsPerCurrencyUnit: z.number().positive('pointsPerCurrencyUnit debe ser mayor a 0').optional(),
+  minOrderAmountForPoints: z.number().min(0).optional(),
+});
+
 export const replaceCollectionItemsSchema = z.object({
   items: z
     .array(collectionItemInputSchema)

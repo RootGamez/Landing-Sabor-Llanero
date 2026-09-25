@@ -9,9 +9,21 @@ import type {
   CategoryPrice,
   Collection,
   CollectionKey,
+  Customer,
   ItemPrice,
+  LoyaltyConfig,
   MenuItem,
   MenuItemMedia,
+  Order,
+  OrderItem,
+  OrderStatus,
+  PointsLedgerEntry,
+  PointsLedgerReason,
+  RaffleDraw,
+  RaffleEntry,
+  RedemptionStatus,
+  Reward,
+  RewardRedemption,
   Size,
   User,
   WhatsappConfig,
@@ -206,4 +218,177 @@ export const mapEvent = (r: EventRow): AnalyticsEvent => ({
   itemId: r.item_id,
   type: r.type,
   createdAt: r.created_at,
+});
+
+export interface CustomerRow {
+  id: number;
+  email: string;
+  phone: string;
+  password_hash: string;
+  name: string;
+  points_balance: number;
+  token_version: number;
+  last_login_at: string | null;
+  created_at: string;
+}
+export const mapCustomer = (r: CustomerRow): Customer => ({
+  id: r.id,
+  email: r.email,
+  phone: r.phone,
+  name: r.name,
+  pointsBalance: r.points_balance,
+  createdAt: r.created_at,
+  lastLoginAt: r.last_login_at,
+});
+
+export interface OrderRow {
+  id: number;
+  customer_id: number;
+  code: string;
+  status: OrderStatus;
+  subtotal: number;
+  points_awarded: number | null;
+  confirmed_at: string | null;
+  confirmed_by: number | null;
+  created_at: string;
+}
+export const mapOrder = (r: OrderRow): Order => ({
+  id: r.id,
+  customerId: r.customer_id,
+  code: r.code,
+  status: r.status,
+  subtotal: r.subtotal,
+  pointsAwarded: r.points_awarded,
+  confirmedAt: r.confirmed_at,
+  confirmedBy: r.confirmed_by,
+  createdAt: r.created_at,
+});
+
+export interface OrderItemRow {
+  id: number;
+  order_id: number;
+  item_id: number;
+  name_es: string;
+  name_en: string;
+  size_label: string | null;
+  unit_price: number;
+  quantity: number;
+}
+export const mapOrderItem = (r: OrderItemRow): OrderItem => ({
+  id: r.id,
+  orderId: r.order_id,
+  itemId: r.item_id,
+  nameEs: r.name_es,
+  nameEn: r.name_en,
+  sizeLabel: r.size_label,
+  unitPrice: r.unit_price,
+  quantity: r.quantity,
+});
+
+export interface PointsLedgerRow {
+  id: number;
+  customer_id: number;
+  order_id: number | null;
+  delta: number;
+  reason: PointsLedgerReason;
+  created_at: string;
+}
+export const mapPointsLedgerEntry = (r: PointsLedgerRow): PointsLedgerEntry => ({
+  id: r.id,
+  customerId: r.customer_id,
+  orderId: r.order_id,
+  delta: r.delta,
+  reason: r.reason,
+  createdAt: r.created_at,
+});
+
+export interface RewardRow {
+  id: number;
+  name_es: string;
+  name_en: string;
+  description_es: string;
+  description_en: string;
+  points_cost: number;
+  image_r2_key: string | null;
+  is_active: number;
+  display_order: number;
+  created_at: string;
+}
+export const mapReward = (r: RewardRow): Reward => ({
+  id: r.id,
+  nameEs: r.name_es,
+  nameEn: r.name_en,
+  descriptionEs: r.description_es,
+  descriptionEn: r.description_en,
+  pointsCost: r.points_cost,
+  imageR2Key: r.image_r2_key,
+  isActive: Boolean(r.is_active),
+  displayOrder: r.display_order,
+  createdAt: r.created_at,
+});
+
+export interface RewardRedemptionRow {
+  id: number;
+  customer_id: number;
+  reward_id: number;
+  points_spent: number;
+  status: RedemptionStatus;
+  created_at: string;
+  fulfilled_at: string | null;
+  fulfilled_by: number | null;
+}
+export const mapRewardRedemption = (r: RewardRedemptionRow): RewardRedemption => ({
+  id: r.id,
+  customerId: r.customer_id,
+  rewardId: r.reward_id,
+  pointsSpent: r.points_spent,
+  status: r.status,
+  createdAt: r.created_at,
+  fulfilledAt: r.fulfilled_at,
+  fulfilledBy: r.fulfilled_by,
+});
+
+export interface RaffleEntryRow {
+  id: number;
+  customer_id: number;
+  order_id: number;
+  period: string;
+  created_at: string;
+}
+export const mapRaffleEntry = (r: RaffleEntryRow): RaffleEntry => ({
+  id: r.id,
+  customerId: r.customer_id,
+  orderId: r.order_id,
+  period: r.period,
+  createdAt: r.created_at,
+});
+
+export interface RaffleDrawRow {
+  id: number;
+  period: string;
+  winner_customer_id: number;
+  winner_entry_id: number;
+  drawn_at: string;
+  drawn_by: number;
+}
+export const mapRaffleDraw = (r: RaffleDrawRow): RaffleDraw => ({
+  id: r.id,
+  period: r.period,
+  winnerCustomerId: r.winner_customer_id,
+  winnerEntryId: r.winner_entry_id,
+  drawnAt: r.drawn_at,
+  drawnBy: r.drawn_by,
+});
+
+export interface LoyaltyConfigRow {
+  id: number;
+  points_per_currency_unit: number;
+  min_order_amount_for_points: number;
+  updated_at: string;
+}
+export const mapLoyaltyConfig = (r: LoyaltyConfigRow): LoyaltyConfig => ({
+  id: r.id,
+  pointsPerCurrencyUnit: r.points_per_currency_unit,
+  minOrderAmountForPoints: r.min_order_amount_for_points,
+  updatedAt: r.updated_at,
 });
