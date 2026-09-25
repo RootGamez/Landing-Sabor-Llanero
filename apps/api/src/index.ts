@@ -5,6 +5,7 @@ import type { AppEnv, Bindings } from './env';
 import { HttpError } from './lib/http-error';
 
 import { authRoutes } from './routes/auth';
+import { customerAuthRoutes } from './routes/customer-auth';
 import { userRoutes } from './routes/users';
 import { sizeRoutes } from './routes/sizes';
 import { categoryRoutes } from './routes/categories';
@@ -66,6 +67,12 @@ app.use('*', async (c, next) => {
     if (!c.env.EMAIL) {
       return c.json({ error: 'Configuración inválida: falta EMAIL' }, 500);
     }
+    if (!c.env.CUSTOMER_JWT_SECRET) {
+      return c.json({ error: 'Configuración inválida: falta CUSTOMER_JWT_SECRET' }, 500);
+    }
+    if (!c.env.CUSTOMER_AUTH_LIMITER) {
+      return c.json({ error: 'Configuración inválida: falta CUSTOMER_AUTH_LIMITER' }, 500);
+    }
   }
   await next();
 });
@@ -82,6 +89,7 @@ app.use('*', (c, next) =>
 );
 
 app.route('/auth', authRoutes);
+app.route('/customers', customerAuthRoutes);
 app.route('/users', userRoutes);
 app.route('/sizes', sizeRoutes);
 app.route('/categories', categoryRoutes);

@@ -1,4 +1,7 @@
 JWT_SECRET=change-me-dev-secret
 
+CUSTOMER_JWT_SECRET=change-me-dev-customer-secret
+
 # Copiar a .dev.vars (gitignoreado) para desarrollo local con `wrangler dev`.
 # En producción usar: pnpm wrangler secret put JWT_SECRET
+#                      pnpm wrangler secret put CUSTOMER_JWT_SECRET

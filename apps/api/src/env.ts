@@ -44,6 +44,9 @@ export interface Bindings {
   EVENTS_LIMITER?: RateLimit;
   /** Envío de forgot-password (P1.4). Requiere el dominio habilitado en Cloudflare Email Sending. */
   EMAIL?: SendEmail;
+  /** Secret separado del `JWT_SECRET` de staff (P2.2) — ver `lib/jwt.ts`. */
+  CUSTOMER_JWT_SECRET: string;
+  CUSTOMER_AUTH_LIMITER?: RateLimit;
 }
 
 /** Datos del usuario autenticado, adjuntados al contexto por el middleware de auth */
@@ -53,8 +56,15 @@ export interface AuthUser {
   role: Role;
 }
 
+/** Datos del cliente autenticado (namespace separado de `AuthUser`, sin `role`). */
+export interface AuthCustomer {
+  id: number;
+  email: string;
+}
+
 export interface Variables {
   user: AuthUser;
+  customer: AuthCustomer;
 }
 
 export type AppEnv = { Bindings: Bindings; Variables: Variables };

@@ -194,11 +194,15 @@ const collectionItemInputSchema = z.object({
   displayOrder: z.number().int().min(0).optional(),
 });
 
+const CUSTOMER_NAME_MAX = 100;
+const CUSTOMER_PHONE_MAX = 30;
+const EMAIL_MAX = 254;
+
 export const customerRegisterSchema = z.object({
-  email: z.string().email('email inválido'),
+  email: z.string().email('email inválido').max(EMAIL_MAX, 'email inválido'),
   password: passwordSchema,
-  name: z.string().min(1, 'name requerido'),
-  phone: z.string().min(1, 'phone requerido'),
+  name: z.string().min(1, 'name requerido').max(CUSTOMER_NAME_MAX, 'name demasiado largo'),
+  phone: z.string().min(1, 'phone requerido').max(CUSTOMER_PHONE_MAX, 'phone demasiado largo'),
 });
 
 export const customerLoginSchema = z.object({
@@ -208,8 +212,8 @@ export const customerLoginSchema = z.object({
 
 /** Edición del perfil propio del cliente: email y contraseña van por endpoints separados. */
 export const updateCustomerProfileSchema = z.object({
-  name: z.string().min(1, 'name requerido').optional(),
-  phone: z.string().min(1, 'phone requerido').optional(),
+  name: z.string().min(1, 'name requerido').max(CUSTOMER_NAME_MAX, 'name demasiado largo').optional(),
+  phone: z.string().min(1, 'phone requerido').max(CUSTOMER_PHONE_MAX, 'phone demasiado largo').optional(),
 });
 
 const orderItemInputSchema = z.object({

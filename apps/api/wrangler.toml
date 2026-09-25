@@ -33,6 +33,8 @@ remote = true
 [vars]
 # JWT_SECRET real va como secret, NO acá:
 #   pnpm wrangler secret put JWT_SECRET
+# CUSTOMER_JWT_SECRET (P2.2): secret separado del de staff, misma mecánica:
+#   pnpm wrangler secret put CUSTOMER_JWT_SECRET
 ENVIRONMENT = "development"
 # CORS: en producción, descomentar y poner los dominios reales de web y (a futuro) cms.
 # En development (ENVIRONMENT="development") se permiten localhost:3000/5173/5174 automáticamente.
@@ -55,6 +57,15 @@ name = "EVENTS_LIMITER"
 type = "ratelimit"
 namespace_id = "2002"
 simple = { limit = 60, period = 60 }
+
+# CUSTOMER_AUTH_LIMITER (P2.2): frena fuerza bruta/spam en /customers/register,
+# /customers/login y /customers/change-password. Namespace 2003 (2001/2002 ya
+# ocupados acá; 1001/1002 en Jaw-Project).
+[[unsafe.bindings]]
+name = "CUSTOMER_AUTH_LIMITER"
+type = "ratelimit"
+namespace_id = "2003"
+simple = { limit = 10, period = 60 }
 
 # ============================================================================
 # PRODUCCIÓN — desplegar con:  pnpm wrangler deploy --env production
@@ -96,3 +107,9 @@ name = "EVENTS_LIMITER"
 type = "ratelimit"
 namespace_id = "2002"
 simple = { limit = 60, period = 60 }
+
+[[env.production.unsafe.bindings]]
+name = "CUSTOMER_AUTH_LIMITER"
+type = "ratelimit"
+namespace_id = "2003"
+simple = { limit = 10, period = 60 }

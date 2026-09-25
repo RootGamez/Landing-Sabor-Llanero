@@ -31,3 +31,37 @@ export async function signToken(
 export async function verifyToken(token: string, secret: string): Promise<JwtPayload> {
   return (await verify(token, secret, ALG)) as unknown as JwtPayload;
 }
+
+/**
+ * JWT de clientes finales, deliberadamente separado del de staff (`JwtPayload`):
+ * secret distinto (`CUSTOMER_JWT_SECRET`) y forma de payload distinta
+ * (`customerId`, sin `role`). Así, aunque el middleware esté bien escrito, un
+ * token de cliente no puede autenticar contra rutas de staff ni viceversa
+ * incluso ante un bug futuro de guard — defensa en profundidad, no solo
+ * "confiar en que el `if` de rol esté bien puesto". Ver PLAN_IMPLEMENTACION.md.
+ */
+export interface CustomerJwtPayload {
+  customerId: number;
+  email: string;
+  /** Mismo mecanismo de revocación que `JwtPayload.tokenVersion`, contra `customers.token_version`. */
+  tokenVersion?: number;
+  exp: number;
+  [key: string]: unknown;
+}
+
+export async function signCustomerToken(
+  customer: { customerId: number; email: string },
+  secret: string,
+  tokenVersion: number,
+): Promise<string> {
+  const payload: CustomerJwtPayload = {
+    ...customer,
+    tokenVersion,
+    exp: Math.floor(Date.now() / 1000) + EXPIRY_SECONDS,
+  };
+  return sign(payload, secret, ALG);
+}
+
+export async function verifyCustomerToken(token: string, secret: string): Promise<CustomerJwtPayload> {
+  return (await verify(token, secret, ALG)) as unknown as CustomerJwtPayload;
+}
