@@ -54,7 +54,7 @@ contrario.
 | P1.3 | API | Binding de email (Cloudflare Email Sending) | P1.2 | ⚠️ Bloqueada (falta acción manual) | |
 | P1.4 | API | Endpoints forgot/reset-password | P1.2, P1.3 | ✅ Completada (código; envío real pendiente de P1.3) | 2026-09-24 |
 | P1.5 | CMS | Pantallas de recuperación de contraseña | P1.4 | ✅ Completada | 2026-09-24 |
-| P1.6 | API | (Opcional) Tests de la superficie nueva de auth | P1.4 | ⬜ Pendiente | |
+| P1.6 | API | Tests de la superficie nueva de auth | P1.4 | ✅ Completada | 2026-09-25 |
 | P2.1 | API/DB | Migración `loyalty` + tipos/schemas compartidos | P1.2 | ✅ Completada | 2026-09-24 |
 | P2.2 | API | Auth de clientes (`customers`, JWT separado) | P2.1 | ✅ Completada | 2026-09-24 |
 | P2.3 | API | Pedidos (`orders`) + confirmación atómica | P2.2 | ✅ Completada | 2026-09-24 |
@@ -207,17 +207,62 @@ CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_i
 - **Validar**: flujo manual completo login → "olvidé mi contraseña" → email → link → nueva
   contraseña → login con la nueva funciona, con la vieja da 401.
 
-### P1.6 — (Opcional, a confirmar) Tests de la superficie nueva de auth
+### P1.6 — Tests de la superficie nueva de auth
 
-- **Estado**: ⬜ Pendiente — **requiere confirmación explícita del usuario**, ver nota abajo.
-- **Archivos**: `apps/api/vitest.config.ts` (CREATE), `apps/api/src/lib/password.test.ts`,
-  `reset-token.test.ts`, `routes/auth.test.ts`, `routes/users.test.ts` (CREATE).
-- **Nota**: este repo no tiene test runner por decisión consciente original (documentado en
-  `BLUEPRINT.md`/`README.md`). Las reglas globales del usuario piden tests obligatorios en
-  código de auth; esta fase los acota SOLO a la superficie nueva/sensible en vez de imponer
-  una suite completa sobre código que ya funciona en producción. Confirmar si se incluye.
-- **Skills/Agentes**: `ecc:tdd-guide` (agente) si se confirma.
-- **Validar**: `pnpm --filter @sabor/api test`.
+- **Estado**: ✅ Completada (2026-09-25). Confirmada explícitamente por el usuario.
+- **Archivos**: `apps/api/vitest.config.ts` (CREATE), `apps/api/wrangler.test.toml` (CREATE —
+  ver desvío abajo), `apps/api/test/apply-migrations.ts` (CREATE), `apps/api/src/lib/password.test.ts`,
+  `reset-token.test.ts`, `routes/auth.test.ts`, `routes/users.test.ts`, `routes/users-last-owner.test.ts`
+  (CREATE — el último no estaba en el plan original, ver desvío), `apps/api/tsconfig.json` (UPDATE:
+  excluye `*.test.ts` del typecheck de producción), `apps/api/package.json` (UPDATE: script `test`).
+- **Desvío del plan original — paquete de testing**: el plan asumía (conocimiento pre-entrenado)
+  `@cloudflare/vitest-pool-workers`; verificado contra la documentación actual de Cloudflare, el
+  paquete vigente es **`@cloudflare/vitest-plugin`** (`cloudflareTest` + `readD1Migrations`/
+  `applyD1Migrations`, `vitest@^4`), una API distinta. Se usó el ejemplo oficial de Cloudflare
+  (`workers-sdk/fixtures/vitest-plugin-examples/d1`) como referencia exacta.
+- **Desvío — `wrangler.test.toml` dedicado** (no estaba en el plan): el `wrangler.toml` real tiene
+  `MEDIA` (R2) y `EMAIL` (send_email) con `remote = true` — incluso en dev local dependen de
+  servicios reales de Cloudflare (`EMAIL` ni siquiera está habilitado, ver P1.3). Un config de test
+  dedicado, mínimo (solo `DB`, `JWT_SECRET`, `CUSTOMER_JWT_SECRET`), deja los tests 100%
+  locales/offline — ambos bindings son opcionales en `Bindings` (env.ts) y el código ya los trata
+  como tales, así que omitirlos no cambia el comportamiento bajo test.
+- **🔴 Bug de seguridad real encontrado al escribir el test de "token vencido"**: `routes/auth.ts`
+  guardaba `password_reset_tokens.expires_at` con `new Date(...).toISOString()`
+  ("2026-09-25T18:15:23.456Z"), pero el canje compara `expires_at > datetime('now')` con el formato
+  nativo de SQLite ("2026-09-25 18:15:23"). Al ser comparación de texto (columna TEXT), 'T' (0x54)
+  es ASCII mayor que el espacio (0x20) — CUALQUIER token emitido compaaraba como "no vencido" el
+  resto del día calendario, sin importar la hora real (el TTL nominal de 30 minutos no se cumplía
+  dentro del mismo día). Corregido generando el vencimiento con el propio `datetime('now', ?)` de
+  SQLite (modificador `'+30 minutes'` bindeado como parámetro, no interpolado — se mantiene 100%
+  parametrizado). Como el envío de email real sigue bloqueado por P1.3, este bug nunca fue
+  explotado en producción (nadie completó el flujo con un token real todavía).
+- **Hallazgo documentado, no corregido**: el guard de "no eliminar al último owner" en el `DELETE`
+  de `routes/users.ts` es en la práctica inalcanzable por HTTP — la ruta exige `requireRole('owner')`
+  y bloquea la auto-eliminación (403) ANTES de llegar al conteo de owners en el `WHERE`; con un solo
+  owner en la tabla, ese owner es necesariamente quien llama al endpoint, así que el guard de
+  auto-eliminación se dispara siempre primero. Se documenta en `users-last-owner.test.ts` en vez de
+  tocar el código: es defensa en profundidad intencional (mismo criterio que el JWT separado de
+  clientes), no un bug — solo una rama de ese `WHERE` que hoy no es alcanzable por ningún camino de
+  la API real.
+- **Skills/Agentes**: se implementó directamente en vez de delegar a `ecc:tdd-guide` (agente) —
+  esto es testeo retroactivo de código ya en producción y validado en vivo en fases previas, no
+  desarrollo nuevo con TDD estricto RED-GREEN-REFACTOR; el agente hubiera partido sin el contexto ya
+  cargado en la sesión sobre el código real. `ecc:security-reviewer` corrió sobre el fix y los tests
+  nuevos antes de cerrar la fase y encontró 3 hallazgos reales más, todos corregidos: `wrangler.test.toml`
+  reusaba el `database_id` real de dev/producción (footgun: Cloudflare resuelve D1 remoto por id, no
+  por nombre — un `--remote` corrido por error contra ese config hubiera golpeado la base real; ahora
+  usa un UUID placeholder) y 2 tests (`reset-valid`, `reset-reuse` en `auth.test.ts`) seguían insertando
+  el `expires_at` con `new Date().toISOString()` en vez del `datetime('now', ?)` real — por el propio
+  bug ya corregido, esos 2 tests habrían pasado igual SIN el fix, así que no eran una guarda de
+  regresión efectiva (corregidos para usar el mismo formato que el INSERT real). El reviewer también
+  señaló que filas de `password_reset_tokens` ya emitidas ANTES de este fix (con el formato ISO viejo)
+  seguirían sin vencer de verdad — se confirmó que la DB local de dev no tiene ninguna fila así
+  (la tabla está vacía: el envío real de email nunca se desplegó por P1.3, así que no hay tokens reales
+  en juego); queda anotado acá como paso operativo para quien despliegue este fix a un ambiente con
+  filas preexistentes: correr `DELETE FROM password_reset_tokens WHERE used_at IS NULL AND
+  expires_at LIKE '%T%'` una sola vez antes de dar el deploy por cerrado.
+- **Validar**: `pnpm --filter @sabor/api test` → 31/31 tests pasan (5 archivos). `pnpm typecheck`
+  y `pnpm lint` en todo el monorepo, limpios.
 
 ---
 
@@ -754,10 +799,9 @@ make dev                                                     # api :8787 + web :
 ## Criterios de aceptación globales
 
 - [ ] Parte 1 y Parte 2 completas según sus criterios por fase — Parte 2 cerrada (P2.1-P2.8,
-      con las 4 revisiones de la fase completas). Parte 1 tiene 2 pendientes fuera del control
-      de esta sesión: P1.3 (bloqueada, requiere que el dueño habilite/pague Email Sending en
-      Cloudflare) y P1.6 (opcional, requiere confirmación explícita del usuario antes de
-      escribir tests).
+      con las 4 revisiones de la fase completas). Parte 1: P1.1, P1.2, P1.4, P1.5 y P1.6
+      cerradas; solo queda **P1.3** pendiente, bloqueada fuera del control de esta sesión
+      (requiere que el dueño habilite/pague Email Sending en Cloudflare).
 - [x] `pnpm typecheck` y `pnpm lint` pasan en todo el monorepo.
 - [x] Ningún precio ni saldo de puntos se confía del cliente — todo recalculado/validado server-side.
 - [x] Cero secretos nuevos innecesarios (email vía binding nativo, no SMTP con credenciales).
@@ -785,3 +829,4 @@ make dev                                                     # api :8787 + web :
 | 2026-09-25 | P2.7 | Carrito multi-ítem de invitado en `apps/web`: `lib/cart.tsx` (Context+localStorage, 2 contextos separados acción/estado), `AddToCartButton.tsx`, `CartButton.tsx` (Navbar), `CartLineRow.tsx`/`CartPageContent.tsx` (página `/carrito`), `buildCartOrderLink` en `lib/whatsapp.ts` (mensaje multi-ítem en español). Extendido a `ItemModal.tsx` además de `ItemCard.tsx` (ver desvío en la fase — el modal es la única vía de compra en mobile para el grid por categorías). Revisado por `ecc:react-reviewer`, `ecc:a11y-architect` y `ecc:code-reviewer` en paralelo (mismo criterio que P2.5). Corregidos: 1 bug real (`addLine` pisaba nombre/tamaño con datos viejos al fusionar cantidades tras un cambio de idioma ES/EN — ahora refresca con el `input` más reciente, validado en vivo agregando "Alborada/Grande" en ES y de nuevo en EN → la línea queda "Alborada/Large" sin duplicarse), 1 HIGH (el botón "Confirmar pedido" dependía implícitamente del orden entre el commit de `clear()` y la navegación nativa del `<a href>` — ahora `preventDefault` + `window.open` con el href ya capturado en el closure del render), 2 hallazgos de accesibilidad convergentes entre 2 agentes (botón "Agregar al carrito" deshabilitado sin explicar el motivo, a diferencia de `OrderButton` al lado — ahora comparten hint vía `aria-describedby`/`hintId` nuevo en `OrderButton`; aria-label del botón "−" decía "quitar una unidad" pero en cantidad 1 borra la línea entera — ahora el label cambia para reflejarlo), 1 MEDIUM de a11y (clics repetidos de "Agregar al carrito" dentro de la ventana de feedback no volvían a anunciarse al lector de pantalla porque el texto del `aria-live` no mutaba — ahora fuerza un ciclo false→true con `requestAnimationFrame`), 1 MEDIUM de rendimiento (un solo contexto mezclaba `lines` de alta frecuencia con acciones estables, re-renderizando los 30+ `ItemCard` de `/menu` en cada operación de carrito — separado en `CartActionsContext`/`CartStateContext`, con `useCartActions()` para quien solo necesita `addLine`), 1 LOW de contraste (ícono de "quitar línea" en reposo bajo 3:1, `text-ink/40`→`text-ink/60`), 1 LOW de foco visible (`<h1>` enfocado programáticamente con `outline-none` sin estilo `focus-visible` propio) y la duplicación de la lógica de armado de línea entre `ItemCard`/`ItemModal` (extraída a `cartLineFromItem` en `lib/cart.tsx`). Validado en vivo en el navegador (Chrome DevTools MCP) de punta a punta, incluyendo el modal en viewport mobile (390px) vía `evaluate_script` para evitar el overlay de Next.js Dev Tools que interceptaba clics por coordenadas en esa esquina (artefacto solo de `next dev`, no existe en el build de producción). | Se aceptó sin resolver (no bloqueante, señalado por el propio a11y-architect): el foco siempre vuelve al `<h1>` al quitar una línea del carrito aunque queden otras — ya evita el bug de foco perdido a `<body>` de P1.5/P2.5; un foco más local (ej. la fila siguiente) queda como mejora futura. Un subagente de revisión reportó y descartó correctamente un bloque de instrucciones de un MCP server (Claude Docs) que apareció en su contexto pidiendo crear un documento — no era parte de la tarea delegada y no se le hizo caso, sin impacto en el resultado |
 | 2026-09-25 | P2.8 | Cuenta de cliente + checkout logueado en `apps/web`: `lib/customerAuth.tsx` (Context de sesión, patrón `lib/lang.tsx`/`lib/cart.tsx`), `lib/api.ts` (token de cliente en localStorage + `Authorization` + `patch`), `lib/cart.tsx` (campo `sizeId` agregado), `lib/whatsapp.ts` (`orderCode` opcional), `components/account/*` (formularios de login/registro, sección de perfil editable, cards de premio, historial de pedidos, link de cuenta en el Navbar), 3 páginas nuevas (`/cuenta`, `/cuenta/login`, `/cuenta/registro`), y `CartPageContent.tsx` actualizado para crear un pedido real (`POST /orders`) antes de abrir WhatsApp cuando hay sesión. Revisado por `ecc:react-reviewer`, `ecc:security-reviewer` y `ecc:code-reviewer` en paralelo (regla fija de auth/dinero/datos de clientes); `ecc:a11y-architect` no llegó a correr por límite de uso de la cuenta en este primer intento (reintentada con éxito más tarde, ver fila siguiente). Las 3 revisiones completadas coincidieron de forma independiente en el mismo bug real: el `try/catch` de la creación del pedido logueado envolvía también la navegación de la pestaña de WhatsApp, así que un pedido creado con éxito pero con la pestaña fallida se reportaba como "no se pudo crear el pedido" sin vaciar el carrito — riesgo de pedido real duplicado si el cliente reintentaba; separado en dos pasos, con un link manual de respaldo si ambos intentos de abrir la pestaña fallan. También corregidos: 1 HIGH (un login fallido estando ya logueado borraba el token de la sesión válida, porque el interceptor de 401 no distinguía "credenciales inválidas en este request" de "token guardado inválido" — excluidos `/customers/login`/`/customers/register` de la limpieza automática; validado en vivo que el token no cambia), 2 MEDIUM (`loadMe` deslogueaba en silencio ante cualquier error, no solo un 401 real — ahora solo un `ApiError` con status 401 limpia la sesión; llamadas a `loadMe`/`refresh` sin secuenciar podían resolver fuera de orden — se agregó una guarda de "última solicitud vigente"), 1 MEDIUM (`AccountProfileSection` podía pisar una edición de perfil en curso si otra acción de la página disparaba un `refresh()` — el efecto de sincronización ahora respeta `editing`), 1 HIGH de UX (el saldo de puntos parpadeaba en "0" un frame al entrar a `/cuenta` por depender de un `useEffect` — se computa en el render, con un override solo para el feedback optimista post-canje), y 2 hallazgos de manejo de errores (`order?.code`/`res?.pointsBalance` seguían el camino feliz si la API devolvía 2xx sin body — ahora es un error explícito). Validado en vivo de punta a punta con `wrangler dev`+`next dev`+CMS local: registro con auto-login, login/logout, guardia de sesión en `/cuenta`, checkout logueado crea un pedido real visible como pendiente en el CMS, confirmado desde ahí, puntos reflejados en `/cuenta`; canje de premio de prueba (creado ad-hoc en D1 local) descuenta el saldo y deshabilita el botón cuando no alcanza; edición inline de perfil guarda correctamente; un login fallido estando logueado no cierra la sesión. | El JWT de cliente en `localStorage` quedó señalado por un reviewer como riesgo de superficie de XSS — se documenta como aceptado porque replica el mismo patrón ya asumido para el staff desde P1.1 (`apps/cms/src/store/sessionStore.ts`), no es una regresión nueva de esta fase, y migrar a cookies httpOnly excede su alcance. Los servers de desarrollo (api/web/cms) se cayeron a mitad de sesión por un reinicio ligado al límite de uso de la cuenta — se relevantaron y se re-validó todo lo que dependía de ellos antes de seguir |
 | 2026-09-25 | P2.8 (a11y) | Reintentada `ecc:a11y-architect` (había fallado por rate-limit) sobre `apps/web/components/account/*` y `CartPageContent.tsx`. Encontró 4 HIGH, 2 MEDIUM y 2 LOW reales. Corregidos: foco perdido a `<body>` en el toggle Editar/Cancelar/Guardar de `AccountProfileSection` (refs + efecto que mueve el foco); botón "Editar" bajo el tamaño mínimo de target (`min-h-11` agregado); confirmaciones de éxito sin anunciar en guardar perfil y canjear premio (`role="status"` transitorio agregado en ambos, más en los 3 textos de "Cargando…"); contraste insuficiente en `OrderHistoryList` (fecha y badge "Cancelado" de `ink/50`→`ink/70`); `aria-describedby` de `AccountFormField` podía apuntar a un hint que no se monta si `error` también está presente. | Al implementar el fix de foco de `AccountProfileSection` aparecieron 2 bugs reales que el propio reviewer no había podido anticipar sin ver el comportamiento en vivo: (1) el guard de "saltar el primer render" con un flag booleano no sobrevive a la doble invocación de efectos de React Strict Mode (activo por default en Next.js) — la 2ª invocación veía el flag ya apagado por la 1ª y robaba el foco al botón "Editar" en CADA carga de `/cuenta`; se corrigió comparando contra el `editing` del render anterior en vez de un flag de una sola vez, y se confirmó en vivo que el foco ya no se roba al cargar. (2) Al mover el mensaje de "link manual" de WhatsApp (agregado en la ronda de revisión anterior de esta misma fase) para poder enfocarlo, se descubrió que en realidad NUNCA se había podido ver: vivía dentro de la rama `lines.length > 0` de `CartPageContent`, pero `clear()` ya vacía el carrito antes de que ese mensaje pudiera necesitarse, así que la rama que lo contenía dejaba de renderizarse justo cuando hacía falta — se sacó del condicional para que sea visible con el carrito ya vacío |
+| 2026-09-25 | P1.6 | Confirmada por el usuario. Primera suite de tests del repo: `@cloudflare/vitest-plugin` (no `vitest-pool-workers`, nombre desactualizado en el plan original — verificado contra la doc actual de Cloudflare) + D1 real vía `applyD1Migrations`. `wrangler.test.toml` dedicado (sin `MEDIA`/`EMAIL`, ambos `remote: true` y opcionales en el código) para que los tests corran 100% offline. 31 tests en 5 archivos: `password.test.ts`, `reset-token.test.ts` (puros), `auth.test.ts` (login, anti-enumeración, forgot/reset-password), `users.test.ts` + `users-last-owner.test.ts` (CRUD, guard de último owner aislado en archivo propio por el aislamiento de storage por archivo del plugin). `apps/api/tsconfig.json` excluye `*.test.ts` del typecheck de producción (los tipos ambient de `cloudflare:test` son del runtime de vitest, no del build real). Revisado por `ecc:security-reviewer`. | **Bug de seguridad real encontrado al escribir el test de "token vencido"**: `routes/auth.ts` guardaba `password_reset_tokens.expires_at` con `new Date(...).toISOString()` pero el canje comparaba contra `datetime('now')` de SQLite — formatos de texto distintos ('T'+milisegundos+'Z' vs espacio, sin milisegundos) donde 'T' (0x54) es ASCII mayor que el espacio (0x20), así que CUALQUIER token comparaba como "no vencido" el resto del día calendario sin importar la hora real. Los tokens de recuperación nunca vencían de verdad dentro del mismo día. Corregido con `datetime('now', ?)` nativo de SQLite (modificador bindeado como parámetro, sigue 100% parametrizado). Nunca fue explotado en producción porque el envío real de email sigue bloqueado por P1.3. También documentado sin corregir: el guard de "último owner" en el DELETE de `routes/users.ts` es inalcanzable por HTTP en la práctica (el guard de auto-eliminación se dispara siempre primero cuando sos el único owner) — defensa en profundidad intencional, no un bug, ver el comentario en `users-last-owner.test.ts` |

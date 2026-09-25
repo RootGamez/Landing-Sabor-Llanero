@@ -142,12 +142,19 @@ authRoutes.post('/forgot-password', rateLimit((env) => env.LOGIN_LIMITER), async
   if (user) {
     const token = generateResetToken();
     const tokenHash = await hashResetToken(token);
-    const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60_000).toISOString();
 
+    // El vencimiento se calcula con el propio datetime() de SQLite, no con
+    // `new Date().toISOString()`: ese formato ("...T...Z") compara como texto
+    // MAYOR que el de `datetime('now')` ("YYYY-MM-DD HH:MM:SS") para
+    // cualquier hora del mismo día (la 'T' > ' ' en ASCII), así que el guard
+    // `expires_at > datetime('now')` de abajo nunca daba por vencido un token
+    // creado el mismo día — bug real encontrado al escribir el test de esta
+    // fase (P1.6), nunca antes ejecutado contra el vencimiento real.
     await c.env.DB.prepare(
-      'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)',
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES (?, ?, datetime('now', ?))`,
     )
-      .bind(user.id, tokenHash, expiresAt)
+      .bind(user.id, tokenHash, `+${RESET_TOKEN_TTL_MINUTES} minutes`)
       .run();
 
     if (c.env.EMAIL) {

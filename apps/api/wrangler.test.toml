@@ -1,0 +1,32 @@
+# Config de Wrangler SOLO para tests (P1.6) — NO desplegar con esto.
+#
+# Deliberadamente más chico que wrangler.toml: omite MEDIA (R2) y EMAIL
+# (send_email), ambos con `remote = true` en el config real, es decir que
+# incluso en dev local dependen de servicios reales de Cloudflare (R2 real,
+# Email Sending — este último ni siquiera está habilitado todavía, ver P1.3
+# en PLAN_IMPLEMENTACION.md). Omitirlos acá es seguro: ambos bindings son
+# opcionales en `Bindings` (env.ts) y el código ya los trata como tales
+# (`if (c.env.EMAIL) { ... }` en routes/auth.ts, `if (limiter)` en el
+# middleware de rate-limit) — la superficie bajo test (auth de staff) nunca
+# los requiere. Así los tests corren 100% locales/offline, sin login a
+# Cloudflare ni acceso de red.
+name = "sabor-llanero-api-test"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sabor-llanero-test"
+# Placeholder deliberado, NUNCA el id real de wrangler.toml: Cloudflare
+# resuelve D1 remoto por database_id (no por database_name), así que
+# reusar el real acá era un footgun — un `--remote` corrido por error contra
+# este config golpearía la base de producción. Local/Miniflare nunca resuelve
+# este id contra la cuenta real, así que cualquier UUID sirve.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+ENVIRONMENT = "development"
+JWT_SECRET = "test-only-jwt-secret-never-use-in-production"
+CUSTOMER_JWT_SECRET = "test-only-customer-jwt-secret-never-use-in-production"

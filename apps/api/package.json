@@ -11,7 +11,8 @@
     "db:migrations:apply:local": "wrangler d1 migrations apply sabor-llanero --local",
     "db:migrations:apply:prod": "wrangler d1 migrations apply sabor-llanero --env production --remote",
     "db:seed:local": "wrangler d1 execute sabor-llanero --local --file=./seed.sql",
-    "create-owner": "tsx scripts/create-owner.ts"
+    "create-owner": "tsx scripts/create-owner.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@sabor/shared": "workspace:*",
@@ -19,9 +20,11 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.2.6",
     "@cloudflare/workers-types": "^4.20241127.0",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3",
+    "vitest": "^4.1.11",
     "wrangler": "^4.37.0"
   }
 }
