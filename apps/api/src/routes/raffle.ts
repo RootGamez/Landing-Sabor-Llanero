@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { drawRaffleSchema, type PaginatedResult, type RaffleEntry } from '@sabor/shared';
+import { drawRaffleSchema, type PaginatedResult, type RaffleDraw, type RaffleEntry } from '@sabor/shared';
 import type { AppEnv } from '../env';
 import type { RaffleDrawRow, RaffleEntryRow } from '../db/rows';
 import { mapRaffleDraw, mapRaffleEntry } from '../db/rows';
@@ -31,6 +31,29 @@ raffleRoutes.get('/entries', requireAuth, requireRole('owner', 'admin'), async (
 
   const body: PaginatedResult<RaffleEntry> = {
     items: results.map(mapRaffleEntry),
+    page,
+    pageSize,
+    total: countRow?.total ?? 0,
+  };
+  return c.json(body);
+});
+
+// Admin: historial de sorteos ya realizados, más recientes primero.
+raffleRoutes.get('/draws', requireAuth, requireRole('owner', 'admin'), async (c) => {
+  const page = Math.max(1, parsePositiveInt(c.req.query('page'), 1));
+  const pageSize = Math.min(100, Math.max(1, parsePositiveInt(c.req.query('pageSize'), PAGE_SIZE_DEFAULT)));
+
+  const countRow = await c.env.DB.prepare('SELECT COUNT(*) as total FROM raffle_draws').first<{
+    total: number;
+  }>();
+  const { results } = await c.env.DB.prepare(
+    'SELECT * FROM raffle_draws ORDER BY drawn_at DESC LIMIT ? OFFSET ?',
+  )
+    .bind(pageSize, (page - 1) * pageSize)
+    .all<RaffleDrawRow>();
+
+  const body: PaginatedResult<RaffleDraw> = {
+    items: results.map(mapRaffleDraw),
     page,
     pageSize,
     total: countRow?.total ?? 0,

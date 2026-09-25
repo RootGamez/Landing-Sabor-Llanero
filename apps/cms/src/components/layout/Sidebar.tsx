@@ -3,9 +3,13 @@ import { NavLink } from 'react-router-dom';
 import {
   BarChart3,
   CircleUser,
+  ClipboardList,
+  Dices,
+  Gift,
   LogOut,
   MessageCircle,
   Pizza,
+  Settings,
   Sparkles,
   Tags,
   Users,
@@ -24,9 +28,13 @@ interface NavItem {
 
 const LINKS: NavItem[] = [
   { to: '/', label: 'Menú', icon: Pizza, end: true },
+  { to: '/pedidos', label: 'Pedidos', icon: ClipboardList, end: false },
+  { to: '/premios', label: 'Premios', icon: Gift, end: false },
+  { to: '/sorteo', label: 'Sorteo', icon: Dices, end: false },
   { to: '/categorias', label: 'Categorías', icon: Tags, end: false },
   { to: '/merchandising', label: 'Destacados', icon: Sparkles, end: false },
   { to: '/whatsapp', label: 'WhatsApp', icon: MessageCircle, end: false },
+  { to: '/config-puntos', label: 'Puntos', icon: Settings, end: false },
   { to: '/reportes', label: 'Reportes', icon: BarChart3, end: false },
   { to: '/usuarios', label: 'Usuarios', icon: Users, end: false, ownerOnly: true },
   { to: '/perfil', label: 'Mi perfil', icon: CircleUser, end: false },

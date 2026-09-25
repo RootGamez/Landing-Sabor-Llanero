@@ -1,6 +1,12 @@
 import type {
   CollectionWithItems,
+  LoyaltyConfig,
+  OrderDto,
+  OrderStatus,
   PaginatedResult,
+  RaffleDraw,
+  RaffleEntry,
+  Reward,
   Size,
   User,
   WhatsappConfig,
@@ -48,4 +54,36 @@ export function useUsers() {
 /** Todas las colecciones de merchandising (incluidas inactivas e ítems inactivos), para el CMS. */
 export function useCollections() {
   return useAsync<CollectionWithItems[]>(() => api.get('/collections/all'), []);
+}
+
+export function useOrders(params: { status?: OrderStatus; page?: number }) {
+  const query = new URLSearchParams();
+  if (params.status) query.set('status', params.status);
+  if (params.page) query.set('page', String(params.page));
+  const qs = query.toString();
+
+  return useAsync<PaginatedResult<OrderDto>>(
+    () => api.get(`/orders${qs ? `?${qs}` : ''}`),
+    [params.status, params.page],
+  );
+}
+
+/** Todos los premios (incluidos inactivos), para el CMS — mismo criterio que useCollections. */
+export function useRewards() {
+  return useAsync<Reward[]>(() => api.get('/rewards'), []);
+}
+
+export function useLoyaltyConfig() {
+  return useAsync<LoyaltyConfig>(() => api.get('/loyalty-config'), []);
+}
+
+export function useRaffleEntries(period: string) {
+  return useAsync<PaginatedResult<RaffleEntry>>(
+    () => api.get(`/raffle/entries?period=${encodeURIComponent(period)}&pageSize=100`),
+    [period],
+  );
+}
+
+export function useRaffleDraws() {
+  return useAsync<PaginatedResult<RaffleDraw>>(() => api.get('/raffle/draws?pageSize=100'), []);
 }

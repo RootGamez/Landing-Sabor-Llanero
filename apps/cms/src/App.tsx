@@ -3,6 +3,10 @@ import { LoginPage } from './pages/LoginPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { MenuItemsPage } from './pages/MenuItemsPage';
+import { PedidosPage } from './pages/PedidosPage';
+import { PremiosPage } from './pages/PremiosPage';
+import { SorteoPage } from './pages/SorteoPage';
+import { LoyaltyConfigPage } from './pages/LoyaltyConfigPage';
 import { MenuItemFormPage } from './pages/MenuItemFormPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { MerchandisingPage } from './pages/MerchandisingPage';
@@ -44,6 +48,38 @@ export default function App() {
           element={
             <Protected>
               <MenuItemFormPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/pedidos"
+          element={
+            <Protected>
+              <PedidosPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/premios"
+          element={
+            <Protected>
+              <PremiosPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/sorteo"
+          element={
+            <Protected>
+              <SorteoPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/config-puntos"
+          element={
+            <Protected>
+              <LoyaltyConfigPage />
             </Protected>
           }
         />
