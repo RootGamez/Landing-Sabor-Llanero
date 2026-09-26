@@ -3,6 +3,7 @@ import Footer from "@/components/sections/Footer";
 import Menu from "@/components/sections/Menu";
 import Navbar from "@/components/sections/Navbar";
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
+import RewardsReminderBubble from "@/components/ui/RewardsReminderBubble";
 import { siteConfig } from "@/lib/siteConfig";
 
 const PAGE_DESCRIPTION =
@@ -68,6 +69,7 @@ export default function MenuPage() {
       </main>
       <Footer />
       <FloatingWhatsApp />
+      <RewardsReminderBubble />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: buildBreadcrumbJsonLd() }}

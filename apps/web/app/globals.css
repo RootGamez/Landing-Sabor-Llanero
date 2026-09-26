@@ -210,6 +210,36 @@ body {
   animation: modal-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ── Burbuja de recordatorio de puntos (menú/carrito) ──── */
+
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-bubble-in {
+  animation: bubble-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes bubble-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.94);
+  }
+}
+.animate-bubble-out {
+  animation: bubble-out 0.16s ease-in forwards;
+}
+
 /*
  * WebKit/Blink dibujan su propia "x" dentro de input[type="search"], que se
  * sumaba al botón de limpiar con estilo de marca (dos equis). Se oculta la
@@ -322,7 +352,9 @@ body {
   .animate-float-y,
   .animate-splash-drift,
   .animate-overlay-in,
-  .animate-modal-in {
+  .animate-modal-in,
+  .animate-bubble-in,
+  .animate-bubble-out {
     animation: none;
   }
   .btn-shine::after {

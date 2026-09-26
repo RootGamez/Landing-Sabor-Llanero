@@ -3,6 +3,7 @@ import CartPageContent from "@/components/cart/CartPageContent";
 import Footer from "@/components/sections/Footer";
 import Navbar from "@/components/sections/Navbar";
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
+import RewardsReminderBubble from "@/components/ui/RewardsReminderBubble";
 import { siteConfig } from "@/lib/siteConfig";
 
 // Contenido transitorio por visitante (localStorage): no aporta valor de
@@ -28,6 +29,7 @@ export default function CarritoPage() {
       </main>
       <Footer />
       <FloatingWhatsApp />
+      <RewardsReminderBubble />
     </>
   );
 }
