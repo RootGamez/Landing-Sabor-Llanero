@@ -4,6 +4,7 @@ import FloatingCartButton from "@/components/cart/FloatingCartButton";
 import Footer from "@/components/sections/Footer";
 import Menu from "@/components/sections/Menu";
 import Navbar from "@/components/sections/Navbar";
+import FloatingRewardsButton from "@/components/rewards/FloatingRewardsButton";
 import RewardsReminderBubble from "@/components/ui/RewardsReminderBubble";
 import { siteConfig } from "@/lib/siteConfig";
 
@@ -72,6 +73,7 @@ export default function MenuPage() {
       <FloatingCartButton />
       <CartAddedToast />
       <RewardsReminderBubble />
+      <FloatingRewardsButton />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: buildBreadcrumbJsonLd() }}

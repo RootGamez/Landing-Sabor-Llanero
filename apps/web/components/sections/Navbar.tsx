@@ -8,6 +8,7 @@ import TricolorBar from "@/components/ui/TricolorBar";
 import { WhatsAppIcon } from "@/components/ui/icons";
 import AccountNavLink from "@/components/account/AccountNavLink";
 import CartButton from "@/components/cart/CartButton";
+import RewardsButton from "@/components/rewards/RewardsButton";
 
 interface NavbarProps {
   /** Fuerza el estado sólido desde el inicio (páginas sin hero oscuro, ej. /menu) */
@@ -99,6 +100,7 @@ export default function Navbar({ solid: alwaysSolid = false }: NavbarProps) {
 
           <div className="flex items-center gap-1">
             <AccountNavLink solid={solid} />
+            <RewardsButton solid={solid} />
             <CartButton solid={solid} />
 
             {/* Botón hamburguesa (móvil) */}

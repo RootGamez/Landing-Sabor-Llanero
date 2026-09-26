@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import Footer from "@/components/sections/Footer";
 import Navbar from "@/components/sections/Navbar";
 import PremiosPageContent from "@/components/rewards/PremiosPageContent";
@@ -21,7 +22,20 @@ export default function PremiosPage() {
   return (
     <>
       <Navbar solid />
-      <main className="min-h-dvh bg-cream pt-[4.25rem] md:pt-[4.75rem]">
+      {/* Barra fija con "Volver al menú", mismo patrón que /carrito: siempre
+          visible sin importar el scroll, para volver a la carta sin abrir
+          el menú hamburguesa ni depender del botón "Pedir ahora" del navbar. */}
+      <div className="fixed inset-x-0 top-[4.25rem] z-40 border-b border-ink/10 bg-cream/95 backdrop-blur-sm md:top-[4.75rem]">
+        <div className="mx-auto flex h-11 max-w-5xl items-center px-4 md:px-6">
+          <Link
+            href="/menu/"
+            className="inline-flex h-11 items-center gap-1 text-sm font-semibold text-brand-blue hover:text-brand-red"
+          >
+            ← Volver al menú
+          </Link>
+        </div>
+      </div>
+      <main className="min-h-dvh bg-cream pt-[7rem] md:pt-[7.5rem]">
         <PremiosPageContent />
       </main>
       <Footer />

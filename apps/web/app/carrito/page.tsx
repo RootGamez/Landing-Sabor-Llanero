@@ -3,6 +3,7 @@ import Link from "next/link";
 import CartPageContent from "@/components/cart/CartPageContent";
 import Footer from "@/components/sections/Footer";
 import Navbar from "@/components/sections/Navbar";
+import FloatingRewardsButton from "@/components/rewards/FloatingRewardsButton";
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
 import RewardsReminderBubble from "@/components/ui/RewardsReminderBubble";
 import { siteConfig } from "@/lib/siteConfig";
@@ -45,6 +46,7 @@ export default function CarritoPage() {
       <Footer />
       <FloatingWhatsApp />
       <RewardsReminderBubble />
+      <FloatingRewardsButton />
     </>
   );
 }
