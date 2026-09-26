@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import CartAddedToast from "@/components/cart/CartAddedToast";
+import FloatingCartButton from "@/components/cart/FloatingCartButton";
 import Footer from "@/components/sections/Footer";
 import Menu from "@/components/sections/Menu";
 import Navbar from "@/components/sections/Navbar";
-import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
 import RewardsReminderBubble from "@/components/ui/RewardsReminderBubble";
 import { siteConfig } from "@/lib/siteConfig";
 
@@ -68,7 +69,8 @@ export default function MenuPage() {
         <Menu />
       </main>
       <Footer />
-      <FloatingWhatsApp />
+      <FloatingCartButton />
+      <CartAddedToast />
       <RewardsReminderBubble />
       <script
         type="application/ld+json"

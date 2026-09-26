@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -46,10 +47,17 @@ interface CartActions {
   clear: () => void;
 }
 
+/** Último ítem agregado (para el toast de confirmación) — `id` incremental para que el toast note un agregado nuevo incluso si el label se repite (agregar el mismo ítem dos veces seguidas). */
+interface LastAdded {
+  label: string;
+  id: number;
+}
+
 interface CartState {
   lines: CartLine[];
   subtotal: number;
   count: number;
+  lastAdded: LastAdded | null;
 }
 
 // Separado en dos contextos a propósito: `CartActionsContext` nunca cambia de
@@ -137,6 +145,8 @@ function readStoredCart(): CartLine[] {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [lastAdded, setLastAdded] = useState<LastAdded | null>(null);
+  const lastAddedIdRef = useRef(0);
 
   useEffect(() => {
     setLines(readStoredCart());
@@ -166,6 +176,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { ...input, quantity }];
     });
+    setLastAdded({
+      label: input.sizeLabel ? `${input.name} (${input.sizeLabel})` : input.name,
+      id: ++lastAddedIdRef.current,
+    });
   }, []);
 
   const updateQuantity = useCallback((key: string, quantity: number) => {
@@ -192,7 +206,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     () => ({ addLine, updateQuantity, removeLine, clear }),
     [addLine, updateQuantity, removeLine, clear],
   );
-  const state = useMemo<CartState>(() => ({ lines, subtotal, count }), [lines, subtotal, count]);
+  const state = useMemo<CartState>(
+    () => ({ lines, subtotal, count, lastAdded }),
+    [lines, subtotal, count, lastAdded],
+  );
 
   return (
     <CartActionsContext.Provider value={actions}>

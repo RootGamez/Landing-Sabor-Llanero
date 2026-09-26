@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import CartPageContent from "@/components/cart/CartPageContent";
 import Footer from "@/components/sections/Footer";
 import Navbar from "@/components/sections/Navbar";
@@ -24,7 +25,21 @@ export default function CarritoPage() {
   return (
     <>
       <Navbar solid />
-      <main className="pt-[4.25rem] md:pt-[4.75rem]">
+      {/* Barra fija con "Volver a la carta" — siempre visible sin importar el
+          scroll, para no depender del link que ya existe al final de la
+          página (ver CartPageContent), útil recién cuando el carrito tiene
+          varias líneas y hay que bajar para encontrarlo. */}
+      <div className="fixed inset-x-0 top-[4.25rem] z-40 border-b border-ink/10 bg-cream/95 backdrop-blur-sm md:top-[4.75rem]">
+        <div className="mx-auto flex h-11 max-w-2xl items-center px-4 md:px-6">
+          <Link
+            href="/menu/"
+            className="inline-flex h-11 items-center gap-1 text-sm font-semibold text-brand-blue hover:text-brand-red"
+          >
+            ← Volver a la carta
+          </Link>
+        </div>
+      </div>
+      <main className="pt-[7rem] md:pt-[7.5rem]">
         <CartPageContent />
       </main>
       <Footer />
