@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { DashboardPage } from './pages/DashboardPage';
 import { MenuItemsPage } from './pages/MenuItemsPage';
 import { PedidosPage } from './pages/PedidosPage';
 import { PremiosPage } from './pages/PremiosPage';
@@ -37,6 +38,14 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/"
+          element={
+            <Protected>
+              <DashboardPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/menu"
           element={
             <Protected>
               <MenuItemsPage />

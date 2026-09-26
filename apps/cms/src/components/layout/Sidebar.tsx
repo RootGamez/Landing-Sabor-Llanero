@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Dices,
   Gift,
+  LayoutDashboard,
   LogOut,
   MessageCircle,
   Pizza,
@@ -27,7 +28,8 @@ interface NavItem {
 }
 
 const LINKS: NavItem[] = [
-  { to: '/', label: 'Menú', icon: Pizza, end: true },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/menu', label: 'Menú', icon: Pizza, end: false },
   { to: '/pedidos', label: 'Pedidos', icon: ClipboardList, end: false },
   { to: '/premios', label: 'Premios', icon: Gift, end: false },
   { to: '/sorteo', label: 'Sorteo', icon: Dices, end: false },

@@ -56,15 +56,16 @@ export function useCollections() {
   return useAsync<CollectionWithItems[]>(() => api.get('/collections/all'), []);
 }
 
-export function useOrders(params: { status?: OrderStatus; page?: number }) {
+export function useOrders(params: { status?: OrderStatus; page?: number; pageSize?: number }) {
   const query = new URLSearchParams();
   if (params.status) query.set('status', params.status);
   if (params.page) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
   const qs = query.toString();
 
   return useAsync<PaginatedResult<OrderDto>>(
     () => api.get(`/orders${qs ? `?${qs}` : ''}`),
-    [params.status, params.page],
+    [params.status, params.page, params.pageSize],
   );
 }
 
