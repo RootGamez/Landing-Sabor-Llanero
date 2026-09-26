@@ -68,3 +68,13 @@ export function resolveSimplePrice(item: Pick<MenuItem, 'price'>): number {
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+/**
+ * Porcentaje de descuento entero (redondeado) de un premio con discountPrice.
+ * null si no hay descuento válido — pura y compartida para que la UI de
+ * premios (web) y cualquier preview del CMS calculen el mismo número.
+ */
+export function rewardDiscountPercent(price: number, discountPrice: number | null): number | null {
+  if (discountPrice == null || discountPrice <= 0 || discountPrice >= price) return null;
+  return Math.round((1 - discountPrice / price) * 100);
+}

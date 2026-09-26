@@ -19,5 +19,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    {
+      url: `${siteConfig.url}/premios/`,
+      lastModified: new Date(),
+      // Catálogo público (P2.9): vitrina de premios también para invitados
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
   ];
 }

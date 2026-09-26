@@ -27,7 +27,10 @@ export function OrderCard({ order, onUpdated }: OrderCardProps) {
     <Card className={order.status === 'pending' ? 'border-primary/60' : undefined}>
       <CardHeader className="flex-row items-center justify-between gap-2">
         <CardTitle className="font-mono text-base tracking-wide">#{order.code}</CardTitle>
-        <Badge variant={STATUS_VARIANT[order.status]}>{STATUS_LABEL[order.status]}</Badge>
+        <div className="flex items-center gap-2">
+          {order.source === 'reward_redemption' && <Badge variant="sky">Premio</Badge>}
+          <Badge variant={STATUS_VARIANT[order.status]}>{STATUS_LABEL[order.status]}</Badge>
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <p className="text-xs text-text-muted">{formatDateTime(order.createdAt)}</p>

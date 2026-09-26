@@ -203,6 +203,14 @@ export interface Customer {
 export type OrderStatus = 'pending' | 'confirmed' | 'cancelled';
 
 /**
+ * Distingue un pedido armado desde el carrito (`storefront`) de uno generado
+ * automáticamente al canjear un premio (`reward_redemption`). Gatea si al
+ * confirmar se acreditan puntos/sorteo (solo `storefront`) o si al cancelar
+ * se reembolsan los puntos gastados (solo `reward_redemption`).
+ */
+export type OrderSource = 'storefront' | 'reward_redemption';
+
+/**
  * Pedido de un cliente. `subtotal` y `pointsAwarded` siempre se calculan
  * server-side — nunca se confía en lo que manda el cliente. `status` pasa a
  * `confirmed`/`cancelled` solo cuando el dueño lo confirma desde el CMS; el
@@ -220,13 +228,20 @@ export interface Order {
   confirmedAt: string | null;
   confirmedBy: number | null;
   createdAt: string;
+  source: OrderSource;
 }
 
-/** Snapshot de nombre/precio del ítem al momento del pedido: el menú puede cambiar después. */
+/**
+ * Snapshot de nombre/precio del ítem al momento del pedido: el menú puede
+ * cambiar después. Una línea referencia EXACTAMENTE uno de `itemId`/`rewardId`
+ * (CHECK a nivel DB) — `itemId` para un pedido de storefront normal,
+ * `rewardId` para la línea única que genera un canje de premio.
+ */
 export interface OrderItem {
   id: number;
   orderId: number;
-  itemId: number;
+  itemId: number | null;
+  rewardId: number | null;
   nameEs: string;
   nameEn: string;
   sizeLabel: string | null;
@@ -234,7 +249,11 @@ export interface OrderItem {
   quantity: number;
 }
 
-export type PointsLedgerReason = 'order_confirmed' | 'reward_redeemed' | 'manual_adjustment';
+export type PointsLedgerReason =
+  | 'order_confirmed'
+  | 'reward_redeemed'
+  | 'manual_adjustment'
+  | 'reward_redemption_refunded';
 
 /** Historial auditable de movimientos de puntos; `Customer.pointsBalance` es su contador rápido. */
 export interface PointsLedgerEntry {
@@ -246,7 +265,15 @@ export interface PointsLedgerEntry {
   createdAt: string;
 }
 
-/** Premio canjeable por puntos, del catálogo que arma el dueño desde el CMS. */
+/**
+ * Premio canjeable por puntos, del catálogo que arma el dueño desde el CMS.
+ * `price` es el precio de referencia (informativo, se muestra junto al costo
+ * en puntos); `discountPrice`, cuando está presente, es menor a `price` y
+ * marca este premio como "producto con descuento" en la UI (precio original
+ * tachado + precio con descuento). Ambos son nullable a nivel DB para no
+ * romper premios ya existentes sin precio — un premio sin `price` no se
+ * puede canjear (la API lo bloquea) hasta que el dueño le cargue uno.
+ */
 export interface Reward {
   id: number;
   nameEs: string;
@@ -258,10 +285,13 @@ export interface Reward {
   isActive: boolean;
   displayOrder: number;
   createdAt: string;
+  price: number | null;
+  discountPrice: number | null;
 }
 
 export type RedemptionStatus = 'pending' | 'fulfilled' | 'cancelled';
 
+/** `orderId` es null solo para redenciones creadas antes de que el canje generara un pedido real. */
 export interface RewardRedemption {
   id: number;
   customerId: number;
@@ -271,6 +301,7 @@ export interface RewardRedemption {
   createdAt: string;
   fulfilledAt: string | null;
   fulfilledBy: number | null;
+  orderId: number | null;
 }
 
 /** Entrada al sorteo mensual, una por pedido confirmado (UNIQUE(orderId) en la DB). */

@@ -75,6 +75,7 @@ export const siteConfig = {
     { label: "Inicio", href: "/#inicio" },
     { label: "Nosotros", href: "/#nosotros" },
     { label: "Menú", href: "/menu/" },
+    { label: "Premios", href: "/premios/" },
     { label: "Galería", href: "/#galeria" },
     { label: "Reseñas", href: "/#resenas" },
     { label: "Ubicación", href: "/#ubicacion" },

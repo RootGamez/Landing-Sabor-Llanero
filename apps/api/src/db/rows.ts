@@ -16,6 +16,7 @@ import type {
   MenuItemMedia,
   Order,
   OrderItem,
+  OrderSource,
   OrderStatus,
   PointsLedgerEntry,
   PointsLedgerReason,
@@ -251,6 +252,7 @@ export interface OrderRow {
   confirmed_at: string | null;
   confirmed_by: number | null;
   created_at: string;
+  source: OrderSource;
 }
 export const mapOrder = (r: OrderRow): Order => ({
   id: r.id,
@@ -262,12 +264,14 @@ export const mapOrder = (r: OrderRow): Order => ({
   confirmedAt: r.confirmed_at,
   confirmedBy: r.confirmed_by,
   createdAt: r.created_at,
+  source: r.source,
 });
 
 export interface OrderItemRow {
   id: number;
   order_id: number;
-  item_id: number;
+  item_id: number | null;
+  reward_id: number | null;
   name_es: string;
   name_en: string;
   size_label: string | null;
@@ -278,6 +282,7 @@ export const mapOrderItem = (r: OrderItemRow): OrderItem => ({
   id: r.id,
   orderId: r.order_id,
   itemId: r.item_id,
+  rewardId: r.reward_id,
   nameEs: r.name_es,
   nameEn: r.name_en,
   sizeLabel: r.size_label,
@@ -313,6 +318,8 @@ export interface RewardRow {
   is_active: number;
   display_order: number;
   created_at: string;
+  price: number | null;
+  discount_price: number | null;
 }
 export const mapReward = (r: RewardRow): Reward => ({
   id: r.id,
@@ -325,6 +332,8 @@ export const mapReward = (r: RewardRow): Reward => ({
   isActive: Boolean(r.is_active),
   displayOrder: r.display_order,
   createdAt: r.created_at,
+  price: r.price,
+  discountPrice: r.discount_price,
 });
 
 export interface RewardRedemptionRow {
@@ -336,6 +345,7 @@ export interface RewardRedemptionRow {
   created_at: string;
   fulfilled_at: string | null;
   fulfilled_by: number | null;
+  order_id: number | null;
 }
 export const mapRewardRedemption = (r: RewardRedemptionRow): RewardRedemption => ({
   id: r.id,
@@ -346,6 +356,7 @@ export const mapRewardRedemption = (r: RewardRedemptionRow): RewardRedemption =>
   createdAt: r.created_at,
   fulfilledAt: r.fulfilled_at,
   fulfilledBy: r.fulfilled_by,
+  orderId: r.order_id,
 });
 
 export interface RaffleEntryRow {

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOutIcon } from "@/components/ui/icons";
 import AccountProfileSection from "@/components/account/AccountProfileSection";
 import OrderHistoryList from "@/components/account/OrderHistoryList";
-import RewardCard from "@/components/account/RewardCard";
+import RewardCard from "@/components/rewards/RewardCard";
 import { fetchMyOrders, fetchRewards } from "@/lib/accountData";
 import { useCustomerAuth } from "@/lib/customerAuth";
 import { useAsync } from "@/lib/useAsync";
@@ -90,7 +91,15 @@ export default function AccountPageContent() {
       <AccountProfileSection customer={customer} onSaved={refresh} />
 
       <section className="mt-10">
-        <h2 className="font-display text-xl tracking-wide text-ink">Premios</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 className="font-display text-xl tracking-wide text-ink">Premios</h2>
+          <Link
+            href="/premios/"
+            className="text-sm font-semibold text-brand-blue hover:text-brand-red hover:underline"
+          >
+            Ver catálogo completo →
+          </Link>
+        </div>
         <div className="mt-4">
           {rewardsState.loading && (
             <p className="text-sm text-ink/70" role="status">
@@ -104,7 +113,13 @@ export default function AccountPageContent() {
           {rewardsState.data && rewardsState.data.length > 0 && (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               {rewardsState.data.map((reward) => (
-                <RewardCard key={reward.id} reward={reward} pointsBalance={pointsBalance} onRedeemed={handleRedeemed} />
+                <RewardCard
+                  key={reward.id}
+                  reward={reward}
+                  isLoggedIn
+                  pointsBalance={pointsBalance}
+                  onRedeemed={handleRedeemed}
+                />
               ))}
             </div>
           )}

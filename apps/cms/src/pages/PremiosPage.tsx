@@ -5,7 +5,7 @@ import { ALLOWED_MEDIA_MIME, MEDIA_MAX_UPLOAD_BYTES, MEDIA_MAX_UPLOAD_MB } from 
 import { useRewards } from '../hooks/useCmsData';
 import { useMutation } from '../hooks/useMutation';
 import { api } from '../lib/api';
-import { mediaUrl } from '../lib/format';
+import { formatPrice, mediaUrl } from '../lib/format';
 import { toastError, toastSuccess } from '../store/toastStore';
 import { TextField, TextAreaField } from '../components/ui/FormField';
 import { NumberField } from '../components/ui/NumberField';
@@ -23,6 +23,8 @@ interface RewardFormValues {
   descriptionEs: string;
   descriptionEn: string;
   pointsCost: number | null;
+  price: number | null;
+  discountPrice: number | null;
   isActive: boolean;
 }
 
@@ -32,6 +34,8 @@ const EMPTY_FORM: RewardFormValues = {
   descriptionEs: '',
   descriptionEn: '',
   pointsCost: null,
+  price: null,
+  discountPrice: null,
   isActive: true,
 };
 
@@ -165,6 +169,18 @@ function RewardCard({ reward, onEdit, onChanged }: RewardCardProps) {
           <Badge variant="sky" className="w-fit">
             {reward.pointsCost} pts
           </Badge>
+          {reward.price != null && (
+            <span className="text-xs">
+              {reward.discountPrice != null ? (
+                <>
+                  <span className="text-text-muted line-through">{formatPrice(reward.price)}</span>{' '}
+                  <span className="font-bold text-text">{formatPrice(reward.discountPrice)}</span>
+                </>
+              ) : (
+                <span className="text-text-muted">{formatPrice(reward.price)}</span>
+              )}
+            </span>
+          )}
           {!reward.isActive && (
             <Badge variant="muted" className="w-fit">
               Inactivo
@@ -233,6 +249,8 @@ function RewardForm({
           descriptionEs: reward.descriptionEs,
           descriptionEn: reward.descriptionEn,
           pointsCost: reward.pointsCost,
+          price: reward.price,
+          discountPrice: reward.discountPrice,
           isActive: reward.isActive,
         }
       : EMPTY_FORM,
@@ -290,6 +308,25 @@ function RewardForm({
         onValueChange={(pointsCost) => setValues((v) => ({ ...v, pointsCost }))}
         suffix="pts"
       />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <NumberField
+          label="Precio de referencia"
+          required
+          min={0.01}
+          value={values.price}
+          onValueChange={(price) => setValues((v) => ({ ...v, price }))}
+          prefix="S/"
+          hint="Se muestra junto al costo en puntos."
+        />
+        <NumberField
+          label="Precio con descuento"
+          min={0.01}
+          value={values.discountPrice}
+          onValueChange={(discountPrice) => setValues((v) => ({ ...v, discountPrice }))}
+          prefix="S/"
+          hint="Opcional. Si lo completás, debe ser menor al precio de referencia."
+        />
+      </div>
       {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- texto anidado bajo
           <label> (label > span.flex-col > span), mismo patrón ya usado en MenuItemFormPage.tsx. */}
       <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl2 border-2 border-border bg-surface p-4">

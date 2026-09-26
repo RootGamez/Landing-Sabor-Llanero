@@ -236,16 +236,42 @@ export const orderStatusUpdateSchema = z.object({
   status: z.enum(['confirmed', 'cancelled']),
 });
 
-export const createRewardSchema = z.object({
+const rewardBaseSchema = z.object({
   nameEs: z.string().min(1, 'nameEs requerido'),
   nameEn: z.string().default(''),
   descriptionEs: z.string().default(''),
   descriptionEn: z.string().default(''),
   pointsCost: z.number().int().positive('pointsCost debe ser mayor a 0'),
+  price: z.number().positive('price debe ser mayor a 0'),
+  discountPrice: z.number().positive('discountPrice debe ser mayor a 0').nullable().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().int().min(0).optional(),
 });
-export const updateRewardSchema = createRewardSchema.partial();
+
+interface RewardPriceShape {
+  price?: number;
+  discountPrice?: number | null;
+}
+
+/**
+ * discountPrice < price: solo se puede validar acá cuando AMBOS valores
+ * llegan en el mismo request. Un PATCH que manda solo discountPrice (sin
+ * price) necesita el price ACTUAL de la fila, que este paquete no puede leer
+ * (sin acceso a D1) — esa combinación la revalida routes/rewards.ts contra la
+ * DB antes de escribir.
+ */
+function validateRewardDiscount(data: RewardPriceShape, ctx: z.RefinementCtx): void {
+  if (data.discountPrice != null && data.price != null && data.discountPrice >= data.price) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['discountPrice'],
+      message: 'discountPrice debe ser menor a price',
+    });
+  }
+}
+
+export const createRewardSchema = rewardBaseSchema.superRefine(validateRewardDiscount);
+export const updateRewardSchema = rewardBaseSchema.partial().superRefine(validateRewardDiscount);
 
 export const loyaltyConfigUpdateSchema = z.object({
   pointsPerCurrencyUnit: z.number().positive('pointsPerCurrencyUnit debe ser mayor a 0').optional(),

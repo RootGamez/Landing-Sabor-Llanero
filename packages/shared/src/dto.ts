@@ -213,6 +213,8 @@ export interface RewardInput {
   descriptionEs?: string;
   descriptionEn?: string;
   pointsCost: number;
+  price: number;
+  discountPrice?: number;
   isActive?: boolean;
   displayOrder?: number;
 }
@@ -227,9 +229,13 @@ export interface PointsBalanceDto {
   pointsBalance: number;
 }
 
-/** Respuesta de POST /rewards/:id/redeem: la redención creada + el saldo restante. */
+/**
+ * Respuesta de POST /rewards/:id/redeem: la redención creada, el pedido real
+ * que generó (pendiente de aceptación del local) y el saldo restante.
+ */
 export interface RedeemRewardResponse {
   redemption: RewardRedemption;
+  order: OrderDto;
   pointsBalance: number;
 }
 

@@ -29,10 +29,17 @@ export function OrderStatusActions({ order, onUpdated }: OrderStatusActionsProps
   const [pendingAction, setPendingAction] = useState<ConfirmableStatus | null>(null);
 
   async function handleUpdate(next: ConfirmableStatus) {
-    const question =
-      next === 'confirmed'
-        ? `¿Confirmar el pedido #${order.code}? Se acreditan los puntos y la entrada al sorteo.`
+    const isRewardRedemption = order.source === 'reward_redemption';
+    let question: string;
+    if (next === 'confirmed') {
+      question = isRewardRedemption
+        ? `¿Confirmar la entrega del premio del pedido #${order.code}?`
+        : `¿Confirmar el pedido #${order.code}? Se acreditan los puntos y la entrada al sorteo.`;
+    } else {
+      question = isRewardRedemption
+        ? `¿Cancelar el pedido #${order.code}? Se le devuelven los puntos canjeados al cliente.`
         : `¿Cancelar el pedido #${order.code}? Esta acción no se puede deshacer.`;
+    }
     if (!window.confirm(question)) return;
 
     setPendingAction(next);

@@ -19,6 +19,7 @@ import type {
   MenuItemRow,
   OrderItemRow,
   OrderRow,
+  RewardRedemptionRow,
   SizeRow,
 } from '../db/rows';
 import {
@@ -172,6 +173,11 @@ async function currentOrderStatus(db: D1Database, id: number): Promise<OrderStat
  * `orders.points_awarded`. Se llama SOLO después de que el UPDATE atómico de
  * `orders` (WHERE status = 'pending') ya afectó una fila — por eso no puede
  * ejecutarse dos veces para el mismo pedido (ver comentario del handler).
+ *
+ * Se llama SOLO para pedidos `source = 'storefront'` (ver el handler PATCH
+ * más abajo): un pedido generado por un canje de premio ya se pagó en puntos,
+ * así que acreditar puntos/sorteo también sobre su subtotal sería un
+ * double-dip (el cliente ganaría puntos por gastar puntos).
  */
 async function awardLoyaltyForOrder(db: D1Database, order: OrderRow): Promise<void> {
   const config = await db
@@ -206,6 +212,38 @@ async function awardLoyaltyForOrder(db: D1Database, order: OrderRow): Promise<vo
       period,
     ),
     db.prepare('UPDATE orders SET points_awarded = ? WHERE id = ?').bind(pointsAwarded, order.id),
+  ]);
+}
+
+/**
+ * Reembolsa los puntos gastados cuando se cancela un pedido-canje (decisión
+ * de producto: cancelar = el cliente no recibió el premio, así que recupera
+ * los puntos). Simétrica a `awardLoyaltyForOrder` pero en la dirección
+ * contraria. Se llama SOLO tras el UPDATE atómico de `orders` (WHERE status =
+ * 'pending') que cancela el pedido — mismo candado que arriba, no puede
+ * ejecutarse dos veces para el mismo pedido.
+ */
+async function refundRewardRedemption(db: D1Database, order: OrderRow): Promise<void> {
+  const redemption = await db
+    .prepare('SELECT * FROM reward_redemptions WHERE order_id = ?')
+    .bind(order.id)
+    .first<RewardRedemptionRow>();
+  if (!redemption) {
+    // No debería pasar (todo pedido source='reward_redemption' se crea junto
+    // con su reward_redemptions en el mismo batch, ver routes/rewards.ts) —
+    // pero si ocurriera, cancelar el pedido no tiene por qué bloquearse.
+    console.error(`orders.id=${order.id} source=reward_redemption sin reward_redemptions asociada`);
+    return;
+  }
+  await db.batch([
+    db.prepare('UPDATE customers SET points_balance = points_balance + ? WHERE id = ?').bind(
+      redemption.points_spent,
+      redemption.customer_id,
+    ),
+    db.prepare(
+      "INSERT INTO points_ledger (customer_id, order_id, delta, reason) VALUES (?, ?, ?, 'reward_redemption_refunded')",
+    ).bind(redemption.customer_id, order.id, redemption.points_spent),
+    db.prepare("UPDATE reward_redemptions SET status = 'cancelled' WHERE id = ?").bind(redemption.id),
   ]);
 }
 
@@ -318,6 +356,19 @@ ordersRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (c)
       if (!status) throw notFound('Pedido no encontrado');
       throw conflict(`El pedido ya está en estado '${status}'`);
     }
+    if (updated.source === 'reward_redemption') {
+      try {
+        await refundRewardRedemption(c.env.DB, updated);
+      } catch (err) {
+        // El pedido ya quedó 'cancelled' (UPDATE aparte, arriba, ya
+        // confirmado). Un reintento del mismo PATCH no vuelve a entrar acá
+        // (guard WHERE status = 'pending' ya no matchea) — si el reembolso
+        // falla, este log es la única señal para detectarlo y corregirlo a
+        // mano (manual_adjustment en points_ledger). La cancelación en sí ya
+        // es real y no debe reportarse como error al staff que la pidió.
+        console.error(`Falló el reembolso de puntos del pedido-canje cancelado: orderId=${updated.id}`, err);
+      }
+    }
     return c.json(mapOrder(updated));
   }
 
@@ -333,7 +384,19 @@ ordersRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (c)
     throw conflict(`El pedido ya está en estado '${status}'`);
   }
 
-  await awardLoyaltyForOrder(c.env.DB, confirmed);
+  if (confirmed.source === 'storefront') {
+    await awardLoyaltyForOrder(c.env.DB, confirmed);
+  } else {
+    // Confirmar un pedido-canje = entregar el premio: la redención pasa a
+    // 'fulfilled' en el mismo momento. Sin acreditar puntos/sorteo (ver
+    // comentario de awardLoyaltyForOrder) — ese es justo el guard de arriba.
+    await c.env.DB.prepare(
+      `UPDATE reward_redemptions SET status = 'fulfilled', fulfilled_at = datetime('now'), fulfilled_by = ?
+       WHERE order_id = ? AND status = 'pending'`,
+    )
+      .bind(actingUser.id, confirmed.id)
+      .run();
+  }
 
   const finalRow = await c.env.DB.prepare('SELECT * FROM orders WHERE id = ?').bind(id).first<OrderRow>();
   return c.json(mapOrder(finalRow!));
