@@ -13,9 +13,13 @@
  */
 import { BRAND, buildWhatsappLink, formatPrice, type Lang, type WhatsappConfig } from "@sabor/shared";
 
+// Sin emoji: el 👋 llega como "?" en algunos teléfonos/versiones de WhatsApp
+// (glifo fuera del plano básico, mal decodificado por ciertos clientes al
+// abrir el deep link) — ver también la migración 0006_whatsapp_fix_emoji.sql,
+// que limpia el mismo carácter en las plantillas ya guardadas en D1.
 const FALLBACK_TEMPLATE: Record<Lang, string> = {
-  es: "Hola 👋 Quiero pedir: *[nombre]* ([tamaño]) — [precio]. [link]",
-  en: "Hi 👋 I'd like to order: *[nombre]* ([tamaño]) — [precio]. [link]",
+  es: "¡Hola! Quiero pedir: *[nombre]* ([tamaño]) — [precio]. [link]",
+  en: "Hi! I'd like to order: *[nombre]* ([tamaño]) — [precio]. [link]",
 };
 
 export const FALLBACK_WHATSAPP_CONFIG: WhatsappConfig = {
@@ -89,7 +93,7 @@ export function buildCartOrderLink(params: CartOrderLinkParams): string {
     .join("\n");
 
   const message = [
-    "Hola 👋 Quiero hacer este pedido:",
+    "¡Hola! Quiero hacer este pedido:",
     params.orderCode ? `Pedido #${params.orderCode}` : null,
     "",
     itemLines,

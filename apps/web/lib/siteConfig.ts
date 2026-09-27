@@ -20,7 +20,7 @@ export const siteConfig = {
 
   whatsapp: {
     number: "51932770766",
-    message: "¡Hola! 👋 Quisiera hacer un pedido en Pizzería Sabor Llanero.",
+    message: "¡Hola! Quisiera hacer un pedido en Pizzería Sabor Llanero.",
     get url(): string {
       return `https://wa.me/${this.number}?text=${encodeURIComponent(this.message)}`;
     },

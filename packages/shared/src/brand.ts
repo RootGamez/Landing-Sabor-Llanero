@@ -19,7 +19,7 @@ export const BRAND = {
 
   whatsapp: {
     number: '51932770766',
-    defaultMessage: '¡Hola! 👋 Quisiera hacer un pedido en Pizzería Sabor Llanero.',
+    defaultMessage: '¡Hola! Quisiera hacer un pedido en Pizzería Sabor Llanero.',
   },
 
   address: {

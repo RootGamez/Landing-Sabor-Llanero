@@ -140,7 +140,8 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
     : null;
   const displayedPrice = hasSizes ? selectedPrice?.price : item.price;
 
-  const itemUrl = `${siteConfig.url}/menu/#item-${item.slug}`;
+  // Ruta de share con Open Graph reales — ver nota en ItemCard.tsx.
+  const itemUrl = `${siteConfig.url}/menu/item/${item.slug}`;
   let orderHref: string | null = null;
   if (hasSizes && selectedPrice) {
     orderHref = buildItemOrderLink({

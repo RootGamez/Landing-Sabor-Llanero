@@ -2,7 +2,7 @@
  * Construcción del link de WhatsApp a partir de la plantilla configurada
  * (BLUEPRINT §4.1/§4.3). Adaptación de whatsapp.ts de Jaw con el placeholder
  * nuevo `[tamaño]`. Plantilla por idioma (default en whatsapp_config):
- * "Hola 👋 Quiero pedir: *[nombre]* ([tamaño]) — [precio]. [link]"
+ * "¡Hola! Quiero pedir: *[nombre]* ([tamaño]) — [precio]. [link]"
  */
 export interface WhatsappLinkParams {
   phoneNumber: string;
