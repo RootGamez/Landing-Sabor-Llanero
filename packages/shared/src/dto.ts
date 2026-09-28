@@ -197,6 +197,15 @@ export interface CreateOrderInput {
   items: OrderItemInput[];
 }
 
+/**
+ * Reemplazo completo de los ítems de un pedido `pending` desde el CMS (P2.9).
+ * Mismo shape que `CreateOrderInput` — el precio SIEMPRE se recalcula
+ * server-side. Solo pedidos `source === 'storefront'` aceptan este reemplazo.
+ */
+export interface UpdateOrderItemsInput {
+  items: OrderItemInput[];
+}
+
 /** `pending` no es un destino válido: solo lo asigna la API al crear el pedido. */
 export interface OrderStatusUpdateInput {
   status: Extract<OrderStatus, 'confirmed' | 'cancelled'>;

@@ -1,7 +1,9 @@
-import type { OrderDto, OrderStatus } from '@sabor/shared';
+import type { OrderDto, OrderStatus, Size } from '@sabor/shared';
+import type { CategoryWithPrices } from '../../lib/adminTypes';
 import { formatDateTime, formatPrice } from '../../lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { EditOrderItemsDialog } from './EditOrderItemsDialog';
 import { OrderStatusActions } from './OrderStatusActions';
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
@@ -18,11 +20,14 @@ const STATUS_VARIANT: Record<OrderStatus, 'accent' | 'success' | 'muted'> = {
 
 interface OrderCardProps {
   order: OrderDto;
-  /** Se llama tras un PATCH exitoso (confirmar o cancelar), para que el padre haga refetch. */
+  /** Cargados una sola vez en `PedidosPage`, para el editor de ítems (P2.9). */
+  categories: CategoryWithPrices[] | undefined;
+  sizes: Size[] | undefined;
+  /** Se llama tras un PATCH/PUT exitoso (confirmar, cancelar o editar ítems), para que el padre haga refetch. */
   onUpdated: () => void;
 }
 
-export function OrderCard({ order, onUpdated }: OrderCardProps) {
+export function OrderCard({ order, categories, sizes, onUpdated }: OrderCardProps) {
   return (
     <Card className={order.status === 'pending' ? 'border-primary/60' : undefined}>
       <CardHeader className="flex-row items-center justify-between gap-2">
@@ -61,7 +66,15 @@ export function OrderCard({ order, onUpdated }: OrderCardProps) {
           <p className="text-xs text-text-muted">Puntos otorgados: {order.pointsAwarded}</p>
         )}
 
-        {order.status === 'pending' && <OrderStatusActions order={order} onUpdated={onUpdated} />}
+        {order.status === 'pending' && (
+          <div className="flex flex-col gap-2">
+            {/* Los pedidos de canje de premio no se editan: están atados a los puntos ya gastados. */}
+            {order.source === 'storefront' && (
+              <EditOrderItemsDialog order={order} categories={categories} sizes={sizes} onUpdated={onUpdated} />
+            )}
+            <OrderStatusActions order={order} onUpdated={onUpdated} />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

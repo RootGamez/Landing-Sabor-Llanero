@@ -4,6 +4,7 @@ import {
   orderStatusUpdateSchema,
   resolveItemPrices,
   resolveSimplePrice,
+  updateOrderItemsSchema,
   type OrderDto,
   type OrderItem,
   type OrderItemInput,
@@ -406,4 +407,72 @@ ordersRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (c)
 
   const finalRow = await c.env.DB.prepare('SELECT * FROM orders WHERE id = ?').bind(id).first<OrderRow>();
   return c.json(mapOrder(finalRow!));
+});
+
+/**
+ * Edición de ítems (admin/owner) — reemplaza TODO el set de `order_items` de
+ * un pedido, para el caso de un cliente que cambió lo que quería por WhatsApp
+ * antes de que el dueño lo confirme. Precio SIEMPRE recalculado server-side
+ * con `resolveOrderLines` (misma función que usa `POST /`), nunca se lee del
+ * body. Solo pedidos `source = 'storefront'`: un pedido de canje de premio
+ * está atado a los puntos ya gastados, mezclarlo con ítems de catálogo
+ * rompería esa relación.
+ *
+ * Todo el reemplazo (UPDATE de subtotal + DELETE + INSERTs) va en un solo
+ * `.batch()` con el guard `WHERE status = 'pending' AND source = 'storefront'`
+ * repetido en cada statement (el UPDATE lo lleva en su propio WHERE, el
+ * DELETE/INSERT lo llevan como `WHERE EXISTS (...)`) — así no hay ventana de
+ * carrera con un `PATCH /:id` concurrente (Confirmar/Cancelar) entre medio:
+ * o se aplican los cuatro juntos, o ninguno. A diferencia de `POST /`, acá el
+ * `id` del pedido ya se conoce (viene de la URL), así que los INSERT bindean
+ * `id` directamente en vez de resolverlo con un SELECT anidado.
+ *
+ * Efecto secundario esperado: como es DELETE+INSERT completo, todo
+ * `order_items.id` se regenera en cada guardado, incluidas las líneas que el
+ * dueño no tocó — no hay ninguna FK que apunte a `order_items.id`, así que es
+ * seguro.
+ */
+ordersRoutes.put('/:id/items', requireAuth, requireRole('owner', 'admin'), async (c) => {
+  const id = requireIdParam(c);
+  const body = await parseBody(c, updateOrderItemsSchema);
+
+  const { lines, subtotal } = await resolveOrderLines(c.env.DB, body.items);
+  const guard = `status = 'pending' AND source = 'storefront'`;
+
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(`UPDATE orders SET subtotal = ? WHERE id = ? AND ${guard} RETURNING *`).bind(subtotal, id),
+    c.env.DB.prepare(
+      `DELETE FROM order_items WHERE order_id = ? AND EXISTS (SELECT 1 FROM orders WHERE id = ? AND ${guard})`,
+    ).bind(id, id),
+    ...lines.map((line) =>
+      c.env.DB.prepare(
+        `INSERT INTO order_items (order_id, item_id, name_es, name_en, size_label, unit_price, quantity)
+         SELECT ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM orders WHERE id = ? AND ${guard})`,
+      ).bind(id, line.itemId, line.nameEs, line.nameEn, line.sizeLabel, line.unitPrice, line.quantity, id),
+    ),
+  ]);
+
+  const updatedOrder = results[0]?.results[0] as OrderRow | undefined;
+  if (!updatedOrder) {
+    // Este SELECT corre DESPUÉS del batch, así que en teoría lee un estado más
+    // nuevo que el que vio el guard — pero es seguro: `source` es inmutable
+    // una vez creado el pedido (ningún endpoint la cambia) y `status` solo
+    // transiciona una vez de forma terminal (pending→confirmed/cancelled,
+    // nunca vuelve atrás, mismo invariante del comentario de PATCH /:id más
+    // arriba). Por eso el orden de los checks importa: se descarta `source`
+    // primero porque esa lectura nunca queda "stale".
+    const current = await c.env.DB.prepare('SELECT status, source FROM orders WHERE id = ?')
+      .bind(id)
+      .first<Pick<OrderRow, 'status' | 'source'>>();
+    if (!current) throw notFound('Pedido no encontrado');
+    if (current.source !== 'storefront') throw badRequest('Los pedidos de canje de premio no admiten edición de ítems');
+    throw conflict(`El pedido ya está en estado '${current.status}'`);
+  }
+
+  const { results: itemRows } = await c.env.DB.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC')
+    .bind(id)
+    .all<OrderItemRow>();
+
+  const dto: OrderDto = { ...mapOrder(updatedOrder), items: itemRows.map(mapOrderItem) };
+  return c.json(dto);
 });

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { OrderStatus } from '@sabor/shared';
-import { useOrders } from '../hooks/useCmsData';
+import { useCategories, useOrders, useSizes } from '../hooks/useCmsData';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -26,6 +26,9 @@ export function PedidosPage() {
     status: status === 'all' ? undefined : status,
     page,
   });
+  // Cargados una sola vez acá (no por card) para el editor de ítems de P2.9.
+  const { data: categories } = useCategories();
+  const { data: sizes } = useSizes();
 
   function handleUpdated() {
     refetch();
@@ -79,7 +82,7 @@ export function PedidosPage() {
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {result.items.map((order) => (
               <li key={order.id}>
-                <OrderCard order={order} onUpdated={handleUpdated} />
+                <OrderCard order={order} categories={categories} sizes={sizes} onUpdated={handleUpdated} />
               </li>
             ))}
           </ul>

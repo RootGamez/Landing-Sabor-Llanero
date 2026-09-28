@@ -222,18 +222,43 @@ const orderItemInputSchema = z.object({
   quantity: z.number().int().positive('quantity debe ser mayor a 0'),
 });
 
-const ORDER_ITEMS_MAX = 50;
+export const ORDER_ITEMS_MAX = 50;
+
+const orderItemsArraySchema = z
+  .array(orderItemInputSchema)
+  .min(1, 'el pedido necesita al menos un ítem')
+  .max(ORDER_ITEMS_MAX, `un pedido admite como máximo ${ORDER_ITEMS_MAX} ítems`)
+  // Misma idea que replaceCollectionItemsSchema: sin esto, un body armado a
+  // mano (fuera del carrito/editor, que ya dedupean) podría persistir dos
+  // líneas para el mismo itemId+sizeId — el editor de pedidos del CMS las
+  // trata como una sola fila (misma key), así que tocar una tocaría ambas.
+  .superRefine((items, ctx) => {
+    const seen = new Set<string>();
+    items.forEach((entry, index) => {
+      const key = `${entry.itemId}:${entry.sizeId ?? 'none'}`;
+      if (seen.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, 'itemId'],
+          message: 'itemId (con el mismo sizeId) duplicado en items',
+        });
+      }
+      seen.add(key);
+    });
+  });
 
 export const createOrderSchema = z.object({
-  items: z
-    .array(orderItemInputSchema)
-    .min(1, 'el pedido necesita al menos un ítem')
-    .max(ORDER_ITEMS_MAX, `un pedido admite como máximo ${ORDER_ITEMS_MAX} ítems`),
+  items: orderItemsArraySchema,
 });
 
 /** Transición de estado desde el CMS: `pending` es solo el estado inicial, nunca un destino. */
 export const orderStatusUpdateSchema = z.object({
   status: z.enum(['confirmed', 'cancelled']),
+});
+
+/** Reemplazo completo de ítems de un pedido `pending` (CMS, P2.9) — misma forma que `createOrderSchema`. */
+export const updateOrderItemsSchema = z.object({
+  items: orderItemsArraySchema,
 });
 
 const rewardBaseSchema = z.object({

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useOrders } from '../hooks/useCmsData';
+import { useCategories, useOrders, useSizes } from '../hooks/useCmsData';
 import { OrderCard } from '../components/orders/OrderCard';
 import { Skeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
@@ -45,6 +45,9 @@ export function DashboardPage() {
   const pending = useOrders({ status: 'pending', pageSize: 50 });
   const confirmed = useOrders({ status: 'confirmed', pageSize: 1 });
   const cancelled = useOrders({ status: 'cancelled', pageSize: 1 });
+  // Para el editor de ítems de P2.9 (mismo criterio que PedidosPage: una sola carga acá, no por card).
+  const { data: categories } = useCategories();
+  const { data: sizes } = useSizes();
 
   function handleUpdated() {
     pending.refetch();
@@ -99,7 +102,7 @@ export function DashboardPage() {
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {pendingOrders.map((order) => (
                 <li key={order.id}>
-                  <OrderCard order={order} onUpdated={handleUpdated} />
+                  <OrderCard order={order} categories={categories} sizes={sizes} onUpdated={handleUpdated} />
                 </li>
               ))}
             </ul>
