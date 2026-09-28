@@ -382,6 +382,69 @@ body {
   animation: hero-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Barra de progreso del slide activo: al terminar, el carrusel avanza (onAnimationEnd) */
+@keyframes hero-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.animate-hero-progress {
+  animation-name: hero-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+/* Fondo del hero del menú: auroras tricolor que derivan y rayos que giran (HeroBackdrop) */
+@keyframes aurora-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(12%, 10%, 0) scale(1.15);
+  }
+}
+@keyframes aurora-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+  to {
+    transform: translate3d(-14%, -8%, 0) scale(0.95);
+  }
+}
+@keyframes aurora-c {
+  from {
+    transform: translate3d(0, 0, 0) scale(0.9);
+  }
+  to {
+    transform: translate3d(-18%, 12%, 0) scale(1.1);
+  }
+}
+.animate-aurora-a {
+  will-change: transform;
+  animation: aurora-a 18s ease-in-out infinite alternate;
+}
+.animate-aurora-b {
+  will-change: transform;
+  animation: aurora-b 23s ease-in-out infinite alternate;
+}
+.animate-aurora-c {
+  will-change: transform;
+  animation: aurora-c 27s ease-in-out infinite alternate;
+}
+
+@keyframes sunburst {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-sunburst {
+  will-change: transform;
+  animation: sunburst 90s linear infinite;
+}
+
 /* Ken Burns sutil para las fotos del hero */
 @keyframes ken-burns {
   from {
@@ -417,7 +480,12 @@ body {
   .animate-cart-pulse,
   .animate-toast-in,
   .animate-toast-out,
-  .animate-hero-slide-in {
+  .animate-hero-slide-in,
+  .animate-hero-progress,
+  .animate-aurora-a,
+  .animate-aurora-b,
+  .animate-aurora-c,
+  .animate-sunburst {
     animation: none;
   }
   .btn-shine::after {
