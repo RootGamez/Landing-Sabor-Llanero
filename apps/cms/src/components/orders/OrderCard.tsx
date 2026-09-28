@@ -35,6 +35,11 @@ export function OrderCard({ order, onUpdated }: OrderCardProps) {
       <CardContent className="flex flex-col gap-3">
         <p className="text-xs text-text-muted">{formatDateTime(order.createdAt)}</p>
 
+        <p className="text-sm text-text">
+          {order.customerName ?? 'Cliente eliminado'}
+          {order.customerPhone && <span className="text-text-muted"> · {order.customerPhone}</span>}
+        </p>
+
         <ul className="flex flex-col gap-1 text-sm text-text">
           {order.items.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-2">

@@ -253,6 +253,14 @@ export interface OrderRow {
   confirmed_by: number | null;
   created_at: string;
   source: OrderSource;
+  /**
+   * Solo presentes cuando la query hizo `LEFT JOIN customers` (listado del
+   * CMS); en el resto de las queries (que solo tocan `orders`) estas
+   * columnas ni existen en la fila, quedan `undefined` en runtime pese al
+   * tipo — por eso mapOrder las castea a null explícitamente.
+   */
+  customer_name?: string | null;
+  customer_phone?: string | null;
 }
 export const mapOrder = (r: OrderRow): Order => ({
   id: r.id,
@@ -265,6 +273,8 @@ export const mapOrder = (r: OrderRow): Order => ({
   confirmedBy: r.confirmed_by,
   createdAt: r.created_at,
   source: r.source,
+  customerName: r.customer_name ?? null,
+  customerPhone: r.customer_phone ?? null,
 });
 
 export interface OrderItemRow {

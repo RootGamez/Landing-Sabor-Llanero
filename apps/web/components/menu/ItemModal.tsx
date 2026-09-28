@@ -23,6 +23,8 @@ import { cartLineFromItem, useCartActions } from "@/lib/cart";
 import { CATALOG_UI, sizeLabelFor } from "@/lib/catalogUi";
 import { parseIngredients } from "@/lib/catalogText";
 import { siteConfig } from "@/lib/siteConfig";
+import { useCustomerAuth } from "@/lib/customerAuth";
+import { useQuickOrder } from "@/lib/useQuickOrder";
 import { buildItemOrderLink } from "@/lib/whatsapp";
 
 interface ItemModalProps {
@@ -58,6 +60,8 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
   const ingredients = description ? parseIngredients(description) : null;
   const hasSizes = item.prices.length > 0;
   const { addLine } = useCartActions();
+  const { customer } = useCustomerAuth();
+  const { confirm, submitting, error, manualLink } = useQuickOrder();
   const disabledHintId = useId();
 
   const [selectedSizeId, setSelectedSizeId] = useState<number | null>(
@@ -162,6 +166,15 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
       itemUrl,
     });
   }
+
+  const handleQuickOrder = (): void => {
+    if (!orderHref) return;
+    confirm({
+      itemId: item.id,
+      sizeId: hasSizes ? (selectedPrice?.sizeId ?? undefined) : undefined,
+      whatsappHref: orderHref,
+    });
+  };
 
   const canAddToCart = hasSizes ? selectedPrice != null : item.price != null;
   const addToCart = (): void => {
@@ -318,7 +331,28 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
                   lang={lang}
                   disabledHint={hasSizes && !selectedPrice ? ui.chooseSize : undefined}
                   hintId={disabledHintId}
+                  onConfirm={customer ? handleQuickOrder : undefined}
+                  loading={submitting}
                 />
+                {error && (
+                  <p role="alert" className="mt-1.5 text-xs text-brand-red">
+                    {error}
+                  </p>
+                )}
+                {manualLink && (
+                  <p role="alert" className="mt-1.5 text-xs text-ink/70">
+                    Tu pedido ya se creó, pero el navegador bloqueó la pestaña de WhatsApp.{" "}
+                    <a
+                      href={manualLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-brand-blue hover:text-brand-red"
+                    >
+                      Tocá acá para abrirla
+                    </a>
+                    .
+                  </p>
+                )}
               </div>
             </div>
           </div>

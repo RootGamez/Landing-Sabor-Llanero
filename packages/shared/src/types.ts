@@ -229,6 +229,14 @@ export interface Order {
   confirmedBy: number | null;
   createdAt: string;
   source: OrderSource;
+  /**
+   * Nombre/teléfono ACTUALES del cliente (join en vivo a `customers`, no un
+   * snapshot) para que el CMS sepa de quién es cada pedido. Solo vienen
+   * poblados en endpoints que hacen ese join (listado del CMS); en el resto
+   * quedan en null.
+   */
+  customerName: string | null;
+  customerPhone: string | null;
 }
 
 /**

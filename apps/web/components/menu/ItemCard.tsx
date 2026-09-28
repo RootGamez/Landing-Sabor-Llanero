@@ -16,6 +16,8 @@ import { siteConfig } from "@/lib/siteConfig";
 import { accentStyle } from "@/lib/catalogAccent";
 import { cartLineFromItem, useCartActions } from "@/lib/cart";
 import { CATALOG_UI, sizeLabelFor } from "@/lib/catalogUi";
+import { useCustomerAuth } from "@/lib/customerAuth";
+import { useQuickOrder } from "@/lib/useQuickOrder";
 import { buildItemOrderLink } from "@/lib/whatsapp";
 // sizeLabelFor sigue usándose para el label del deep link de WhatsApp.
 import AddToCartButton from "@/components/menu/AddToCartButton";
@@ -65,6 +67,8 @@ export default function ItemCard({
 }: ItemCardProps) {
   const [selectedSizeId, setSelectedSizeId] = useState<number | null>(null);
   const { addLine } = useCartActions();
+  const { customer } = useCustomerAuth();
+  const { confirm, submitting, error, manualLink } = useQuickOrder();
   const disabledHintId = useId();
 
   const copy = CATALOG_COPY[lang];
@@ -113,6 +117,18 @@ export default function ItemCard({
       itemUrl,
     });
   }
+
+  // Con sesión: crear el pedido real antes de abrir WhatsApp (P... quick
+  // order sin carrito). Sin sesión, OrderButton sigue usando `orderHref`
+  // directo — comportamiento sin cambios.
+  const handleQuickOrder = (): void => {
+    if (!orderHref) return;
+    confirm({
+      itemId: item.id,
+      sizeId: hasSizes ? (selectedPrice?.sizeId ?? undefined) : undefined,
+      whatsappHref: orderHref,
+    });
+  };
 
   // Card vertical siempre (rails); card responsiva (grid) es fila en móvil.
   const rootLayout = compact ? "flex-col" : "flex-row sm:flex-col";
@@ -235,7 +251,28 @@ export default function ItemCard({
               disabledHint={hasSizes && !selectedPrice ? ui.chooseSize : undefined}
               compact={compact}
               hintId={disabledHintId}
+              onConfirm={customer ? handleQuickOrder : undefined}
+              loading={submitting}
             />
+            {error && (
+              <p role="alert" className="mt-1.5 text-xs text-brand-red">
+                {error}
+              </p>
+            )}
+            {manualLink && (
+              <p role="alert" className="mt-1.5 text-xs text-ink/70">
+                Tu pedido ya se creó, pero el navegador bloqueó la pestaña de WhatsApp.{" "}
+                <a
+                  href={manualLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-brand-blue hover:text-brand-red"
+                >
+                  Tocá acá para abrirla
+                </a>
+                .
+              </p>
+            )}
           </div>
         </div>
       </div>

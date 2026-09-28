@@ -21,13 +21,25 @@ interface OrderButtonProps {
    * visible. Por defecto genera uno propio.
    */
   hintId?: string;
+  /**
+   * Presente solo cuando hay sesión: en vez de navegar directo a `href`, crea
+   * el pedido real (`POST /orders`) y recién entonces abre WhatsApp (ver
+   * `useQuickOrder`). Cuando se pasa, el control se renderiza como `<button>`
+   * en vez de `<a>` — el invitado (sin `onConfirm`) sigue exactamente igual
+   * que antes.
+   */
+  onConfirm?: () => void;
+  /** true mientras `onConfirm` está creando el pedido. */
+  loading?: boolean;
 }
 
 /**
  * "Pedir por WhatsApp" por ítem (patrón OrderButton de Jaw, BLUEPRINT §2.6):
  * registra el evento order_click (fire-and-forget) y abre wa.me en otra
- * pestaña. Es un <a> real — no window.open — para no pelear con bloqueadores
- * de pop-ups; deshabilitado se degrada a <button disabled> con hint visible.
+ * pestaña. Sin sesión es un <a> real — no window.open — para no pelear con
+ * bloqueadores de pop-ups; deshabilitado se degrada a <button disabled> con
+ * hint visible. Con sesión (`onConfirm`) es un <button> que primero crea el
+ * pedido real y luego abre WhatsApp.
  */
 export default function OrderButton({
   href,
@@ -36,6 +48,8 @@ export default function OrderButton({
   disabledHint,
   compact = false,
   hintId: externalHintId,
+  onConfirm,
+  loading = false,
 }: OrderButtonProps) {
   const copy = CATALOG_COPY[lang];
   const generatedHintId = useId();
@@ -62,6 +76,21 @@ export default function OrderButton({
           </p>
         )}
       </div>
+    );
+  }
+
+  if (onConfirm) {
+    return (
+      <button
+        type="button"
+        onClick={onConfirm}
+        disabled={loading}
+        aria-busy={loading}
+        className={`${baseClasses} btn-shine bg-brand-red text-white shadow-md hover:scale-[1.03] hover:bg-brand-red-deep active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100`}
+      >
+        <WhatsAppIcon className="h-4 w-4" />
+        {loading ? copy.creatingOrder : copy.orderOnWhatsapp}
+      </button>
     );
   }
 

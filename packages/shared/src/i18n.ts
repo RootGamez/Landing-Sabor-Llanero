@@ -32,6 +32,8 @@ export function displaySizeDetail(size: { detailEs: string; detailEn: string }, 
 interface CatalogCopy {
   menuTitle: string;
   orderOnWhatsapp: string;
+  /** Estado del botón "Pedir" mientras se crea el pedido (cliente logueado, sin carrito). */
+  creatingOrder: string;
   sizes: string;
   featured: string;
   promos: string;
@@ -51,6 +53,7 @@ export const CATALOG_COPY: Record<Lang, CatalogCopy> = {
   es: {
     menuTitle: 'Nuestro Menú',
     orderOnWhatsapp: 'Pedir por WhatsApp',
+    creatingOrder: 'Creando pedido…',
     sizes: 'Tamaños',
     featured: 'Destacado',
     promos: 'Promos',
@@ -62,6 +65,7 @@ export const CATALOG_COPY: Record<Lang, CatalogCopy> = {
   en: {
     menuTitle: 'Our Menu',
     orderOnWhatsapp: 'Order on WhatsApp',
+    creatingOrder: 'Creating order…',
     sizes: 'Sizes',
     featured: 'Featured',
     promos: 'Deals',

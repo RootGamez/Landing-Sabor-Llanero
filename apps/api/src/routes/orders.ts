@@ -295,14 +295,20 @@ ordersRoutes.get('/', requireAuth, requireRole('owner', 'admin'), async (c) => {
   const page = Math.max(1, parsePositiveInt(c.req.query('page'), 1));
   const pageSize = Math.min(100, Math.max(1, parsePositiveInt(c.req.query('pageSize'), PAGE_SIZE_DEFAULT)));
 
-  const where = status ? 'WHERE status = ?' : '';
+  const where = status ? 'WHERE orders.status = ?' : '';
   const params = status ? [status] : [];
 
   const countRow = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM orders ${where}`)
     .bind(...params)
     .first<{ total: number }>();
+  // LEFT JOIN (no INNER): si un cliente llegara a borrarse, el pedido no
+  // debe desaparecer del listado del CMS, solo perder el nombre/teléfono.
   const { results } = await c.env.DB.prepare(
-    `SELECT * FROM orders ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    `SELECT orders.*, customers.name AS customer_name, customers.phone AS customer_phone
+     FROM orders
+     LEFT JOIN customers ON customers.id = orders.customer_id
+     ${where}
+     ORDER BY orders.created_at DESC LIMIT ? OFFSET ?`,
   )
     .bind(...params, pageSize, (page - 1) * pageSize)
     .all<OrderRow>();
