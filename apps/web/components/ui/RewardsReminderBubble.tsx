@@ -46,6 +46,12 @@ function persistDismissed(): void {
  * localStorage) se usa solo como línea base — no cuenta como "acabás de
  * agregar algo", si no se dispararía en cada carga de página con carrito
  * previo.
+ *
+ * Posicionada arriba de la píldora "Iniciar sesión" de
+ * `FloatingRewardsButton` (mismo left-4, pero más alta): para invitados esa
+ * píldora ya ocupa bottom-4/left-4 de forma permanente, así que esta burbuja
+ * se apila encima en vez de compartir el mismo slot. La "colita" que apunta
+ * hacia abajo queda apuntando justo a esa píldora.
  */
 export default function RewardsReminderBubble() {
   const { customer, loading } = useCustomerAuth();
@@ -100,7 +106,7 @@ export default function RewardsReminderBubble() {
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed bottom-4 left-4 z-40 w-[calc(100vw-2rem)] max-w-[19rem] md:bottom-6 md:left-6"
+      className="pointer-events-none fixed bottom-20 left-4 z-40 w-[calc(100vw-2rem)] max-w-[19rem] md:bottom-24 md:left-6"
     >
       {phase !== "hidden" && (
         <div

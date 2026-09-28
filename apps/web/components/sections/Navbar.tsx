@@ -5,10 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/lib/siteConfig";
 import TricolorBar from "@/components/ui/TricolorBar";
-import { WhatsAppIcon } from "@/components/ui/icons";
+import { GiftIcon, UserIcon, WhatsAppIcon } from "@/components/ui/icons";
 import AccountNavLink from "@/components/account/AccountNavLink";
 import CartButton from "@/components/cart/CartButton";
 import RewardsButton from "@/components/rewards/RewardsButton";
+import { useCustomerAuth } from "@/lib/customerAuth";
 
 interface NavbarProps {
   /** Fuerza el estado sólido desde el inicio (páginas sin hero oscuro, ej. /menu) */
@@ -22,6 +23,7 @@ interface NavbarProps {
 export default function Navbar({ solid: alwaysSolid = false }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { customer } = useCustomerAuth();
 
   useEffect(() => {
     // Sólido forzado: el estado scrolled nunca se consulta, no escuchamos scroll
@@ -51,10 +53,13 @@ export default function Navbar({ solid: alwaysSolid = false }: NavbarProps) {
         aria-label="Navegación principal"
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:h-[4.5rem] md:px-6">
-          {/* Logo (placeholder de texto en Bangers) */}
+          {/* Logo (placeholder de texto en Bangers). Texto más chico en
+              móvil (libera espacio para el cluster de íconos a la derecha,
+              que ahora solo trae Carrito + hamburguesa ahí) y escala hasta
+              el tamaño original desde `sm`. */}
           <Link
             href="/#inicio"
-            className={`flex items-center gap-2.5 font-display text-2xl tracking-wider transition-colors md:text-3xl ${
+            className={`flex min-w-0 shrink items-center gap-2 font-display text-lg tracking-wider transition-colors sm:gap-2.5 sm:text-2xl md:text-3xl ${
               solid ? "text-brand-blue" : "text-white"
             }`}
             onClick={() => setMenuOpen(false)}
@@ -65,9 +70,11 @@ export default function Navbar({ solid: alwaysSolid = false }: NavbarProps) {
               alt=""
               width={40}
               height={40}
-              className="h-10 w-10 rounded-full object-cover ring-2 ring-white/40"
+              className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white/40 sm:h-10 sm:w-10"
             />
-            Sabor <span className="text-brand-red">Llanero</span>
+            <span className="truncate">
+              Sabor <span className="text-brand-red">Llanero</span>
+            </span>
           </Link>
 
           {/* Links desktop */}
@@ -98,15 +105,23 @@ export default function Navbar({ solid: alwaysSolid = false }: NavbarProps) {
             </li>
           </ul>
 
-          <div className="flex items-center gap-1">
-            <AccountNavLink solid={solid} />
-            <RewardsButton solid={solid} />
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Cuenta y premios: en desktop van sueltos acá; en móvil se
+                esconden (el cluster de 4 íconos + logo no entra en pantallas
+                chicas) y pasan a la lista del drawer más abajo, con label
+                visible en vez de solo ícono. */}
+            <div className="hidden md:block">
+              <AccountNavLink solid={solid} />
+            </div>
+            <div className="hidden md:block">
+              <RewardsButton solid={solid} />
+            </div>
             <CartButton solid={solid} />
 
             {/* Botón hamburguesa (móvil) */}
             <button
               type="button"
-              className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 md:hidden"
+              className="flex h-11 w-11 flex-col items-center justify-center gap-1.5 md:hidden"
               aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((v) => !v)}
@@ -153,6 +168,31 @@ export default function Navbar({ solid: alwaysSolid = false }: NavbarProps) {
               </Link>
             </li>
           ))}
+
+          {/* Cuenta y premios (ocultos del header en móvil por espacio,
+              ver cluster de íconos arriba): acá con label visible, no solo
+              ícono, para que quede claro qué es cada uno. */}
+          <li className="mt-3 border-t border-ink/10 pt-3">
+            <Link
+              href={customer ? "/cuenta/" : "/cuenta/login/"}
+              className="flex items-center gap-3 rounded-xl px-4 py-3.5 text-lg font-medium text-ink transition-colors hover:bg-surface hover:text-brand-red"
+              onClick={() => setMenuOpen(false)}
+            >
+              <UserIcon className="h-5 w-5 shrink-0 text-brand-blue" />
+              <span className="truncate">{customer ? `Mi cuenta: ${customer.name}` : "Iniciar sesión"}</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/premios/"
+              className="flex items-center gap-3 rounded-xl px-4 py-3.5 text-lg font-medium text-ink transition-colors hover:bg-surface hover:text-brand-red"
+              onClick={() => setMenuOpen(false)}
+            >
+              <GiftIcon className="h-5 w-5 shrink-0 text-brand-blue" />
+              {customer ? `Mis premios · ${customer.pointsBalance} pts` : "Mis premios"}
+            </Link>
+          </li>
+
           <li className="mt-4">
             <a
               href={siteConfig.whatsapp.url}
