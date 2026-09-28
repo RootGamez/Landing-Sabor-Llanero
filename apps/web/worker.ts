@@ -58,9 +58,20 @@ function priceDescription(item: MenuItemDetail): string {
   return SITE_NAME;
 }
 
-function coverImageUrl(item: MenuItemDetail, apiBaseUrl: string): string {
+/**
+ * Opciones de Cloudflare Image Transformations para la vista previa. Las
+ * fotos que sube el CMS son el original de la cámara (2–3 MB, a veces PNG) y
+ * WhatsApp descarta en silencio cualquier og:image de más de ~600 KB: la
+ * vista previa quedaba sin foto. Reducida a 800 px en JPEG queda en ~100 KB.
+ * Requiere "Image Transformations" habilitado en la zona saborllanero.online
+ * (Cloudflare → Images → Transformations); sin eso /cdn-cgi/image/ da 404.
+ */
+const OG_IMAGE_TRANSFORM = "width=800,quality=75,fit=scale-down,format=jpeg";
+
+function coverImageUrl(item: MenuItemDetail, apiBaseUrl: string, origin: string): string {
   const cover = item.media.find((m) => m.type === "image");
-  return cover ? `${apiBaseUrl}/api/media/${cover.r2Key}` : FALLBACK_IMAGE;
+  if (!cover) return FALLBACK_IMAGE;
+  return `${origin}/cdn-cgi/image/${OG_IMAGE_TRANSFORM}/${apiBaseUrl}/api/media/${cover.r2Key}`;
 }
 
 function renderShareHtml(item: MenuItemDetail, origin: string, apiBaseUrl: string): string {
@@ -68,7 +79,7 @@ function renderShareHtml(item: MenuItemDetail, origin: string, apiBaseUrl: strin
   const targetUrl = `${origin}/menu/#item-${item.slug}`;
   const title = escapeHtml(item.nameEs);
   const description = escapeHtml(priceDescription(item));
-  const image = coverImageUrl(item, apiBaseUrl);
+  const image = escapeHtml(coverImageUrl(item, apiBaseUrl, origin));
 
   return `<!doctype html>
 <html lang="es">
@@ -81,6 +92,7 @@ function renderShareHtml(item: MenuItemDetail, origin: string, apiBaseUrl: strin
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${description}">
 <meta property="og:image" content="${image}">
+<meta property="og:image:type" content="image/jpeg">
 <meta property="og:url" content="${pageUrl}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="description" content="${description}">

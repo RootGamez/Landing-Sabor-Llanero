@@ -91,7 +91,7 @@ export default function ItemCard({
     if (line) addLine(line);
   };
 
-  // Ruta de share con Open Graph reales (apps/web/functions/menu/item/[slug].ts)
+  // Ruta de share con Open Graph reales (apps/web/worker.ts)
   // en vez del ancla directa: WhatsApp nunca ve el fragmento `#item-slug` (no
   // viaja al servidor en un sitio export estático), así que sin esta ruta
   // intermedia todo ítem compartido mostraría la misma vista previa genérica
