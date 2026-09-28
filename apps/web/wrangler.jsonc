@@ -1,9 +1,26 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "sabor-llanero-pisco",
+  // OJO: acá dice "sabor-llanero-pisco" pero el Worker real en Cloudflare
+  // (Workers & Pages → Settings → Builds) se llama "sabor-planero-pisco" —
+  // typo de cuando se creó el proyecto a mano en el dashboard. Wrangler
+  // identifica a qué Worker desplegar por este nombre, así que tiene que
+  // coincidir con el real o el deploy termina en otro lado (o falla).
+  "name": "sabor-planero-pisco",
+  // Antes de esto el proyecto no tenía Worker propio (solo assets estáticos,
+  // por eso la carpeta functions/ de Pages nunca corría — este NO es un
+  // proyecto Pages). `main` habilita el Worker que intercepta /menu/item/*
+  // para la vista previa de WhatsApp; ver worker.ts.
+  "main": "worker.ts",
   "compatibility_date": "2026-06-11",
   "assets": {
     "directory": "./out",
-    "not_found_handling": "404-page"
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    // Solo esta ruta invoca el Worker; todo lo demás lo sirve Cloudflare
+    // directo desde assets, sin pasar por código — cero cambio de
+    // latencia/costo para el resto del sitio (regla "Selective Worker-First
+    // Routing" de Cloudflare). Sin esto, run_worker_first queda en `false`
+    // por default y el Worker nunca se invoca aunque `main` ya esté.
+    "run_worker_first": ["/menu/item/*"]
   }
 }

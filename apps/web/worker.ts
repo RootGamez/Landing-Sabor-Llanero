@@ -1,28 +1,39 @@
 import { formatPrice, type MenuItemDetail } from "@sabor/shared";
 
 /**
- * Cloudflare Pages Function (BLUEPRINT: vista previa de producto en
- * WhatsApp). El sitio es 100% export estático (`output: "export"`), así que
- * el link que hoy se manda por WhatsApp — `/menu/#item-slug` — es un ancla:
- * el crawler de WhatsApp nunca la ve (los fragmentos nunca viajan al
- * servidor), así que todo producto comparte la misma vista previa genérica
- * de /menu (o ninguna).
+ * Worker de Cloudflare (BLUEPRINT: vista previa de producto en WhatsApp). El
+ * proyecto en Cloudflare es "Workers con assets estáticos" (Settings → Builds
+ * → Deploy command: `npx wrangler deploy`), NO Cloudflare Pages — así que la
+ * carpeta `functions/` (convención exclusiva de Pages) no sirve acá; esto es
+ * lo que realmente intercepta requests en este tipo de proyecto.
  *
- * Esta ruta SÍ corre en el edge (Pages Functions, no export estático):
- * resuelve el ítem contra la API pública en tiempo real y devuelve HTML con
- * Open Graph reales (foto, nombre, precio) — siempre al día con el CMS, sin
- * rebuild. Un visitante real (o el propio crawler, que no ejecuta el
- * redirect) cae acá un instante; el <head> ya tiene todo lo que necesita el
- * unfurling y el body redirige de inmediato al ítem real dentro de /menu.
+ * `wrangler.jsonc` solo invoca este Worker para `/menu/item/*`
+ * (`run_worker_first`) — todo lo demás lo sirve Cloudflare directo desde
+ * `assets` sin pasar por acá, cero cambio de latencia/costo para el resto
+ * del sitio.
+ *
+ * El sitio es 100% export estático (`output: "export"`), así que el link que
+ * antes se mandaba por WhatsApp — `/menu/#item-slug` — es un ancla: el
+ * crawler de WhatsApp nunca la ve (los fragmentos nunca viajan al servidor),
+ * así que todo producto compartía la misma vista previa genérica de /menu (o
+ * ninguna). Esta ruta resuelve el ítem contra la API pública en tiempo real y
+ * devuelve HTML con Open Graph reales (foto, nombre, precio) — siempre al día
+ * con el CMS, sin rebuild. Un visitante real (o el propio crawler, que no
+ * ejecuta el redirect) cae acá un instante; el <head> ya tiene todo lo que
+ * necesita el unfurling y el body redirige de inmediato al ítem real dentro
+ * de /menu.
  *
  * `lib/whatsapp.ts` arma el `[link]` del mensaje apuntando acá
  * (`/menu/item/{slug}`) en vez de al ancla.
  */
 
-interface PagesContext {
-  params: { slug?: string | string[] };
-  request: Request;
-  env?: { API_BASE_URL?: string };
+interface Fetcher {
+  fetch(request: Request): Promise<Response>;
+}
+
+interface Env {
+  ASSETS: Fetcher;
+  API_BASE_URL?: string;
 }
 
 const DEFAULT_API_BASE_URL = "https://api.saborllanero.online";
@@ -52,7 +63,6 @@ function coverImageUrl(item: MenuItemDetail, apiBaseUrl: string): string {
   return cover ? `${apiBaseUrl}/api/media/${cover.r2Key}` : FALLBACK_IMAGE;
 }
 
-/** Página de redirect con Open Graph reales, o null si el ítem no existe/no está activo. */
 function renderShareHtml(item: MenuItemDetail, origin: string, apiBaseUrl: string): string {
   const pageUrl = `${origin}/menu/item/${item.slug}`;
   const targetUrl = `${origin}/menu/#item-${item.slug}`;
@@ -89,12 +99,8 @@ function renderShareHtml(item: MenuItemDetail, origin: string, apiBaseUrl: strin
 </html>`;
 }
 
-export async function onRequestGet(context: PagesContext): Promise<Response> {
-  const slug = Array.isArray(context.params.slug) ? context.params.slug[0] : context.params.slug;
-  const origin = new URL(context.request.url).origin;
-  const apiBaseUrl = (context.env?.API_BASE_URL ?? DEFAULT_API_BASE_URL).replace(/\/$/, "");
-
-  if (!slug) return Response.redirect(`${origin}/menu/`, 302);
+async function handleItemShare(slug: string, origin: string, env: Env): Promise<Response> {
+  const apiBaseUrl = (env.API_BASE_URL ?? DEFAULT_API_BASE_URL).replace(/\/$/, "");
 
   let item: MenuItemDetail | undefined;
   try {
@@ -118,3 +124,12 @@ export async function onRequestGet(context: PagesContext): Promise<Response> {
     },
   });
 }
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    const match = /^\/menu\/item\/([^/]+)\/?$/.exec(url.pathname);
+    if (match) return handleItemShare(decodeURIComponent(match[1]!), url.origin, env);
+    return env.ASSETS.fetch(request);
+  },
+};
