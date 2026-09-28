@@ -82,7 +82,6 @@ export const CATALOG_UI: Record<Lang, CatalogUiCopy> = {
     addedToCart: "Agregado al carrito",
   },
   en: {
-    kicker: "The Menu",
     title: "Our Menu",
     subtitle: "Pick your favorite, choose a size and order straight on WhatsApp",
     loading: "Loading the menu…",
