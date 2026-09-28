@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Category, MenuItemWithPrices } from "@sabor/shared";
-import { FlameIcon, SearchIcon, StarIcon } from "@/components/ui/icons";
+import { SearchIcon } from "@/components/ui/icons";
 import Reveal from "@/components/ui/Reveal";
-import SectionHeading from "@/components/ui/SectionHeading";
 import { CATALOG_UI } from "@/lib/catalogUi";
 import { itemMatchesTokens, toSearchTokens } from "@/lib/catalogSearch";
 import { LangProvider, useLang } from "@/lib/lang";
@@ -19,12 +18,11 @@ import {
 import { useAsync } from "@/lib/useAsync";
 import { FALLBACK_WHATSAPP_CONFIG } from "@/lib/whatsapp";
 import CategoryBlock from "@/components/menu/CategoryBlock";
-import CollectionRail from "@/components/menu/CollectionRail";
 import ErrorRetry from "@/components/menu/ErrorRetry";
 import ItemModal from "@/components/menu/ItemModal";
-import LangToggle from "@/components/menu/LangToggle";
+import MenuHeroCarousel from "@/components/menu/MenuHeroCarousel";
 import MenuSearch, { type CategoryFilter } from "@/components/menu/MenuSearch";
-import { CollectionsSkeleton, SectionsSkeleton } from "@/components/menu/MenuSkeletons";
+import { RailSkeleton, SectionsSkeleton } from "@/components/menu/MenuSkeletons";
 import PaintSplashes from "@/components/menu/PaintSplashes";
 import PromosBlock from "@/components/menu/PromosBlock";
 
@@ -67,8 +65,10 @@ function MenuContent() {
   const ui = CATALOG_UI[lang];
 
   // Gate de visibilidad: los fetch arrancan cuando la sección está a ~600px
-  // de entrar en pantalla (mismo patrón lazy que PizzaModelViewer).
-  const gateRef = useRef<HTMLDivElement>(null);
+  // de entrar en pantalla (mismo patrón lazy que PizzaModelViewer). Ahora
+  // vive en el <section> mismo (antes en un div interno) porque el Hero
+  // necesita quedar fuera del contenedor centrado max-w-6xl.
+  const gateRef = useRef<HTMLElement>(null);
   const [enabled, setEnabled] = useState(false);
   useEffect(() => {
     const el = gateRef.current;
@@ -136,21 +136,27 @@ function MenuContent() {
   };
 
   return (
-    <section id="menu" className="texture-dots relative bg-linear-to-b from-cream-deep to-cream py-16 md:py-28">
+    <section
+      id="menu"
+      ref={gateRef}
+      className="texture-dots relative bg-linear-to-b from-cream-deep to-cream pb-16 md:pb-28"
+    >
       {/* Manchas tricolor: recortan dentro de su propio contenedor, para que la
           sección no necesite overflow-hidden (rompería el buscador sticky). */}
       <PaintSplashes />
 
-      <div ref={gateRef} className="relative mx-auto max-w-6xl px-4 md:px-6">
-        <SectionHeading kicker={ui.kicker} title={ui.title} subtitle={ui.subtitle} />
+      {/* Hero de la carta: fusiona "Destacados del día" y "Los más pedidos" en
+          un carrusel automático, con el título "Nuestra Carta" (h2) y el
+          selector de idioma grande en su esquina — ver MenuHeroCarousel. */}
+      <MenuHeroCarousel
+        dailyFeatured={dailyFeatured}
+        topSellers={topSellers}
+        lang={lang}
+        loading={collections.loading}
+        onOpen={setActiveItem}
+      />
 
-        {/* Toggle de idioma del catálogo, pegado al encabezado */}
-        <Reveal delay={150}>
-          <div className="-mt-8 mb-12 flex justify-center md:-mt-12 md:mb-16">
-            <LangToggle />
-          </div>
-        </Reveal>
-
+      <div className="relative mx-auto max-w-6xl px-4 pt-12 md:px-6 md:pt-16">
         {everythingFailed ? (
           <ErrorRetry lang={lang} onRetry={retryAll} />
         ) : (
@@ -173,34 +179,10 @@ function MenuContent() {
             <div className="space-y-12 md:space-y-20">
               {!isFiltering && (
                 <>
-                  {/* Carrusel "Destacados del día" (+ los otros 2 rails posibles) */}
-                  {collections.loading && <CollectionsSkeleton label={ui.loading} />}
-                  {dailyFeatured && (
-                    <Reveal>
-                      <CollectionRail
-                        collection={dailyFeatured}
-                        sizes={sizes}
-                        lang={lang}
-                        whatsapp={whatsapp}
-                        onOpen={setActiveItem}
-                        icon={<StarIcon className="h-5 w-5" />}
-                      />
-                    </Reveal>
-                  )}
-
-                  {/* Rail "Los más pedidos", arriba del catálogo por categorías */}
-                  {topSellers && (
-                    <Reveal>
-                      <CollectionRail
-                        collection={topSellers}
-                        sizes={sizes}
-                        lang={lang}
-                        whatsapp={whatsapp}
-                        onOpen={setActiveItem}
-                        icon={<FlameIcon className="h-5 w-5" />}
-                      />
-                    </Reveal>
-                  )}
+                  {/* "Destacados del día" y "Los más pedidos" ahora viven en el
+                      carrusel del hero (MenuHeroCarousel), arriba del todo —
+                      acá solo queda el bloque de promos, si lo hay. */}
+                  {collections.loading && <RailSkeleton label={ui.loading} />}
 
                   {/* Bloque "Promos especiales" con tratamiento diferenciado */}
                   {promos && (
