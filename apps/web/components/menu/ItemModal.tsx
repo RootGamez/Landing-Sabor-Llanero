@@ -62,7 +62,11 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
   const { addLine } = useCartActions();
   const { customer } = useCustomerAuth();
   const { confirm, submitting, error, manualLink } = useQuickOrder();
-  const disabledHintId = useId();
+  // Dos ids distintos: el CTA se renderiza dos veces (barra fija de móvil +
+  // inline de escritorio, una de cada par siempre oculta por CSS), y el hint
+  // de "elegí un tamaño" no puede compartir `id` entre ambas copias.
+  const disabledHintIdDesktop = useId();
+  const disabledHintIdMobile = useId();
 
   const [selectedSizeId, setSelectedSizeId] = useState<number | null>(
     () => item.prices[0]?.sizeId ?? null,
@@ -188,6 +192,56 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
     if (line) addLine(line);
   };
 
+  /**
+   * Botones de acción compartidos entre la barra fija de móvil (siempre
+   * visible, fuera del área con scroll) y la ubicación inline de escritorio
+   * (al pie de la columna de texto). Una sola función evita que el CTA de
+   * WhatsApp — el más importante de la pantalla — se desincronice entre
+   * ambos layouts; recibe el `hintId` de cada copia para no duplicar el
+   * `id` del hint "elegí un tamaño" en el DOM.
+   */
+  const renderCta = (hintId: string) => (
+    <>
+      <AddToCartButton
+        onAdd={addToCart}
+        disabled={!canAddToCart}
+        label={`${ui.addToCart}: ${name}`}
+        addedAnnouncement={`${name} — ${ui.addedToCart}`}
+        ariaDescribedBy={hasSizes && !selectedPrice ? hintId : undefined}
+      />
+      <div className="min-w-0 flex-1">
+        <OrderButton
+          href={orderHref}
+          itemId={item.id}
+          lang={lang}
+          disabledHint={hasSizes && !selectedPrice ? ui.chooseSize : undefined}
+          hintId={hintId}
+          onConfirm={customer ? handleQuickOrder : undefined}
+          loading={submitting}
+        />
+        {error && (
+          <p role="alert" className="mt-1.5 text-xs text-brand-red">
+            {error}
+          </p>
+        )}
+        {manualLink && (
+          <p role="alert" className="mt-1.5 text-xs text-ink/70">
+            Tu pedido ya se creó, pero el navegador bloqueó la pestaña de WhatsApp.{" "}
+            <a
+              href={manualLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-brand-blue hover:text-brand-red"
+            >
+              Tocá acá para abrirla
+            </a>
+            .
+          </p>
+        )}
+      </div>
+    </>
+  );
+
   return createPortal(
     <div
       ref={overlayRef}
@@ -210,7 +264,7 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
         aria-modal="true"
         aria-labelledby={`item-modal-title-${item.id}`}
         style={accentStyle(item)}
-        className="animate-modal-in relative flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-y-auto rounded-t-3xl border-2 border-[var(--accent)] bg-white shadow-2xl sm:rounded-3xl"
+        className="animate-modal-in relative flex h-[100dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border-2 border-[var(--accent)] bg-white shadow-2xl sm:h-auto sm:max-h-[92dvh] sm:rounded-3xl"
       >
         {/* Franja tricolor: firma de marca, también arriba del modal */}
         <div className="flex h-1.5 shrink-0" aria-hidden="true">
@@ -229,133 +283,117 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
           <CloseIcon className="h-5 w-5" />
         </button>
 
-        <div className="grid md:grid-cols-2">
-          {/* Foto. En móvil la mayoría de las fotos son verticales (3:4, 9:16):
-              con `object-cover` se recortaban muchísimo. Acá se muestran
-              completas con `object-contain` sobre un fondo desenfocado de la
-              misma foto, así se ve el producto entero sin franjas vacías. En
-              desktop el panel es alto y `object-cover` llena la mitad sin
-              recortar de más. */}
-          <div className="relative aspect-[4/5] max-h-[46dvh] w-full overflow-hidden bg-cream-deep md:aspect-auto md:max-h-none md:min-h-[28rem]">
-            {item.coverImageKey ? (
-              <>
-                <Image
-                  src={mediaUrl(item.coverImageKey)}
-                  alt=""
+        {/* Único contenedor con scroll: la foto y el texto pueden crecer y
+            desplazarse acá sin arrastrar consigo el CTA de abajo. */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="grid md:grid-cols-2">
+            {/* Foto. En móvil la mayoría de las fotos son verticales (3:4, 9:16):
+                con `object-cover` se recortaban muchísimo. Acá se muestran
+                completas con `object-contain` sobre un fondo desenfocado de la
+                misma foto, así se ve el producto entero sin franjas vacías. En
+                desktop el panel es alto y `object-cover` llena la mitad sin
+                recortar de más. */}
+            <div className="relative aspect-[4/5] max-h-[46dvh] w-full overflow-hidden bg-cream-deep md:aspect-auto md:max-h-none md:min-h-[28rem]">
+              {item.coverImageKey ? (
+                <>
+                  <Image
+                    src={mediaUrl(item.coverImageKey)}
+                    alt=""
+                    aria-hidden="true"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="scale-110 object-cover opacity-35 blur-2xl md:hidden"
+                  />
+                  <Image
+                    src={mediaUrl(item.coverImageKey)}
+                    alt={`${ui.photoOf} ${name}`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-contain md:object-cover"
+                  />
+                </>
+              ) : (
+                <div
+                  className="flex h-full w-full items-center justify-center"
                   aria-hidden="true"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="scale-110 object-cover opacity-35 blur-2xl md:hidden"
-                />
-                <Image
-                  src={mediaUrl(item.coverImageKey)}
-                  alt={`${ui.photoOf} ${name}`}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-contain md:object-cover"
-                />
-              </>
-            ) : (
-              <div className="flex h-full w-full items-center justify-center" aria-hidden="true">
-                <PizzaSliceIcon className="h-20 w-20 text-brand-blue/20" />
-              </div>
-            )}
-            {item.isFeatured && (
-              <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-brand-yellow px-3 py-1.5 text-[11px] font-bold tracking-wider text-ink uppercase shadow-md">
-                <StarIcon className="h-3.5 w-3.5" />
-                {copy.featured}
-              </span>
-            )}
-          </div>
-
-          {/* Descripción, tamaños y CTA */}
-          <div className="flex flex-col gap-5 p-6 md:p-8">
-            <div>
-              <h2
-                id={`item-modal-title-${item.id}`}
-                className="font-display pr-12 text-3xl leading-tight tracking-wide text-ink md:text-4xl"
-              >
-                {name}
-              </h2>
-              {displayedPrice != null && (
-                <p className="font-display mt-2 text-3xl text-brand-red tabular-nums">
-                  {formatPrice(displayedPrice)}
-                </p>
+                >
+                  <PizzaSliceIcon className="h-20 w-20 text-brand-blue/20" />
+                </div>
+              )}
+              {item.isFeatured && (
+                <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-brand-yellow px-3 py-1.5 text-[11px] font-bold tracking-wider text-ink uppercase shadow-md">
+                  <StarIcon className="h-3.5 w-3.5" />
+                  {copy.featured}
+                </span>
               )}
             </div>
 
-            {ingredients ? (
+            {/* Descripción, tamaños y CTA */}
+            <div className="flex flex-col gap-5 p-6 md:p-8">
               <div>
-                <h3 className="text-xs font-bold tracking-[0.18em] text-ink/70 uppercase">
-                  {ui.ingredients}
-                </h3>
-                <ul className="mt-3 flex flex-wrap gap-2">
-                  {ingredients.map((ingredient) => (
-                    <li
-                      key={ingredient}
-                      className="rounded-full bg-brand-blue/6 px-3 py-1.5 text-sm font-medium text-ink/75"
-                    >
-                      {ingredient}
-                    </li>
-                  ))}
-                </ul>
+                <h2
+                  id={`item-modal-title-${item.id}`}
+                  className="font-display pr-12 text-3xl leading-tight tracking-wide text-ink md:text-4xl"
+                >
+                  {name}
+                </h2>
+                {displayedPrice != null && (
+                  <p className="font-display mt-2 text-3xl text-brand-red tabular-nums">
+                    {formatPrice(displayedPrice)}
+                  </p>
+                )}
               </div>
-            ) : (
-              description && <p className="text-base leading-relaxed text-ink/70">{description}</p>
-            )}
 
-            {hasSizes && (
-              <SizeSelector
-                prices={item.prices}
-                sizes={sizes}
-                lang={lang}
-                selectedSizeId={selectedSizeId}
-                onSelect={setSelectedSizeId}
-                label={copy.sizes}
-                variant="modal"
-              />
-            )}
+              {ingredients ? (
+                <div>
+                  <h3 className="text-xs font-bold tracking-[0.18em] text-ink/70 uppercase">
+                    {ui.ingredients}
+                  </h3>
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {ingredients.map((ingredient) => (
+                      <li
+                        key={ingredient}
+                        className="rounded-full bg-brand-blue/6 px-3 py-1.5 text-sm font-medium text-ink/75"
+                      >
+                        {ingredient}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                description && (
+                  <p className="text-base leading-relaxed text-ink/70">{description}</p>
+                )
+              )}
 
-            <div className="mt-auto flex items-start gap-2 pt-1">
-              <AddToCartButton
-                onAdd={addToCart}
-                disabled={!canAddToCart}
-                label={`${ui.addToCart}: ${name}`}
-                addedAnnouncement={`${name} — ${ui.addedToCart}`}
-                ariaDescribedBy={hasSizes && !selectedPrice ? disabledHintId : undefined}
-              />
-              <div className="min-w-0 flex-1">
-                <OrderButton
-                  href={orderHref}
-                  itemId={item.id}
+              {hasSizes && (
+                <SizeSelector
+                  prices={item.prices}
+                  sizes={sizes}
                   lang={lang}
-                  disabledHint={hasSizes && !selectedPrice ? ui.chooseSize : undefined}
-                  hintId={disabledHintId}
-                  onConfirm={customer ? handleQuickOrder : undefined}
-                  loading={submitting}
+                  selectedSizeId={selectedSizeId}
+                  onSelect={setSelectedSizeId}
+                  label={copy.sizes}
+                  variant="modal"
                 />
-                {error && (
-                  <p role="alert" className="mt-1.5 text-xs text-brand-red">
-                    {error}
-                  </p>
-                )}
-                {manualLink && (
-                  <p role="alert" className="mt-1.5 text-xs text-ink/70">
-                    Tu pedido ya se creó, pero el navegador bloqueó la pestaña de WhatsApp.{" "}
-                    <a
-                      href={manualLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-semibold text-brand-blue hover:text-brand-red"
-                    >
-                      Tocá acá para abrirla
-                    </a>
-                    .
-                  </p>
-                )}
+              )}
+
+              {/* En escritorio el CTA vive al pie de esta columna; en móvil se
+                  oculta acá porque una barra fija (fuera del área con scroll,
+                  más abajo) lo mantiene siempre visible sin importar cuánto
+                  haya que desplazar la descripción. */}
+              <div className="mt-auto hidden items-start gap-2 pt-1 sm:flex">
+                {renderCta(disabledHintIdDesktop)}
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Barra de acción fija en móvil: queda siempre visible aunque la
+            descripción/ingredientes sean largos, así "Pedir por WhatsApp"
+            nunca se pierde por falta de scroll. */}
+        <div className="shrink-0 border-t border-ink/10 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:hidden">
+          <div className="flex items-start gap-2">{renderCta(disabledHintIdMobile)}</div>
         </div>
       </div>
     </div>,
