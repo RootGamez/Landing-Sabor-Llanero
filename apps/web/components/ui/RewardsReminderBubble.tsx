@@ -111,7 +111,7 @@ export default function RewardsReminderBubble() {
       {phase !== "hidden" && (
         <div
           role="region"
-          aria-label="Aviso: sumá puntos con una cuenta"
+          aria-label="Aviso: suma puntos con una cuenta"
           className={`pointer-events-auto relative rounded-brand border-2 border-brand-blue bg-cream shadow-card ${
             phase === "closing" ? "animate-bubble-out" : "animate-bubble-in"
           }`}
@@ -125,9 +125,9 @@ export default function RewardsReminderBubble() {
             </span>
 
             <div className="min-w-0 flex-1 pt-0.5">
-              <p className="text-sm font-bold text-brand-blue">¿Sabías que podés sumar puntos?</p>
+              <p className="text-sm font-bold text-brand-blue">¿Sabías que puedes sumar puntos?</p>
               <p className="mt-1 text-sm leading-snug text-ink/80">
-                Creá tu cuenta gratis y acumulá puntos con cada pedido para canjear recompensas.
+                Crea tu cuenta gratis y acumula puntos con cada pedido para canjear recompensas.
               </p>
 
               <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -143,7 +143,7 @@ export default function RewardsReminderBubble() {
                   onClick={handleDismiss}
                   className="text-xs font-semibold text-ink/60 underline-offset-2 hover:text-brand-blue hover:underline"
                 >
-                  ¿Ya tenés cuenta?
+                  ¿Ya tienes cuenta?
                 </Link>
               </div>
             </div>

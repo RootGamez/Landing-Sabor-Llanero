@@ -13,5 +13,5 @@ export const unauthorized = (msg = 'No autenticado') => new HttpError(401, msg);
 export const forbidden = (msg = 'No autorizado') => new HttpError(403, msg);
 export const badRequest = (msg = 'Solicitud inválida') => new HttpError(400, msg);
 export const conflict = (msg = 'Conflicto') => new HttpError(409, msg);
-export const tooManyRequests = (msg = 'Demasiadas solicitudes, intentá de nuevo en un momento') =>
+export const tooManyRequests = (msg = 'Demasiadas solicitudes, intenta de nuevo en un momento') =>
   new HttpError(429, msg);

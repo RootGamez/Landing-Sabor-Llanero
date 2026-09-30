@@ -79,7 +79,7 @@ export function EditOrderItemsDialog({ order, categories, sizes, onUpdated }: Ed
   const ready = categories !== undefined && sizes !== undefined;
   // Ref (no state): un PUT en vuelo no debe poder cerrarse por Escape/click
   // afuera/botón X mientras está en curso — Radix enruta las 3 vías a
-  // `onOpenChange`, así que basta con filtrar el intento de cierre acá.
+  // `onOpenChange`, así que basta con filtrar el intento de cierre aquí.
   const savingRef = useRef(false);
 
   function handleOpenChange(next: boolean) {
@@ -214,7 +214,7 @@ function EditOrderItemsForm({ order, categories, sizes, onClose, onSaved, onSavi
     setAddingKey(key);
     try {
       // El buscador no trae precio por tamaño — se resuelve recién al agregar
-      // (con overrides incluidos) para no reimplementar la lógica de pricing acá.
+      // (con overrides incluidos) para no reimplementar la lógica de pricing aquí.
       const detail = await api.get<MenuItemDetailAdmin>(`/menu-items/${item.id}`);
       const resolved = detail.prices.find((p) => p.sizeId === sizeId);
       if (!resolved) {
@@ -258,11 +258,11 @@ function EditOrderItemsForm({ order, categories, sizes, onClose, onSaved, onSavi
   async function handleSave(e: FormEvent) {
     e.preventDefault();
     if (hasUnsupportedLines) {
-      toastError('Este pedido tiene líneas que no se pueden editar acá — no se puede guardar sin perderlas.');
+      toastError('Este pedido tiene líneas que no se pueden editar aquí — no se puede guardar sin perderlas.');
       return;
     }
     if (draftLines.length === 0) {
-      toastError('El pedido necesita al menos un producto. Para vaciarlo, usá "Cancelar" en la card del pedido.');
+      toastError('El pedido necesita al menos un producto. Para vaciarlo, usa "Cancelar" en la card del pedido.');
       return;
     }
     if (draftLines.some((l) => l.sizeLabel && l.sizeId == null)) {
@@ -284,13 +284,13 @@ function EditOrderItemsForm({ order, categories, sizes, onClose, onSaved, onSavi
       <div>
         <DialogTitle>Editar pedido #{order.code}</DialogTitle>
         <DialogDescription>
-          Confirmá qué quiere el cliente antes de aprobar. Los precios se recalculan al guardar.
+          Confirma qué quiere el cliente antes de aprobar. Los precios se recalculan al guardar.
         </DialogDescription>
       </div>
 
       {hasUnsupportedLines && (
         <p className="rounded-xl border-2 border-destructive/40 bg-destructive/10 p-3 text-sm font-medium text-destructive">
-          Este pedido tiene productos que no se pueden editar acá. No se puede guardar sin perderlos — contactá soporte.
+          Este pedido tiene productos que no se pueden editar aquí. No se puede guardar sin perderlos — contacta soporte.
         </p>
       )}
 
@@ -331,7 +331,7 @@ function EditOrderItemsForm({ order, categories, sizes, onClose, onSaved, onSavi
         </p>
         {draftLines.length === 0 && (
           <p className="rounded-xl border-2 border-dashed border-border p-4 text-sm text-text-muted">
-            Sin productos. Buscá arriba para agregar.
+            Sin productos. Busca arriba para agregar.
           </p>
         )}
         <ul className="flex flex-col gap-1.5">

@@ -26,7 +26,7 @@ export function PedidosPage() {
     status: status === 'all' ? undefined : status,
     page,
   });
-  // Cargados una sola vez acá (no por card) para el editor de ítems de P2.9.
+  // Cargados una sola vez aquí (no por card) para el editor de ítems de P2.9.
   const { data: categories } = useCategories();
   const { data: sizes } = useSizes();
 
@@ -46,7 +46,7 @@ export function PedidosPage() {
         <h1 ref={titleRef} tabIndex={-1} className="font-display text-2xl font-bold text-text outline-none">
           Pedidos
         </h1>
-        <p className="text-sm text-text-muted">Confirmá o cancelá los pedidos que coordinás por WhatsApp.</p>
+        <p className="text-sm text-text-muted">Confirma o cancela los pedidos que coordinas por WhatsApp.</p>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -75,7 +75,7 @@ export function PedidosPage() {
         {!loading && !error && result && result.items.length === 0 && (
           <EmptyState
             title="No hay pedidos"
-            description="Los pedidos nuevos de la web van a aparecer acá."
+            description="Los pedidos nuevos de la web van a aparecer aquí."
           />
         )}
         {!loading && !error && result && result.items.length > 0 && (

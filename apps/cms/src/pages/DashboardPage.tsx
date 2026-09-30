@@ -34,7 +34,7 @@ function StatCard({
 
 /**
  * Página de inicio del CMS: lo más urgente (pedidos pendientes de aceptar)
- * arriba de todo y accionable sin salir de acá — reusa `OrderCard`, mismo
+ * arriba de todo y accionable sin salir de aquí — reusa `OrderCard`, mismo
  * componente que `/pedidos`. Los conteos de confirmados/cancelados piden
  * `pageSize=1` (solo necesitan el `total` de la respuesta paginada, no los
  * ítems) para no traer de más.
@@ -45,7 +45,7 @@ export function DashboardPage() {
   const pending = useOrders({ status: 'pending', pageSize: 50 });
   const confirmed = useOrders({ status: 'confirmed', pageSize: 1 });
   const cancelled = useOrders({ status: 'cancelled', pageSize: 1 });
-  // Para el editor de ítems de P2.9 (mismo criterio que PedidosPage: una sola carga acá, no por card).
+  // Para el editor de ítems de P2.9 (mismo criterio que PedidosPage: una sola carga aquí, no por card).
   const { data: categories } = useCategories();
   const { data: sizes } = useSizes();
 
@@ -94,7 +94,7 @@ export function DashboardPage() {
         {!pending.loading && !pending.error && pendingOrders.length === 0 && (
           <EmptyState
             title="No hay pedidos pendientes"
-            description="Cuando entre un pedido nuevo desde la web, va a aparecer acá."
+            description="Cuando entre un pedido nuevo desde la web, va a aparecer aquí."
           />
         )}
         {!pending.loading && !pending.error && pendingOrders.length > 0 && (

@@ -87,7 +87,7 @@ export default function CartPageContent() {
   /**
    * Logueado: crea el pedido real ANTES de abrir WhatsApp. `tab` ya se abrió
    * en blanco dentro del gesto síncrono del click (ver `handleConfirmClick`)
-   * — recién acá, tras el `await`, se le asigna la URL final. Abrir la
+   * — recién aquí, tras el `await`, se le asigna la URL final. Abrir la
    * pestaña DESPUÉS de este `await` sería bloqueado por Safari/Firefox al
    * perder el gesto de usuario original.
    *
@@ -116,13 +116,13 @@ export default function CartPageContent() {
     } catch (err) {
       tab?.close();
       if (mountedRef.current) {
-        setCheckoutError(err instanceof ApiError ? err.message : "No se pudo crear el pedido. Intentá de nuevo.");
+        setCheckoutError(err instanceof ApiError ? err.message : "No se pudo crear el pedido. Intenta de nuevo.");
         setSubmitting(false);
       }
       return;
     }
 
-    // El pedido ya existe: de acá en más nunca se vuelve a mostrar "no se
+    // El pedido ya existe: de aquí en más nunca se vuelve a mostrar "no se
     // pudo crear el pedido" ni se deja el carrito con las mismas líneas.
     const href = buildLink(order.code);
     lines.forEach((line) => trackOrderClick(line.itemId));
@@ -132,7 +132,7 @@ export default function CartPageContent() {
     if (tab) {
       try {
         // `tab` no pudo abrirse con "noopener" (esa flag hace que window.open
-        // devuelva null, y acá se necesita la referencia para setear la URL
+        // devuelva null, y aquí se necesita la referencia para setear la URL
         // recién cuando el pedido ya existe) — se compensa cortando `opener`
         // a mano antes de navegar. El destino es siempre wa.me, nunca una URL
         // que dependa de esta pestaña, así que no hay superficie de tabnabbing real.
@@ -186,7 +186,7 @@ export default function CartPageContent() {
             rel="noopener noreferrer"
             className="font-semibold text-brand-blue hover:text-brand-red"
           >
-            Tocá acá para abrirla
+            Toca aquí para abrirla
           </a>
           .
         </p>
@@ -217,13 +217,13 @@ export default function CartPageContent() {
             {customer ? (
               <p className="mt-1 text-xs text-ink/60">
                 Vas a confirmar como <span className="font-semibold text-ink">{customer.name}</span>: se crea tu
-                pedido y sumás puntos cuando el local lo confirme.
+                pedido y sumas puntos cuando el local lo confirme.
               </p>
             ) : (
               <p className="mt-1 text-xs text-ink/60">
                 El pago y la entrega se coordinan por WhatsApp al confirmar.{" "}
                 <Link href="/cuenta/login/" className="font-semibold text-brand-blue hover:text-brand-red">
-                  Iniciá sesión
+                  Inicia sesión
                 </Link>{" "}
                 para sumar puntos con este pedido.
               </p>

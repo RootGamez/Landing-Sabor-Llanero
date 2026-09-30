@@ -72,9 +72,9 @@ export default function LoginForm() {
       </button>
 
       <p className="text-center text-sm text-ink/70">
-        ¿No tenés cuenta?{" "}
+        ¿No tienes cuenta?{" "}
         <Link href="/cuenta/registro/" className="font-semibold text-brand-blue hover:text-brand-red">
-          Creá una
+          Crea una
         </Link>
       </p>
     </form>

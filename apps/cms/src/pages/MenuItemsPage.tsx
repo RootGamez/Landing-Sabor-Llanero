@@ -110,7 +110,7 @@ export function MenuItemsPage() {
         )}
         {error && <ErrorState message={error} onRetry={refetch} />}
         {!loading && !error && result && result.items.length === 0 && (
-          <EmptyState title="No hay ítems" description="Creá el primero con el botón de arriba." />
+          <EmptyState title="No hay ítems" description="Crea el primero con el botón de arriba." />
         )}
         {!loading && !error && result && result.items.length > 0 && (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

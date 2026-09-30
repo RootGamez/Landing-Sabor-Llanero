@@ -73,7 +73,7 @@ export function ResetPasswordPage() {
             className="mt-6 flex flex-col gap-4 text-center outline-none"
           >
             <p className="text-sm text-destructive">
-              Este link de recuperación es inválido. Pedí uno nuevo para continuar.
+              Este link de recuperación es inválido. Pide uno nuevo para continuar.
             </p>
             <Link
               to="/forgot-password"
@@ -99,7 +99,7 @@ export function ResetPasswordPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} aria-labelledby="reset-title" className="mt-6">
-            <p className="mb-4 text-center text-sm text-text-muted">Elegí tu nueva contraseña.</p>
+            <p className="mb-4 text-center text-sm text-text-muted">Elige tu nueva contraseña.</p>
             <TextField
               label="Contraseña nueva"
               type="password"

@@ -14,11 +14,11 @@ interface RewardsButtonProps {
  * Acceso directo a /premios desde el Navbar, mismo trato que CartButton
  * (ícono solo, sin badge numérico): a diferencia del carrito, el saldo de
  * puntos ya se ve en grande en FloatingRewardsButton dentro de /menu, así
- * que acá alcanza con un ícono consistente con el resto de la fila.
+ * que aquí alcanza con un ícono consistente con el resto de la fila.
  */
 export default function RewardsButton({ solid = false, onClick }: RewardsButtonProps) {
   const { customer } = useCustomerAuth();
-  const label = customer ? `Ver premios, tenés ${customer.pointsBalance} puntos` : "Ver premios";
+  const label = customer ? `Ver premios, tienes ${customer.pointsBalance} puntos` : "Ver premios";
 
   return (
     <Link

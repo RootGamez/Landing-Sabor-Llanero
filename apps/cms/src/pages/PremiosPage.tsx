@@ -61,7 +61,7 @@ export function PremiosPage() {
         {loading && <TableSkeleton />}
         {error && <ErrorState message={error} onRetry={refetch} />}
         {!loading && !error && rewards && rewards.length === 0 && (
-          <EmptyState title="No hay premios" description="Creá el primero con el botón de arriba." />
+          <EmptyState title="No hay premios" description="Crea el primero con el botón de arriba." />
         )}
         {!loading && !error && rewards && rewards.length > 0 && (
           <ul className="flex flex-col gap-3">
@@ -324,7 +324,7 @@ function RewardForm({
           value={values.discountPrice}
           onValueChange={(discountPrice) => setValues((v) => ({ ...v, discountPrice }))}
           prefix="S/"
-          hint="Opcional. Si lo completás, debe ser menor al precio de referencia."
+          hint="Opcional. Si lo completas, debe ser menor al precio de referencia."
         />
       </div>
       {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- texto anidado bajo

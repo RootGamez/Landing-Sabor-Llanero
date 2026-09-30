@@ -27,7 +27,7 @@ export function ForgotPasswordPage() {
     setLoading(true);
     try {
       // La API responde siempre el mismo mensaje exista o no la cuenta
-      // (anti-enumeración) — acá solo se muestra tal cual, sin interpretarlo.
+      // (anti-enumeración) — aquí solo se muestra tal cual, sin interpretarlo.
       await api.post<MessageResponse>('/auth/forgot-password', { email });
       setSent(true);
     } catch (err) {
@@ -50,7 +50,7 @@ export function ForgotPasswordPage() {
         {sent ? (
           <div ref={statusRef} tabIndex={-1} role="status" className="mt-6 flex flex-col gap-4 text-center outline-none">
             <p className="text-sm text-text">
-              Si el email existe, vas a recibir un link para recuperar tu contraseña. Revisá tu
+              Si el email existe, vas a recibir un link para recuperar tu contraseña. Revisa tu
               bandeja de entrada (y spam).
             </p>
             <Link
@@ -63,7 +63,7 @@ export function ForgotPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit} aria-labelledby="forgot-title" className="mt-6">
             <p className="mb-4 text-center text-sm text-text-muted">
-              Ingresá tu email y te mandamos un link para restablecer tu contraseña.
+              Ingresa tu email y te mandamos un link para restablecer tu contraseña.
             </p>
             <TextField
               label="Email"

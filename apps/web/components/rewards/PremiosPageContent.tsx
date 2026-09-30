@@ -46,7 +46,7 @@ export default function PremiosPageContent() {
     <div className="mx-auto max-w-5xl px-4 py-10 md:px-6 md:py-14">
       <h1 className="font-display text-3xl tracking-wide text-ink md:text-4xl">Catálogo de premios</h1>
       <p className="mt-1 max-w-2xl text-sm text-ink/70">
-        Canjeá tus puntos por premios reales: cada canje genera un pedido que el local prepara y acepta.
+        Canjea tus puntos por premios reales: cada canje genera un pedido que el local prepara y acepta.
       </p>
 
       {!loading && isLoggedIn && (
@@ -71,14 +71,14 @@ export default function PremiosPageContent() {
               href="/cuenta/login/"
               className="font-semibold text-brand-blue hover:text-brand-red hover:underline"
             >
-              Iniciá sesión
+              Inicia sesión
             </Link>{" "}
             o{" "}
             <Link
               href="/cuenta/registro/"
               className="font-semibold text-brand-blue hover:text-brand-red hover:underline"
             >
-              creá una cuenta gratis
+              crea una cuenta gratis
             </Link>{" "}
             para ver tu saldo de puntos y canjear estos premios.
           </p>

@@ -50,7 +50,7 @@ export function WhatsappConfigPage() {
           value={messageTemplateEs}
           onChange={(e) => setMessageTemplateEs(e.target.value)}
           rows={3}
-          hint='Ej: ¡Hola! Quiero pedir: *[nombre]* ([tamaño]) — [precio]. [link] (evitá emojis: algunos llegan como "?" en WhatsApp)'
+          hint='Ej: ¡Hola! Quiero pedir: *[nombre]* ([tamaño]) — [precio]. [link] (evita emojis: algunos llegan como "?" en WhatsApp)'
         />
         <TextAreaField
           label="Plantilla del mensaje (inglés)"

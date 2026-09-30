@@ -44,7 +44,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1
  * al costado. Se monta solo cuando hay un ítem activo, así que el estado del
  * tamaño elegido se reinicia solo entre productos.
  *
- * A diferencia de la card, acá el primer tamaño viene PRESELECCIONADO: en la
+ * A diferencia de la card, aquí el primer tamaño viene PRESELECCIONADO: en la
  * vista de detalle el usuario ya eligió el producto y pedir debe ser un solo
  * toque. El chip activo y el precio grande dejan claro qué se está pidiendo.
  *
@@ -233,7 +233,7 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
               rel="noopener noreferrer"
               className="font-semibold text-brand-blue hover:text-brand-red"
             >
-              Tocá acá para abrirla
+              Toca aquí para abrirla
             </a>
             .
           </p>
@@ -284,11 +284,11 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
         </button>
 
         {/* Único contenedor con scroll: la foto y el texto pueden crecer y
-            desplazarse acá sin arrastrar consigo el CTA de abajo. */}
+            desplazarse aquí sin arrastrar consigo el CTA de abajo. */}
         <div className="flex-1 overflow-y-auto">
           <div className="grid md:grid-cols-2">
             {/* Foto. En móvil la mayoría de las fotos son verticales (3:4, 9:16):
-                con `object-cover` se recortaban muchísimo. Acá se muestran
+                con `object-cover` se recortaban muchísimo. Aquí se muestran
                 completas con `object-contain` sobre un fondo desenfocado de la
                 misma foto, así se ve el producto entero sin franjas vacías. En
                 desktop el panel es alto y `object-cover` llena la mitad sin
@@ -379,7 +379,7 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
               )}
 
               {/* En escritorio el CTA vive al pie de esta columna; en móvil se
-                  oculta acá porque una barra fija (fuera del área con scroll,
+                  oculta aquí porque una barra fija (fuera del área con scroll,
                   más abajo) lo mantiene siempre visible sin importar cuánto
                   haya que desplazar la descripción. */}
               <div className="mt-auto hidden items-start gap-2 pt-1 sm:flex">

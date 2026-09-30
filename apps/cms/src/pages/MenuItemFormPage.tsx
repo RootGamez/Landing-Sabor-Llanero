@@ -175,7 +175,7 @@ export function MenuItemFormPage() {
               onChange={(e) => setCategoryId(Number(e.target.value))}
             >
               <option value="" disabled>
-                Seleccioná una categoría
+                Selecciona una categoría
               </option>
               {categories?.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -262,7 +262,7 @@ export function MenuItemFormPage() {
       )}
       {!isEditing && (
         <p className="text-sm text-text-muted">
-          Guardá el ítem primero para poder agregar imágenes.
+          Guarda el ítem primero para poder agregar imágenes.
         </p>
       )}
     </div>

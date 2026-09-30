@@ -7,7 +7,7 @@ import { siteConfig } from "@/lib/siteConfig";
 
 export const metadata: Metadata = {
   title: "Iniciar Sesión",
-  description: `Iniciá sesión en tu cuenta de ${siteConfig.fullName} para ver tus puntos y canjear premios.`,
+  description: `Inicia sesión en tu cuenta de ${siteConfig.fullName} para ver tus puntos y canjear premios.`,
   alternates: { canonical: "/cuenta/login/" },
   robots: { index: false, follow: true },
 };
@@ -20,7 +20,7 @@ export default function LoginPage() {
       <main className="flex min-h-dvh items-center justify-center bg-cream px-4 pt-[4.25rem] pb-16 md:pt-[4.75rem]">
         <div className="w-full max-w-sm rounded-3xl border-2 border-ink/10 bg-white p-6 shadow-card md:p-8">
           <h1 className="font-display text-center text-3xl tracking-wide text-ink">Iniciar sesión</h1>
-          <p className="mt-1 text-center text-sm text-ink/60">Accedé a tus puntos y premios.</p>
+          <p className="mt-1 text-center text-sm text-ink/60">Accede a tus puntos y premios.</p>
           <div className="mt-6">
             <LoginForm />
           </div>

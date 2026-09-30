@@ -50,7 +50,7 @@ export default function FloatingRewardsButton() {
   return (
     <Link
       href="/premios/"
-      aria-label={`Ver mis premios, tenés ${customer.pointsBalance} puntos`}
+      aria-label={`Ver mis premios, tienes ${customer.pointsBalance} puntos`}
       className={`${PILL_CLASSES} bg-brand-yellow text-brand-blue`}
     >
       <span

@@ -46,7 +46,7 @@ export function useQuickOrder() {
       // real detrás.
       tab?.close();
       if (mountedRef.current) {
-        setError(err instanceof ApiError ? err.message : "No se pudo crear el pedido. Intentá de nuevo.");
+        setError(err instanceof ApiError ? err.message : "No se pudo crear el pedido. Intenta de nuevo.");
         setSubmitting(false);
       }
       return;

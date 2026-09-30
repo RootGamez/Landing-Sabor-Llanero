@@ -25,7 +25,7 @@ export function MerchandisingPage() {
       <div>
         <h1 className="font-display text-2xl font-bold text-text">Destacados del catálogo</h1>
         <p className="text-sm text-text-muted">
-          Armá las vitrinas del menú: los más pedidos, los destacados del día y las promos
+          Arma las vitrinas del menú: los más pedidos, los destacados del día y las promos
           especiales. Cada colección admite hasta 20 ítems, en el orden que elijas.
         </p>
       </div>
@@ -34,7 +34,7 @@ export function MerchandisingPage() {
       {error && <ErrorState message={error} onRetry={refetch} />}
       {!loading && !error && collections && collections.length === 0 && (
         <p className="text-sm text-text-muted">
-          No hay colecciones en la base. Corré el seed de la API (0002_collections.sql).
+          No hay colecciones en la base. Corre el seed de la API (0002_collections.sql).
         </p>
       )}
       {!loading &&

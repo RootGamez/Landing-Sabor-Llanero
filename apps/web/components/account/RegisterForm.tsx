@@ -87,9 +87,9 @@ export default function RegisterForm() {
       </button>
 
       <p className="text-center text-sm text-ink/70">
-        ¿Ya tenés cuenta?{" "}
+        ¿Ya tienes cuenta?{" "}
         <Link href="/cuenta/login/" className="font-semibold text-brand-blue hover:text-brand-red">
-          Iniciá sesión
+          Inicia sesión
         </Link>
       </p>
     </form>

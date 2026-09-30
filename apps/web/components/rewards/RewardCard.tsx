@@ -19,7 +19,7 @@ interface RewardCardProps {
 /**
  * Card de premio canjeable. Se usa tanto en /cuenta (cliente logueado) como
  * en /premios (catálogo público — P2.9). El guard real de saldo insuficiente
- * vive en la API (`UPDATE ... WHERE points_balance >= ?`, P2.4) — acá
+ * vive en la API (`UPDATE ... WHERE points_balance >= ?`, P2.4) — aquí
  * `canRedeem` es solo UX (deshabilita el botón antes de gastar un round-trip,
  * y evita intentar un canje sin sesión).
  */
@@ -84,7 +84,7 @@ export default function RewardCard({ reward, isLoggedIn, pointsBalance, onRedeem
             href="/cuenta/login/"
             className="mt-1 inline-flex min-h-11 items-center justify-center rounded-full border-2 border-brand-blue px-4 text-center text-sm font-semibold text-brand-blue transition-all duration-300 hover:scale-[1.02] hover:bg-brand-blue hover:text-white active:scale-95"
           >
-            Iniciá sesión para canjear
+            Inicia sesión para canjear
           </Link>
         )}
         {error && (

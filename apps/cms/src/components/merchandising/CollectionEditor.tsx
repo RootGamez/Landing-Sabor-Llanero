@@ -184,7 +184,7 @@ export function CollectionEditor({ collection, clicksByItem, onChange }: Collect
           </p>
           {items.length === 0 && (
             <p className="rounded-xl border-2 border-dashed border-border p-4 text-sm text-text-muted">
-              Sin ítems todavía. Buscá abajo para agregar.
+              Sin ítems todavía. Busca abajo para agregar.
             </p>
           )}
           <ul className="flex flex-col gap-1.5">

@@ -250,7 +250,7 @@ export function CategoriesPage() {
         {loading && <TableSkeleton />}
         {error && <ErrorState message={error} onRetry={refetch} />}
         {!loading && !error && categories && categories.length === 0 && (
-          <EmptyState title="Todavía no hay categorías" description="Creá la primera con el botón de arriba." />
+          <EmptyState title="Todavía no hay categorías" description="Crea la primera con el botón de arriba." />
         )}
         {!loading && !error && categories && categories.length > 0 && (
           <ul className="flex flex-col gap-2">

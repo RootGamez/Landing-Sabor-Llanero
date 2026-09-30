@@ -268,7 +268,7 @@ export default function ItemCard({
                   rel="noopener noreferrer"
                   className="font-semibold text-brand-blue hover:text-brand-red"
                 >
-                  Tocá acá para abrirla
+                  Toca aquí para abrirla
                 </a>
                 .
               </p>
@@ -277,7 +277,7 @@ export default function ItemCard({
         </div>
       </div>
 
-      {/* Pista visual de "tocá para ver" en la fila de móvil. */}
+      {/* Pista visual de "toca para ver" en la fila de móvil. */}
       {!compact && (
         <ChevronRightIcon
           className="mr-1 h-5 w-5 shrink-0 self-center text-ink/25 sm:hidden"

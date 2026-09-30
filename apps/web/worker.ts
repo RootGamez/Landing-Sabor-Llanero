@@ -4,12 +4,12 @@ import { formatPrice, type MenuItemDetail } from "@sabor/shared";
  * Worker de Cloudflare (BLUEPRINT: vista previa de producto en WhatsApp). El
  * proyecto en Cloudflare es "Workers con assets estáticos" (Settings → Builds
  * → Deploy command: `npx wrangler deploy`), NO Cloudflare Pages — así que la
- * carpeta `functions/` (convención exclusiva de Pages) no sirve acá; esto es
+ * carpeta `functions/` (convención exclusiva de Pages) no sirve aquí; esto es
  * lo que realmente intercepta requests en este tipo de proyecto.
  *
  * `wrangler.jsonc` solo invoca este Worker para `/menu/item/*`
  * (`run_worker_first`) — todo lo demás lo sirve Cloudflare directo desde
- * `assets` sin pasar por acá, cero cambio de latencia/costo para el resto
+ * `assets` sin pasar por aquí, cero cambio de latencia/costo para el resto
  * del sitio.
  *
  * El sitio es 100% export estático (`output: "export"`), así que el link que
@@ -19,11 +19,11 @@ import { formatPrice, type MenuItemDetail } from "@sabor/shared";
  * ninguna). Esta ruta resuelve el ítem contra la API pública en tiempo real y
  * devuelve HTML con Open Graph reales (foto, nombre, precio) — siempre al día
  * con el CMS, sin rebuild. Un visitante real (o el propio crawler, que no
- * ejecuta el redirect) cae acá un instante; el <head> ya tiene todo lo que
+ * ejecuta el redirect) cae aquí un instante; el <head> ya tiene todo lo que
  * necesita el unfurling y el body redirige de inmediato al ítem real dentro
  * de /menu.
  *
- * `lib/whatsapp.ts` arma el `[link]` del mensaje apuntando acá
+ * `lib/whatsapp.ts` arma el `[link]` del mensaje apuntando aquí
  * (`/menu/item/{slug}`) en vez de al ancla.
  */
 
@@ -106,7 +106,7 @@ function renderShareHtml(item: MenuItemDetail, origin: string, apiBaseUrl: strin
 </style>
 </head>
 <body>
-  <p>Abriendo ${title} en la carta… si no pasa nada, <a href="${targetUrl}">tocá acá</a>.</p>
+  <p>Abriendo ${title} en la carta… si no pasa nada, <a href="${targetUrl}">toca aquí</a>.</p>
 </body>
 </html>`;
 }

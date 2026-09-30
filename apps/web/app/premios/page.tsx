@@ -8,7 +8,7 @@ import { siteConfig } from "@/lib/siteConfig";
 
 export const metadata: Metadata = {
   title: "Premios",
-  description: `Canjeá tus puntos por premios reales en ${siteConfig.fullName}: catálogo completo, precios con descuento y tu saldo de puntos.`,
+  description: `Canjea tus puntos por premios reales en ${siteConfig.fullName}: catálogo completo, precios con descuento y tu saldo de puntos.`,
   alternates: { canonical: "/premios/" },
 };
 

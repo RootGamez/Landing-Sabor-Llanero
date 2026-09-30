@@ -44,8 +44,8 @@ export function ItemPriceFields({ category, sizes, overrides, onOverrideChange }
       </div>
 
       <p className="text-xs text-text-muted">
-        Este ítem hereda los precios de la categoría «{category.nameEs}». Dejá un campo vacío para
-        usar el precio heredado, o escribí un valor para personalizarlo solo en este ítem.
+        Este ítem hereda los precios de la categoría «{category.nameEs}». Deja un campo vacío para
+        usar el precio heredado, o escribe un valor para personalizarlo solo en este ítem.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-3">

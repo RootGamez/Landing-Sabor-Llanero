@@ -60,7 +60,7 @@ export function LoginPage() {
         <h1 id="login-title" className="mt-3 text-center text-lg font-bold text-text">
           {BRAND.name} · Admin
         </h1>
-        <p className="mt-1 text-center text-sm text-text-muted">Iniciá sesión para gestionar el menú.</p>
+        <p className="mt-1 text-center text-sm text-text-muted">Inicia sesión para gestionar el menú.</p>
 
         <div className="mt-6 flex flex-col gap-4">
           <TextField

@@ -82,7 +82,7 @@ userRoutes.patch('/:id', async (c) => {
 userRoutes.delete('/:id', async (c) => {
   const id = requireIdParam(c);
   const actingUser = c.get('user');
-  if (actingUser.id === id) throw forbidden('No podés eliminar tu propio usuario');
+  if (actingUser.id === id) throw forbidden('No puedes eliminar tu propio usuario');
 
   // Mismo patrón atómico que el PATCH: el guard de "último owner" va en el
   // propio WHERE del DELETE para no dejar una ventana TOCTOU entre el check y

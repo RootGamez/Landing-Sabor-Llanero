@@ -99,7 +99,7 @@ export function SorteoPage() {
           {loadingDraws && <Skeleton className="h-32 w-full rounded-xl2" />}
           {drawsError && <ErrorState message={drawsError} onRetry={refetchDraws} />}
           {!loadingDraws && !drawsError && draws && draws.items.length === 0 && (
-            <EmptyState title="Todavía no hay sorteos" description="El primer sorteo va a aparecer acá." />
+            <EmptyState title="Todavía no hay sorteos" description="El primer sorteo va a aparecer aquí." />
           )}
           {!loadingDraws && !drawsError && draws && draws.items.length > 0 && (
             <ul className="flex flex-col gap-2">
