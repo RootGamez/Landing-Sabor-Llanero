@@ -7,3 +7,4 @@ export * from './whatsapp';
 export * from './media';
 export * from './format';
 export * from './brand';
+export * from './email';

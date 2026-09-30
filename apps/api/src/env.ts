@@ -2,29 +2,11 @@ import type { Role } from '@sabor/shared';
 
 /**
  * Binding nativo de Rate Limiting de Cloudflare Workers.
- * El tipo aún no viene en @cloudflare/workers-types, se declara acá.
+ * El tipo aún no viene en @cloudflare/workers-types, se declara aquí.
  * Ver: https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
  */
 export interface RateLimit {
   limit(options: { key: string }): Promise<{ success: boolean }>;
-}
-
-/**
- * Binding nativo de Cloudflare Email Sending. El tipo aún no viene en
- * @cloudflare/workers-types@^4.20241127.0 (producto 2025, posterior a esa
- * versión), se declara acá con el mismo criterio que `RateLimit` — solo la
- * forma que este repo usa, no la API completa.
- * Ver: https://developers.cloudflare.com/email-service/
- */
-export interface SendEmail {
-  send(message: {
-    to: string | string[];
-    from: string | { email: string; name?: string };
-    subject: string;
-    html?: string;
-    text?: string;
-    replyTo?: string;
-  }): Promise<{ messageId: string }>;
 }
 
 /** Bindings de Cloudflare declarados en wrangler.toml */
@@ -42,8 +24,13 @@ export interface Bindings {
    */
   LOGIN_LIMITER?: RateLimit;
   EVENTS_LIMITER?: RateLimit;
-  /** Envío de forgot-password (P1.4). Requiere el dominio habilitado en Cloudflare Email Sending. */
-  EMAIL?: SendEmail;
+  /**
+   * Emails transaccionales vía la Lambda de AWS (apps/mailer), ver `lib/mailer.ts`.
+   * Son secrets (`wrangler secret put`); `MAIL_LAMBDA_SECRET` es el mismo
+   * valor que `SIGNING_SECRET` en la Lambda. Sin ellos (dev local) no se envía nada.
+   */
+  MAIL_LAMBDA_URL?: string;
+  MAIL_LAMBDA_SECRET?: string;
   /** Secret separado del `JWT_SECRET` de staff (P2.2) — ver `lib/jwt.ts`. */
   CUSTOMER_JWT_SECRET: string;
   CUSTOMER_AUTH_LIMITER?: RateLimit;

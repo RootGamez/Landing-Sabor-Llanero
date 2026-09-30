@@ -1,0 +1,25 @@
+{
+  "name": "@sabor/mailer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "send-test": "tsx scripts/send-test.ts"
+  },
+  "dependencies": {
+    "@sabor/shared": "workspace:*",
+    "nodemailer": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/nodemailer": "^7.0.0",
+    "esbuild": "^0.25.0",
+    "fflate": "^0.8.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.11"
+  }
+}

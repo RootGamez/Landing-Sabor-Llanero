@@ -3,16 +3,20 @@ import {
   changePasswordSchema,
   customerLoginSchema,
   customerRegisterSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   updateCustomerProfileSchema,
   type ChangePasswordResponse,
   type CustomerLoginResponse,
+  type MessageResponse,
 } from '@sabor/shared';
 import type { AppEnv } from '../env';
 import type { CustomerRow } from '../db/rows';
 import { mapCustomer } from '../db/rows';
 import { hashPassword, verifyPassword, DUMMY_PASSWORD_HASH } from '../lib/password';
 import { signCustomerToken } from '../lib/jwt';
-import { conflict, unauthorized } from '../lib/http-error';
+import { badRequest, conflict, unauthorized } from '../lib/http-error';
+import { requestPasswordReset, resetPassword, RESET_MESSAGE } from '../lib/password-reset';
 import { requireCustomerAuth } from '../middleware/customer-auth';
 import { rateLimit } from '../middleware/rate-limit';
 import { parseBody } from '../lib/validate';
@@ -21,7 +25,7 @@ export const customerAuthRoutes = new Hono<AppEnv>();
 
 // Alta de cuenta (self-service, a diferencia de /users que solo crea el owner):
 // devuelve token igual que /login para no forzar un segundo request.
-// A propósito NO es anti-enumeración como /login o /forgot-password: acá
+// A propósito NO es anti-enumeración como /login o /forgot-password: aquí
 // revelar "ya existe una cuenta con ese email" es el trade-off de UX estándar
 // de cualquier registro self-service (el usuario necesita saber que puede
 // hacer login en vez de registrarse de nuevo), y el costo de la fuga es bajo
@@ -106,6 +110,41 @@ customerAuthRoutes.patch('/me', requireCustomerAuth, async (c) => {
   if (!row) throw unauthorized();
   return c.json(mapCustomer(row));
 });
+
+/**
+ * Recuperación de contraseña de clientes (pública). Mismo flujo y mismas
+ * garantías que `/auth/forgot-password` (respuesta idéntica exista o no la
+ * cuenta, cooldown por cuenta) — la lógica compartida vive en
+ * `lib/password-reset.ts`. El link apunta a la web (`/cuenta/restablecer/`).
+ */
+customerAuthRoutes.post(
+  '/forgot-password',
+  rateLimit((env) => env.CUSTOMER_AUTH_LIMITER),
+  async (c) => {
+    const body = await parseBody(c, forgotPasswordSchema);
+    await requestPasswordReset(
+      { env: c.env, waitUntil: (promise) => c.executionCtx.waitUntil(promise) },
+      'customer',
+      body.email.toLowerCase(),
+    );
+    return c.json<MessageResponse>({ message: RESET_MESSAGE });
+  },
+);
+
+/** Canje del token de cliente (público). Sube `token_version`: revoca las sesiones viejas. */
+customerAuthRoutes.post(
+  '/reset-password',
+  rateLimit((env) => env.CUSTOMER_AUTH_LIMITER),
+  async (c) => {
+    const body = await parseBody(c, resetPasswordSchema);
+
+    // Genérico a propósito: inválido, vencido y ya usado dan el mismo 400.
+    if (!(await resetPassword(c.env, 'customer', body.token, body.newPassword))) {
+      throw badRequest('El link de recuperación es inválido o venció');
+    }
+    return c.json<MessageResponse>({ message: 'Contraseña actualizada' });
+  },
+);
 
 /**
  * Cambio de contraseña propio, mismo criterio que `/auth/change-password`:

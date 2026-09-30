@@ -15,7 +15,12 @@ export default defineConfig(async () => {
       cloudflareTest({
         wrangler: { configPath: './wrangler.test.toml' },
         miniflare: {
-          bindings: { TEST_MIGRATIONS: migrations },
+          bindings: {
+            TEST_MIGRATIONS: migrations,
+            // Nunca mandar emails reales desde los tests, aunque .dev.vars tenga los secrets.
+            MAIL_LAMBDA_URL: '',
+            MAIL_LAMBDA_SECRET: '',
+          },
         },
       }),
     ],

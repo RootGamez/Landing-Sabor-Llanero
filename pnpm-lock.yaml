@@ -125,6 +125,37 @@ importers:
         specifier: ^4.37.0
         version: 4.107.0(@cloudflare/workers-types@4.20260702.1)
 
+  apps/mailer:
+    dependencies:
+      '@sabor/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      nodemailer:
+        specifier: ^7.0.0
+        version: 7.0.13
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.20
+      '@types/nodemailer':
+        specifier: ^7.0.0
+        version: 7.0.12
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.3
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.19.20)(vite@6.4.3(@types/node@22.19.20)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0))
+
   apps/web:
     dependencies:
       '@sabor/shared':
@@ -1693,6 +1724,9 @@ packages:
   '@types/node@22.19.20':
     resolution: {integrity: sha512-6tELRwSDYWW9EdZhbeZmYGZ1/7Djkt+Ah3/ScEYT9cDord7UJzasR/4D3VONg9tQI5CDp+/CZC1AXj2pCFOvpw==}
 
+  '@types/nodemailer@7.0.12':
+    resolution: {integrity: sha512-80vKwiIsVSyFA1rRovH59jNPLBOuc6dRZIHEu40gXTkBkZnQv8vog1xSGEb9j5q/tdMAs5ivvDR2pLTU0hGHXA==}
+
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
     peerDependencies:
@@ -2644,6 +2678,10 @@ packages:
   node-releases@2.0.50:
     resolution: {integrity: sha512-J6l92tKHX6w8Jy5nO1Vuc01NoIiRGi/d6qBKVxh+IQ8Cr3b6HbVNfKiF8ZpFKufTwpwxMmce2W3iQZ861ZRyTg==}
     engines: {node: '>=18'}
+
+  nodemailer@7.0.13:
+    resolution: {integrity: sha512-PNDFSJdP+KFgdsG3ZzMXCgquO7I6McjY2vlqILjtJd0hy8wEvtugS9xKRF2NWlPNGxvLCXlTNIae4serI7dinw==}
+    engines: {node: '>=6.0.0'}
 
   object-inspect@1.13.4:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
@@ -4378,6 +4416,10 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/nodemailer@7.0.12':
+    dependencies:
+      '@types/node': 22.19.20
+
   '@types/react-dom@19.2.3(@types/react@19.2.17)':
     dependencies:
       '@types/react': 19.2.17
@@ -5497,6 +5539,8 @@ snapshots:
       - babel-plugin-macros
 
   node-releases@2.0.50: {}
+
+  nodemailer@7.0.13: {}
 
   object-inspect@1.13.4: {}
 

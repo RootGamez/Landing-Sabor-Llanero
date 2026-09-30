@@ -68,8 +68,13 @@ app.use('*', async (c, next) => {
     if (!c.env.LOGIN_LIMITER || !c.env.EVENTS_LIMITER) {
       return c.json({ error: 'Configuración inválida: faltan LOGIN_LIMITER/EVENTS_LIMITER' }, 500);
     }
-    if (!c.env.EMAIL) {
-      return c.json({ error: 'Configuración inválida: falta EMAIL' }, 500);
+    // Los links de recuperación se arman con el primer origen de cada una: si faltan,
+    // caerían a localhost y la Lambda los rechazaría en silencio.
+    if (!c.env.WEB_ORIGIN || !c.env.CMS_ORIGIN) {
+      return c.json({ error: 'Configuración inválida: faltan WEB_ORIGIN y CMS_ORIGIN' }, 500);
+    }
+    if (!c.env.MAIL_LAMBDA_URL || !c.env.MAIL_LAMBDA_SECRET) {
+      return c.json({ error: 'Configuración inválida: faltan MAIL_LAMBDA_URL/MAIL_LAMBDA_SECRET' }, 500);
     }
     if (!c.env.CUSTOMER_JWT_SECRET) {
       return c.json({ error: 'Configuración inválida: falta CUSTOMER_JWT_SECRET' }, 500);

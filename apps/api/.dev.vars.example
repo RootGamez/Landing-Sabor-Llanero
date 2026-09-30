@@ -5,3 +5,11 @@ CUSTOMER_JWT_SECRET=change-me-dev-customer-secret
 # Copiar a .dev.vars (gitignoreado) para desarrollo local con `wrangler dev`.
 # En producción usar: pnpm wrangler secret put JWT_SECRET
 #                      pnpm wrangler secret put CUSTOMER_JWT_SECRET
+#
+# Emails (opcionales en dev: sin ellos no se envía nada). Solo agregarlos aquí
+# para probar el envío real contra la Lambda de AWS (apps/mailer). NO los
+# pongas si ejecutas `pnpm test`: los tests leen este archivo y mockean fetch.
+#   MAIL_LAMBDA_URL=https://xxxxxxxx.lambda-url.us-east-1.on.aws/
+#   MAIL_LAMBDA_SECRET=<mismo valor que SIGNING_SECRET en la Lambda>
+# En producción: pnpm wrangler secret put MAIL_LAMBDA_URL --env production
+#                pnpm wrangler secret put MAIL_LAMBDA_SECRET --env production

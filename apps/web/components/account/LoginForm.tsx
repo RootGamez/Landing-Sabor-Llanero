@@ -50,6 +50,12 @@ export default function LoginForm() {
         onChange={(event) => setPassword(event.target.value)}
       />
 
+      <p className="-mt-2 text-right text-sm">
+        <Link href="/cuenta/recuperar/" className="font-semibold text-brand-blue hover:text-brand-red">
+          ¿Olvidaste tu contraseña?
+        </Link>
+      </p>
+
       {error && (
         <p role="alert" className="text-sm text-brand-red">
           {error}

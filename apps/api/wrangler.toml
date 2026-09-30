@@ -20,15 +20,11 @@ binding = "MEDIA"
 bucket_name = "sabor-llanero"
 remote = true
 
-# Cloudflare Email Sending (binding nativo, sin API keys ni SMTP). Requiere
-# habilitar el dominio una vez fuera de código:
-#   pnpm wrangler email sending enable saborllanero.online
-#   pnpm wrangler email sending dns get saborllanero.online   # confirma SPF/DKIM
-# remote = true -> en `wrangler dev` local, los envíos van al servicio real
-# (no hay emulador local), igual que MEDIA/R2.
-[[send_email]]
-name = "EMAIL"
-remote = true
+# Emails transaccionales: NO hay binding. El Worker le pide el envío a una Lambda
+# de AWS (apps/mailer) vía HTTPS firmado; ver `src/lib/mailer.ts`. Se configura con
+# dos secrets (en dev local, sin ellos, simplemente no se envía nada):
+#   pnpm wrangler secret put MAIL_LAMBDA_URL --env production
+#   pnpm wrangler secret put MAIL_LAMBDA_SECRET --env production
 
 [vars]
 # JWT_SECRET real va como secret, NO acá:
@@ -73,6 +69,7 @@ simple = { limit = 10, period = 60 }
 # se redeclara acá.
 # Secret de producción (una sola vez):
 #   pnpm wrangler secret put JWT_SECRET --env production
+#   (idem CUSTOMER_JWT_SECRET, MAIL_LAMBDA_URL y MAIL_LAMBDA_SECRET: `make secrets`)
 # ============================================================================
 [env.production]
 name = "sabor-llanero-api"
@@ -80,6 +77,9 @@ name = "sabor-llanero-api"
 [env.production.vars]
 ENVIRONMENT = "production"
 # CORS: orígenes permitidos (se aceptan varios separados por coma).
+# OJO: el PRIMER origen de WEB_ORIGIN (links de recuperación de clientes) y el de CMS_ORIGIN
+# (staff) deben estar también en ALLOWED_LINK_ORIGINS de la Lambda (apps/mailer). Si cambias
+# el orden o el dominio, actualiza esa variable o los emails se rechazarán (400).
 WEB_ORIGIN = "https://saborllanero.online,https://www.saborllanero.online"
 CMS_ORIGIN = "https://cms.saborllanero.online"
 
@@ -92,9 +92,6 @@ migrations_dir = "migrations"
 [[env.production.r2_buckets]]
 binding = "MEDIA"
 bucket_name = "sabor-llanero"
-
-[[env.production.send_email]]
-name = "EMAIL"
 
 [[env.production.unsafe.bindings]]
 name = "LOGIN_LIMITER"

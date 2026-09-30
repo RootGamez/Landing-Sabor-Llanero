@@ -51,8 +51,8 @@ contrario.
 |---|---|---|---|---|---|
 | P1.1 | CMS | Editar usuario (CRUD completo del panel) | — | ✅ Completada | 2026-09-24 |
 | P1.2 | API/DB | Migración `password_reset_tokens` | — | ✅ Completada | 2026-09-24 |
-| P1.3 | API | Binding de email (Cloudflare Email Sending) | P1.2 | ⚠️ Bloqueada (falta acción manual) | |
-| P1.4 | API | Endpoints forgot/reset-password | P1.2, P1.3 | ✅ Completada (código; envío real pendiente de P1.3) | 2026-09-24 |
+| P1.3 | API | Envío de email: Lambda de AWS + SMTP (reemplaza Cloudflare Email Sending) | P1.2 | ✅ Código listo (2026-09-30); falta crear la Lambda en AWS y cargar los 2 secrets | |
+| P1.4 | API | Endpoints forgot/reset-password (staff **y clientes**) | P1.2, P1.3 | ✅ Completada (el envío real depende de P1.3) | 2026-09-24 / 2026-09-30 |
 | P1.5 | CMS | Pantallas de recuperación de contraseña | P1.4 | ✅ Completada | 2026-09-24 |
 | P1.6 | API | Tests de la superficie nueva de auth | P1.4 | ✅ Completada | 2026-09-25 |
 | P2.1 | API/DB | Migración `loyalty` + tipos/schemas compartidos | P1.2 | ✅ Completada | 2026-09-24 |
@@ -117,9 +117,26 @@ CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_i
 
 - **Validar**: `wrangler d1 migrations apply sabor-llanero --local`.
 
-### P1.3 — Envío de email: Cloudflare Email Sending (no SMTP tradicional)
+### P1.3 — Envío de email: Lambda de AWS + SMTP (reemplaza a Cloudflare Email Sending)
 
-- **Estado**: ⚠️ Bloqueada — código listo, falta la habilitación real del dominio (acción
+> **Actualización 2026-09-30 — decisión final.** Cloudflare Email Sending requiere Workers
+> Paid, así que se reemplazó por una **Lambda de AWS** que entrega por SMTP (credenciales SMTP
+> solo en las variables de entorno de la Lambda). El binding `send_email`/`EMAIL` se eliminó.
+> - Worker: `apps/api/src/lib/mailer.ts` (`sendEmail`/`sendEmailSafely`) hace un POST firmado con
+>   HMAC a la Lambda; secrets `MAIL_LAMBDA_URL` y `MAIL_LAMBDA_SECRET`.
+> - Lambda: `apps/mailer` (plantillas registradas, links validados contra `ALLOWED_LINK_ORIGINS`).
+>   Paso a paso de AWS y cómo agregar emails nuevos: `apps/mailer/README.md`.
+> - Contrato compartido: `packages/shared/src/email.ts`.
+> - Recuperación de contraseña de **clientes**: migración `0007`, `lib/password-reset.ts`
+>   (lógica común staff/cliente, con cooldown de 60 s por cuenta), endpoints
+>   `/customers/forgot-password` y `/customers/reset-password`, y páginas
+>   `/cuenta/recuperar/` y `/cuenta/restablecer/` en `apps/web`.
+> - **Orden de despliegue:** crear la Lambda → cargar los 2 secrets (`make secrets`) →
+>   `make deploy-api` (sin los secrets la API de producción responde 500 por el guard de `index.ts`).
+>
+> El texto de abajo es el historial de la decisión anterior (Cloudflare Email Sending), ya no vigente.
+
+- **Estado (histórico)**: ⚠️ Bloqueada — código listo, falta la habilitación real del dominio (acción
   manual del dueño de la cuenta Cloudflare, no ejecutable por Claude).
 - **Hecho (2026-09-24)**: binding `[[send_email]]` en `wrangler.toml` (dev y
   `[env.production]`, `remote = true`), tipo `SendEmail` agregado a mano en `env.ts` (mismo

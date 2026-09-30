@@ -37,7 +37,7 @@ D1_NAME := sabor-llanero
 	api web cms dev \
 	db-migrate-local db-seed-local create-owner \
 	typecheck lint build build-web clean \
-	cf-login secrets db-migrate-remote db-seed-remote create-owner-remote deploy-api
+	cf-login secrets build-mailer db-migrate-remote db-seed-remote create-owner-remote deploy-api
 
 help: ## Muestra esta ayuda
 	grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}'
@@ -120,9 +120,14 @@ clean: ## Borra node_modules, dist, out, .next y .wrangler de todo el monorepo
 cf-login: ## Inicia sesión en tu cuenta de Cloudflare (abre el navegador)
 	cd $(API_DIR) && pnpm wrangler login
 
-secrets: ## Configura JWT_SECRET y CUSTOMER_JWT_SECRET de producción (prompt interactivo, uno por vez)
+secrets: ## Configura los secrets de producción (prompt interactivo, uno por vez): JWT, CUSTOMER_JWT y mailer
 	cd $(API_DIR) && pnpm wrangler secret put JWT_SECRET --env production
 	cd $(API_DIR) && pnpm wrangler secret put CUSTOMER_JWT_SECRET --env production
+	cd $(API_DIR) && pnpm wrangler secret put MAIL_LAMBDA_URL --env production
+	cd $(API_DIR) && pnpm wrangler secret put MAIL_LAMBDA_SECRET --env production
+
+build-mailer: ## Empaqueta la Lambda de emails -> apps/mailer/dist/mailer.zip (se sube a mano en AWS)
+	cd apps/mailer && pnpm build
 
 db-migrate-remote: ## Aplica las migraciones en la base D1 real de Cloudflare
 	cd $(API_DIR) && pnpm wrangler d1 migrations apply $(D1_NAME) --env production --remote
