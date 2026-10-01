@@ -8,3 +8,4 @@ export * from './media';
 export * from './format';
 export * from './brand';
 export * from './email';
+export * from './forms';

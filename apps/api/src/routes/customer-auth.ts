@@ -6,6 +6,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   updateCustomerProfileSchema,
+  WRONG_CURRENT_PASSWORD_MESSAGE,
   type ChangePasswordResponse,
   type CustomerLoginResponse,
   type MessageResponse,
@@ -165,7 +166,7 @@ customerAuthRoutes.post(
     if (!row) throw unauthorized();
 
     const valid = await verifyPassword(body.currentPassword, row.password_hash);
-    if (!valid) throw unauthorized('La contraseña actual es incorrecta');
+    if (!valid) throw unauthorized(WRONG_CURRENT_PASSWORD_MESSAGE);
 
     const passwordHash = await hashPassword(body.newPassword);
     const updated = await c.env.DB.prepare(

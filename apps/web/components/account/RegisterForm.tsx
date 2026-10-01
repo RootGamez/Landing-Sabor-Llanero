@@ -3,9 +3,26 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  EMAIL_MAX,
+  FULL_NAME_MAX,
+  PASSWORD_MAX,
+  PASSWORD_MIN,
+  PHONE_MAX,
+  emailError,
+  fullNameError,
+  normalizeEmail,
+  normalizeFullName,
+  passwordConfirmError,
+  passwordError,
+  phoneError,
+} from "@sabor/shared";
 import { ApiError } from "@/lib/api";
 import { useCustomerAuth } from "@/lib/customerAuth";
+import { useFieldErrors } from "@/lib/useFieldErrors";
 import AccountFormField from "@/components/account/AccountFormField";
+import AccountSubmitButton from "@/components/account/AccountSubmitButton";
+import PasswordField from "@/components/account/PasswordField";
 
 export default function RegisterForm() {
   const { register } = useCustomerAuth();
@@ -14,15 +31,30 @@ export default function RegisterForm() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const fields = useFieldErrors({
+    name: fullNameError(name),
+    email: emailError(normalizeEmail(email)),
+    phone: phoneError(phone),
+    password: passwordError(password),
+    confirmPassword: passwordConfirmError(password, confirmPassword),
+  });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     setError(null);
+    if (!fields.validate()) return;
     setSubmitting(true);
     try {
-      await register({ name, email, phone, password });
+      await register({
+        name: normalizeFullName(name),
+        email: normalizeEmail(email),
+        phone: phone.trim(),
+        password,
+      });
       router.push("/cuenta/");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo crear la cuenta");
@@ -32,23 +64,31 @@ export default function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <AccountFormField
-        label="Nombre"
+        label="Nombre y apellido"
         name="name"
         autoComplete="name"
         required
+        maxLength={FULL_NAME_MAX}
+        placeholder="Ej. María Pérez"
+        error={fields.error("name")}
         value={name}
         onChange={(event) => setName(event.target.value)}
+        onBlur={() => fields.touch("name")}
       />
       <AccountFormField
         label="Email"
         name="email"
         type="email"
         autoComplete="email"
+        inputMode="email"
         required
+        maxLength={EMAIL_MAX}
+        error={fields.error("email")}
         value={email}
         onChange={(event) => setEmail(event.target.value)}
+        onBlur={() => fields.touch("email")}
       />
       <AccountFormField
         label="Celular"
@@ -56,19 +96,34 @@ export default function RegisterForm() {
         type="tel"
         autoComplete="tel"
         required
+        maxLength={PHONE_MAX}
+        error={fields.error("phone")}
         value={phone}
         onChange={(event) => setPhone(event.target.value)}
+        onBlur={() => fields.touch("phone")}
       />
-      <AccountFormField
+      <PasswordField
         label="Contraseña"
         name="password"
-        type="password"
         autoComplete="new-password"
         required
-        minLength={8}
-        hint="Mínimo 8 caracteres"
+        maxLength={PASSWORD_MAX}
+        hint={`Mínimo ${PASSWORD_MIN} caracteres. Puedes usar una frase larga.`}
+        error={fields.error("password")}
         value={password}
         onChange={(event) => setPassword(event.target.value)}
+        onBlur={() => fields.touch("password")}
+      />
+      <PasswordField
+        label="Repite la contraseña"
+        name="confirmPassword"
+        autoComplete="new-password"
+        required
+        maxLength={PASSWORD_MAX}
+        error={fields.error("confirmPassword")}
+        value={confirmPassword}
+        onChange={(event) => setConfirmPassword(event.target.value)}
+        onBlur={() => fields.touch("confirmPassword")}
       />
 
       {error && (
@@ -77,14 +132,9 @@ export default function RegisterForm() {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        aria-busy={submitting}
-        className="btn-shine inline-flex min-h-12 w-full items-center justify-center rounded-full bg-brand-red px-6 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:scale-[1.02] hover:bg-brand-red-deep active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 md:text-base"
-      >
+      <AccountSubmitButton submitting={submitting}>
         {submitting ? "Creando cuenta…" : "Crear cuenta"}
-      </button>
+      </AccountSubmitButton>
 
       <p className="text-center text-sm text-ink/70">
         ¿Ya tienes cuenta?{" "}

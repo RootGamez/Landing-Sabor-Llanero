@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { hashPassword } from '../lib/password';
 import { hashResetToken } from '../lib/reset-token';
 import { signCustomerToken } from '../lib/jwt';
+import { WRONG_CURRENT_PASSWORD_MESSAGE } from '@sabor/shared';
 
 const app = exports.default;
 const jsonHeaders = { 'Content-Type': 'application/json' };
@@ -135,5 +136,65 @@ describe('POST /api/customers/forgot-password + /api/customers/reset-password', 
 
     expect(weak.status).toBe(400);
     expect(ok.status).toBe(200);
+  });
+});
+
+describe('POST /api/customers/register: límites de entrada', () => {
+  const base = { name: 'Ana Pérez', email: 'limits@test.local', phone: '987654321', password: 'validpassword1' };
+
+  it.each([
+    ['nombre demasiado largo', 'name', { name: `${'a'.repeat(30)} ${'b'.repeat(40)}` }],
+    ['email con formato inválido', 'email', { email: 'no-es-un-email' }],
+    ['email demasiado largo', 'email', { email: `${'a'.repeat(250)}@example.com` }],
+    ['celular demasiado largo', 'phone', { phone: '9'.repeat(31) }],
+    ['contraseña demasiado corta', 'password', { password: 'corta' }],
+    ['nombre de solo espacios', 'name', { name: '     ' }],
+    ['nombre con caracteres de dirección de texto', 'name', { name: 'Ana ‮Pérez' }],
+    ['celular con letras', 'phone', { phone: '987abc321' }],
+  ])('rechaza %s con 400 indicando el campo %s', async (_label, field, override) => {
+    const res = await post('register', { ...base, ...override });
+
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toMatch(new RegExp(`^${field}:`));
+  });
+});
+
+describe('POST /api/customers/change-password', () => {
+  it('una contraseña actual incorrecta da 401 con el mensaje compartido (los clientes lo usan para no cerrar la sesión)', async () => {
+    const customerId = await createCustomer('customer-wrong-current@test.local', 'currentpassword1');
+    const session = await signCustomerToken(
+      { customerId, email: 'customer-wrong-current@test.local' },
+      env.CUSTOMER_JWT_SECRET,
+      0,
+    );
+
+    const res = await app.fetch('https://example.com/api/customers/change-password', {
+      method: 'POST',
+      headers: { ...jsonHeaders, Authorization: `Bearer ${session}` },
+      body: JSON.stringify({ currentPassword: 'equivocada12345', newPassword: 'brandnewpassword2' }),
+    });
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: WRONG_CURRENT_PASSWORD_MESSAGE });
+  });
+
+  it('rechaza una nueva igual a la actual (400) y acepta una distinta devolviendo un token nuevo', async () => {
+    const customerId = await createCustomer('customer-change@test.local', 'currentpassword1');
+    const session = await signCustomerToken(
+      { customerId, email: 'customer-change@test.local' },
+      env.CUSTOMER_JWT_SECRET,
+      0,
+    );
+    const change = (currentPassword: string, newPassword: string) =>
+      app.fetch('https://example.com/api/customers/change-password', {
+        method: 'POST',
+        headers: { ...jsonHeaders, Authorization: `Bearer ${session}` },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+    expect((await change('currentpassword1', 'currentpassword1')).status).toBe(400);
+    const ok = await change('currentpassword1', 'brandnewpassword2');
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toHaveProperty('token');
   });
 });

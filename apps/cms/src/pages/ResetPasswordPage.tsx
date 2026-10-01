@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { MessageResponse } from '@sabor/shared';
-import { BRAND } from '@sabor/shared';
+import { BRAND, PASSWORD_MAX, PASSWORD_MIN, passwordConfirmError, passwordError } from '@sabor/shared';
 import { api, ApiError } from '../lib/api';
-import { TextField } from '../components/ui/FormField';
+import { useFieldErrors } from '../hooks/useFieldErrors';
+import { PasswordField } from '../components/ui/FormField';
 import { Button } from '../components/ui/Button';
 
 /**
@@ -18,6 +19,11 @@ function readTokenFromHash(): string | null {
 export function ResetPasswordPage() {
   const [token] = useState(readTokenFromHash);
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const fields = useFieldErrors({
+    newPassword: passwordError(newPassword),
+    confirmPassword: passwordConfirmError(newPassword, confirmPassword),
+  });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -42,6 +48,7 @@ export function ResetPasswordPage() {
     e.preventDefault();
     if (!token) return;
     setError(null);
+    if (!fields.validate()) return;
     setLoading(true);
     try {
       await api.post<MessageResponse>('/auth/reset-password', { token, newPassword });
@@ -98,19 +105,33 @@ export function ResetPasswordPage() {
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} aria-labelledby="reset-title" className="mt-6">
+          <form onSubmit={handleSubmit} noValidate aria-labelledby="reset-title" className="mt-6">
             <p className="mb-4 text-center text-sm text-text-muted">Elige tu nueva contraseña.</p>
-            <TextField
-              label="Contraseña nueva"
-              type="password"
-              name="new-password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              hint="Mínimo 8 caracteres"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
+            <div className="flex flex-col gap-4">
+              <PasswordField
+                id="newPassword"
+                label="Contraseña nueva"
+                autoComplete="new-password"
+                required
+                maxLength={PASSWORD_MAX}
+                hint={`Mínimo ${PASSWORD_MIN} caracteres. Puedes usar una frase larga.`}
+                error={fields.error('newPassword')}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                onBlur={() => fields.touch('newPassword')}
+              />
+              <PasswordField
+                id="confirmPassword"
+                label="Repite la contraseña nueva"
+                autoComplete="new-password"
+                required
+                maxLength={PASSWORD_MAX}
+                error={fields.error('confirmPassword')}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onBlur={() => fields.touch('confirmPassword')}
+              />
+            </div>
 
             {error && (
               <div role="alert" className="mt-4 flex flex-col gap-2">

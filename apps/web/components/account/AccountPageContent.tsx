@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOutIcon } from "@/components/ui/icons";
+import AccountPasswordSection from "@/components/account/AccountPasswordSection";
 import AccountProfileSection from "@/components/account/AccountProfileSection";
 import OrderHistoryList from "@/components/account/OrderHistoryList";
 import RewardCard from "@/components/rewards/RewardCard";
@@ -89,6 +90,7 @@ export default function AccountPageContent() {
       </div>
 
       <AccountProfileSection customer={customer} onSaved={refresh} />
+      <AccountPasswordSection onChanged={refresh} />
 
       <section className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

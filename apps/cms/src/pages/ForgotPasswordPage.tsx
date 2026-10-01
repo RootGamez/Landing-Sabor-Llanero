@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { MessageResponse } from '@sabor/shared';
-import { BRAND } from '@sabor/shared';
+import { BRAND, EMAIL_MAX, emailError, normalizeEmail } from '@sabor/shared';
 import { api, ApiError } from '../lib/api';
+import { useFieldErrors } from '../hooks/useFieldErrors';
 import { TextField } from '../components/ui/FormField';
 import { Button } from '../components/ui/Button';
 
 /** Pública (sin sesión), fuera de `Protected` en App.tsx. */
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
+  const fields = useFieldErrors({ email: emailError(normalizeEmail(email)) });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -24,11 +26,12 @@ export function ForgotPasswordPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!fields.validate()) return;
     setLoading(true);
     try {
       // La API responde siempre el mismo mensaje exista o no la cuenta
       // (anti-enumeración) — aquí solo se muestra tal cual, sin interpretarlo.
-      await api.post<MessageResponse>('/auth/forgot-password', { email });
+      await api.post<MessageResponse>('/auth/forgot-password', { email: normalizeEmail(email) });
       setSent(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo enviar la solicitud');
@@ -61,18 +64,23 @@ export function ForgotPasswordPage() {
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} aria-labelledby="forgot-title" className="mt-6">
+          <form onSubmit={handleSubmit} noValidate aria-labelledby="forgot-title" className="mt-6">
             <p className="mb-4 text-center text-sm text-text-muted">
               Ingresa tu email y te mandamos un link para restablecer tu contraseña.
             </p>
             <TextField
+              id="email"
               label="Email"
               type="email"
               name="email"
               autoComplete="username"
+              inputMode="email"
               required
+              maxLength={EMAIL_MAX}
+              error={fields.error('email')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => fields.touch('email')}
             />
 
             {error && (

@@ -193,3 +193,39 @@ describe('POST /api/auth/forgot-password + /api/auth/reset-password', () => {
     expect(await expiredRes.json()).toEqual(await invalidRes.json());
   });
 });
+
+describe('límites de entrada de staff', () => {
+  it('rechaza emails demasiado largos en login y forgot-password (400)', async () => {
+    const email = `${'a'.repeat(250)}@example.com`;
+
+    const login = await app.fetch('https://example.com/api/auth/login', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ email, password: 'whatever12345' }),
+    });
+    const forgot = await app.fetch('https://example.com/api/auth/forgot-password', {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ email }),
+    });
+
+    expect(login.status).toBe(400);
+    expect(forgot.status).toBe(400);
+  });
+});
+
+describe('POST /api/auth/change-password', () => {
+  it('rechaza una nueva contraseña igual a la actual (400) y acepta una distinta', async () => {
+    const userId = await createUser('change-pass@test.local', 'currentpassword1');
+    const session = await signToken({ id: userId, email: 'change-pass@test.local', role: 'admin' }, env.JWT_SECRET, 0);
+    const change = (currentPassword: string, newPassword: string) =>
+      app.fetch('https://example.com/api/auth/change-password', {
+        method: 'POST',
+        headers: { ...jsonHeaders, Authorization: `Bearer ${session}` },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+    expect((await change('currentpassword1', 'currentpassword1')).status).toBe(400);
+    expect((await change('currentpassword1', 'brandnewpassword2')).status).toBe(200);
+  });
+});

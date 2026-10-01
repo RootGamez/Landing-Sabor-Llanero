@@ -13,47 +13,68 @@
  * input permite validar sin contexto externo.
  */
 import { z } from 'zod';
+import { EMAIL_MAX, FULL_NAME_MAX, PASSWORD_MAX, PASSWORD_MIN, PHONE_MAX } from './forms';
 
 
 const slugRegex = /^(?=.*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 
-const PASSWORD_MAX = 128;
 const passwordSchema = z
   .string()
-  .min(8, 'la contraseña debe tener al menos 8 caracteres')
+  .min(PASSWORD_MIN, `la contraseña debe tener al menos ${PASSWORD_MIN} caracteres`)
   .max(PASSWORD_MAX, `la contraseña no puede superar ${PASSWORD_MAX} caracteres`);
 
+const emailSchema = z.string().email('email inválido').max(EMAIL_MAX, 'email inválido');
+// Sin caracteres de control ni de dirección de texto (RLO/LRO, etc.): evita nombres que se vean distinto de lo guardado.
+const UNSAFE_TEXT = /[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/;
+const nameSchema = z
+  .string()
+  .trim()
+  .min(1, 'name requerido')
+  .max(FULL_NAME_MAX, `name no puede superar ${FULL_NAME_MAX} caracteres`)
+  .refine((value) => !UNSAFE_TEXT.test(value), 'name contiene caracteres no válidos');
+const phoneSchema = z
+  .string()
+  .trim()
+  .min(1, 'phone requerido')
+  .max(PHONE_MAX, 'phone demasiado largo')
+  .regex(/^\+?[0-9(][0-9\s().-]*$/, 'phone inválido');
+
 export const loginSchema = z.object({
-  email: z.string().email('email inválido'),
+  email: emailSchema,
   password: z.string().min(1, 'password requerido').max(PASSWORD_MAX, 'password inválido'),
 });
 
 export const createUserSchema = z.object({
-  email: z.string().email('email inválido'),
+  email: emailSchema,
   password: passwordSchema,
-  name: z.string().min(1, 'name requerido'),
+  name: nameSchema,
   role: z.enum(['owner', 'admin']),
 });
 
 export const updateUserSchema = z.object({
-  name: z.string().min(1).optional(),
+  name: nameSchema.optional(),
   role: z.enum(['owner', 'admin']).optional(),
   password: passwordSchema.optional(),
 });
 
 /** Edición del perfil propio (cualquier rol): solo el nombre; email y rol los gestiona el owner. */
 export const updateProfileSchema = z.object({
-  name: z.string().min(1, 'name requerido'),
+  name: nameSchema,
 });
 
-export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'la contraseña actual es requerida').max(PASSWORD_MAX),
-  newPassword: passwordSchema,
-});
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'la contraseña actual es requerida').max(PASSWORD_MAX),
+    newPassword: passwordSchema,
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'la nueva contraseña debe ser distinta de la actual',
+    path: ['newPassword'],
+  });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('email inválido'),
+  email: emailSchema,
 });
 
 export const resetPasswordSchema = z.object({
@@ -194,26 +215,22 @@ const collectionItemInputSchema = z.object({
   displayOrder: z.number().int().min(0).optional(),
 });
 
-const CUSTOMER_NAME_MAX = 100;
-const CUSTOMER_PHONE_MAX = 30;
-const EMAIL_MAX = 254;
-
 export const customerRegisterSchema = z.object({
-  email: z.string().email('email inválido').max(EMAIL_MAX, 'email inválido'),
+  email: emailSchema,
   password: passwordSchema,
-  name: z.string().min(1, 'name requerido').max(CUSTOMER_NAME_MAX, 'name demasiado largo'),
-  phone: z.string().min(1, 'phone requerido').max(CUSTOMER_PHONE_MAX, 'phone demasiado largo'),
+  name: nameSchema,
+  phone: phoneSchema,
 });
 
 export const customerLoginSchema = z.object({
-  email: z.string().email('email inválido'),
+  email: emailSchema,
   password: z.string().min(1, 'password requerido').max(PASSWORD_MAX, 'password inválido'),
 });
 
 /** Edición del perfil propio del cliente: email y contraseña van por endpoints separados. */
 export const updateCustomerProfileSchema = z.object({
-  name: z.string().min(1, 'name requerido').max(CUSTOMER_NAME_MAX, 'name demasiado largo').optional(),
-  phone: z.string().min(1, 'phone requerido').max(CUSTOMER_PHONE_MAX, 'phone demasiado largo').optional(),
+  name: nameSchema.optional(),
+  phone: phoneSchema.optional(),
 });
 
 const orderItemInputSchema = z.object({

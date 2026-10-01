@@ -2,13 +2,19 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import type { MessageResponse } from "@sabor/shared";
+import {
+  PASSWORD_MAX,
+  PASSWORD_MIN,
+  passwordConfirmError,
+  passwordError,
+  type MessageResponse,
+} from "@sabor/shared";
 import { api, ApiError } from "@/lib/api";
-import AccountFormField from "@/components/account/AccountFormField";
+import { useFieldErrors } from "@/lib/useFieldErrors";
 import AccountSubmitButton from "@/components/account/AccountSubmitButton";
+import PasswordField from "@/components/account/PasswordField";
 
 const LINK_CLASS = "font-semibold text-brand-blue hover:text-brand-red";
-const MIN_PASSWORD_LENGTH = 8;
 
 /**
  * El token viaja en el fragment del link del email (`#token=...`), no en query
@@ -23,6 +29,11 @@ export default function ResetPasswordForm() {
   // undefined = todavía no se leyó el fragment; null = no había token.
   const [token, setToken] = useState<string | null | undefined>(undefined);
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const fields = useFieldErrors({
+    newPassword: passwordError(newPassword),
+    confirmPassword: passwordConfirmError(newPassword, confirmPassword),
+  });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -49,6 +60,7 @@ export default function ResetPasswordForm() {
     event.preventDefault();
     if (!token) return;
     setError(null);
+    if (!fields.validate()) return;
     setSubmitting(true);
     try {
       await api.post<MessageResponse>("/customers/reset-password", { token, newPassword });
@@ -89,17 +101,29 @@ export default function ResetPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <AccountFormField
+    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      <PasswordField
         label="Contraseña nueva"
-        name="new-password"
-        type="password"
+        name="newPassword"
         autoComplete="new-password"
         required
-        minLength={MIN_PASSWORD_LENGTH}
-        hint={`Mínimo ${MIN_PASSWORD_LENGTH} caracteres`}
+        maxLength={PASSWORD_MAX}
+        hint={`Mínimo ${PASSWORD_MIN} caracteres. Puedes usar una frase larga.`}
+        error={fields.error("newPassword")}
         value={newPassword}
         onChange={(event) => setNewPassword(event.target.value)}
+        onBlur={() => fields.touch("newPassword")}
+      />
+      <PasswordField
+        label="Repite la contraseña nueva"
+        name="confirmPassword"
+        autoComplete="new-password"
+        required
+        maxLength={PASSWORD_MAX}
+        error={fields.error("confirmPassword")}
+        value={confirmPassword}
+        onChange={(event) => setConfirmPassword(event.target.value)}
+        onBlur={() => fields.touch("confirmPassword")}
       />
 
       {error && (

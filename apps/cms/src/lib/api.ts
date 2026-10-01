@@ -1,3 +1,4 @@
+import { WRONG_CURRENT_PASSWORD_MESSAGE } from '@sabor/shared';
 import { API_BASE_URL } from './env';
 import { useSessionStore } from '../store/sessionStore';
 
@@ -23,14 +24,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
 
-  if (res.status === 401) {
-    // Token vencido o inválido: cerrar sesión y forzar re-login.
-    useSessionStore.getState().logout();
-  }
-
   if (!res.ok) {
     const body = await res.json().catch(() => ({}) as { error?: string });
-    throw new ApiError(res.status, body.error ?? `Error ${res.status}`);
+    const message = body.error ?? `Error ${res.status}`;
+    // `/auth/login` no necesita sesión; `/auth/change-password` devuelve 401 tanto por "contraseña
+    // actual incorrecta" (credenciales de ESE request) como por una sesión muerta: solo la primera
+    // no debe cerrar la sesión. Y solo si el token guardado sigue siendo el que viajó en este request
+    // (una petición lenta con el token viejo no debe cerrar la sesión nueva tras cambiar la contraseña).
+    const isCredentialsError =
+      path === '/auth/login' || (path === '/auth/change-password' && message === WRONG_CURRENT_PASSWORD_MESSAGE);
+    if (res.status === 401 && !isCredentialsError && useSessionStore.getState().token === token) {
+      // Token vencido o inválido: cerrar sesión y forzar re-login.
+      useSessionStore.getState().logout();
+    }
+    throw new ApiError(res.status, message);
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

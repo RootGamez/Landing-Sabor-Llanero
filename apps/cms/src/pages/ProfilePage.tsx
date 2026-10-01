@@ -1,18 +1,28 @@
 import { useState, type FormEvent } from 'react';
 import { KeyRound, CircleUser } from 'lucide-react';
-import type { ChangePasswordResponse, User } from '@sabor/shared';
+import {
+  FULL_NAME_MAX,
+  PASSWORD_MAX,
+  PASSWORD_MIN,
+  fullNameError,
+  normalizeFullName,
+  passwordConfirmError,
+  passwordError,
+  type ChangePasswordResponse,
+  type User,
+} from '@sabor/shared';
 import { useMutation } from '../hooks/useMutation';
+import { useFieldErrors } from '../hooks/useFieldErrors';
 import { useSessionStore } from '../store/sessionStore';
 import { api } from '../lib/api';
-import { toastSuccess, toastError } from '../store/toastStore';
-import { TextField } from '../components/ui/FormField';
+import { toastSuccess } from '../store/toastStore';
+import { TextField, PasswordField } from '../components/ui/FormField';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 
 /** Perfil propio (cualquier rol): editar nombre y cambiar la contraseña. */
 export function ProfilePage() {
-  const token = useSessionStore((s) => s.token);
   const user = useSessionStore((s) => s.user);
   const setSession = useSessionStore((s) => s.setSession);
 
@@ -22,8 +32,21 @@ export function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Un nombre antiguo (ej. una sola palabra) no bloquea guardar: la regla solo aplica si se modificó.
+  const nameChanged = normalizeFullName(name) !== normalizeFullName(user?.name ?? '');
+  const nameFields = useFieldErrors({
+    name: nameChanged ? fullNameError(name) : null,
+  });
+  const passwordFields = useFieldErrors({
+    currentPassword: currentPassword ? null : 'Ingresa tu contraseña actual',
+    newPassword:
+      passwordError(newPassword) ??
+      (newPassword === currentPassword ? 'La nueva contraseña debe ser distinta de la actual' : null),
+    confirmPassword: passwordConfirmError(newPassword, confirmPassword),
+  });
+
   const { mutate: saveName, loading: savingName } = useMutation(() =>
-    api.patch<User>('/auth/me', { name }),
+    api.patch<User>('/auth/me', { name: normalizeFullName(name) }),
   );
   const { mutate: changePassword, loading: changingPassword } = useMutation(() =>
     api.post<ChangePasswordResponse>('/auth/change-password', { currentPassword, newPassword }),
@@ -31,20 +54,24 @@ export function ProfilePage() {
 
   async function handleSaveName(e: FormEvent) {
     e.preventDefault();
+    if (!nameFields.validate()) return;
+    if (!nameChanged) return; // nada que guardar
     const result = await saveName();
-    if (result !== undefined && token && user) {
+    // Se lee el store DESPUÉS del await: si mientras tanto se cambió la contraseña (token nuevo),
+    // escribir el `token`/`user` capturados al renderizar pisaría la sesión nueva con la vieja.
+    const { token: currentToken, user: currentUser } = useSessionStore.getState();
+    if (result !== undefined && currentToken && currentUser) {
       // El store guarda el nombre para el sidebar; el token no cambia.
-      setSession(token, { ...user, name: result.name });
+      setSession(currentToken, { ...currentUser, name: result.name });
+      setName(result.name);
+      nameFields.reset();
       toastSuccess('Perfil actualizado');
     }
   }
 
   async function handleChangePassword(e: FormEvent) {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      toastError('La confirmación no coincide con la nueva contraseña');
-      return;
-    }
+    if (!passwordFields.validate()) return;
     const result = await changePassword();
     if (result !== undefined && user) {
       // El backend invalidó todos los tokens anteriores; adoptamos el nuevo
@@ -53,6 +80,7 @@ export function ProfilePage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      passwordFields.reset();
       toastSuccess('Contraseña actualizada. Tus otras sesiones fueron cerradas.');
     }
   }
@@ -75,12 +103,17 @@ export function ProfilePage() {
           <CardTitle>Datos personales</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSaveName} className="flex flex-col gap-3">
+          <form onSubmit={handleSaveName} noValidate className="flex flex-col gap-3">
             <TextField
-              label="Nombre"
+              id="name"
+              label="Nombre y apellido"
+              autoComplete="name"
               required
+              maxLength={FULL_NAME_MAX}
+              error={nameFields.error('name')}
               value={name}
               onChange={(e) => setName(e.target.value)}
+              onBlur={() => nameFields.touch('name')}
             />
             <Button type="submit" loading={savingName} className="self-start">
               Guardar
@@ -95,32 +128,40 @@ export function ProfilePage() {
           <CardTitle>Cambiar contraseña</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
-            <TextField
+          <form onSubmit={handleChangePassword} noValidate className="flex flex-col gap-3">
+            <PasswordField
+              id="currentPassword"
               label="Contraseña actual"
-              type="password"
               autoComplete="current-password"
               required
+              maxLength={PASSWORD_MAX}
+              error={passwordFields.error('currentPassword')}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
+              onBlur={() => passwordFields.touch('currentPassword')}
             />
-            <TextField
-              label="Nueva contraseña (mínimo 8 caracteres)"
-              type="password"
+            <PasswordField
+              id="newPassword"
+              label="Nueva contraseña"
               autoComplete="new-password"
               required
-              minLength={8}
+              maxLength={PASSWORD_MAX}
+              hint={`Mínimo ${PASSWORD_MIN} caracteres. Puedes usar una frase larga.`}
+              error={passwordFields.error('newPassword')}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              onBlur={() => passwordFields.touch('newPassword')}
             />
-            <TextField
-              label="Confirmar nueva contraseña"
-              type="password"
+            <PasswordField
+              id="confirmPassword"
+              label="Repite la nueva contraseña"
               autoComplete="new-password"
               required
-              minLength={8}
+              maxLength={PASSWORD_MAX}
+              error={passwordFields.error('confirmPassword')}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              onBlur={() => passwordFields.touch('confirmPassword')}
             />
             <p className="text-xs text-text-muted">
               Al cambiar la contraseña se cierran todas tus demás sesiones abiertas.

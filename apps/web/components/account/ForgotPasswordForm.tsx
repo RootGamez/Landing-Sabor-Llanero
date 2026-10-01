@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import type { MessageResponse } from "@sabor/shared";
+import { EMAIL_MAX, emailError, normalizeEmail, type MessageResponse } from "@sabor/shared";
 import { api, ApiError } from "@/lib/api";
+import { useFieldErrors } from "@/lib/useFieldErrors";
 import AccountFormField from "@/components/account/AccountFormField";
 import AccountSubmitButton from "@/components/account/AccountSubmitButton";
 
@@ -11,6 +12,7 @@ const LINK_CLASS = "font-semibold text-brand-blue hover:text-brand-red";
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
+  const fields = useFieldErrors({ email: emailError(normalizeEmail(email)) });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -26,11 +28,12 @@ export default function ForgotPasswordForm() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     setError(null);
+    if (!fields.validate()) return;
     setSubmitting(true);
     try {
       // La API responde siempre lo mismo exista o no la cuenta (anti-enumeración):
       // aquí se muestra una confirmación fija, sin interpretar la respuesta.
-      await api.post<MessageResponse>("/customers/forgot-password", { email });
+      await api.post<MessageResponse>("/customers/forgot-password", { email: normalizeEmail(email) });
       setSent(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo enviar la solicitud");
@@ -54,15 +57,19 @@ export default function ForgotPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <AccountFormField
         label="Email"
         name="email"
         type="email"
         autoComplete="email"
+        inputMode="email"
         required
+        maxLength={EMAIL_MAX}
+        error={fields.error("email")}
         value={email}
         onChange={(event) => setEmail(event.target.value)}
+        onBlur={() => fields.touch("email")}
       />
 
       {error && (

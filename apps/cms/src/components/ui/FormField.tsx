@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { cn } from '../../lib/utils';
 
@@ -16,14 +17,24 @@ function FieldWrapper({ label, htmlFor, error, hint, children }: FieldWrapperPro
         {label}
       </label>
       {children}
-      {hint && !error && <p className="text-xs text-text-muted">{hint}</p>}
+      {hint && !error && (
+        <p id={`${htmlFor}-hint`} className="text-xs text-text-muted">
+          {hint}
+        </p>
+      )}
       {error && (
-        <p role="alert" className="text-xs font-medium text-destructive">
+        <p id={`${htmlFor}-error`} role="alert" className="text-xs font-medium text-destructive">
           {error}
         </p>
       )}
     </div>
   );
+}
+
+/** Enlaza el input con su mensaje de error/ayuda (los ids los genera `FieldWrapper`). */
+function fieldA11y(fieldId: string, error?: string, hint?: string) {
+  const describedBy = error ? `${fieldId}-error` : hint ? `${fieldId}-hint` : undefined;
+  return { 'aria-invalid': error ? true : undefined, 'aria-describedby': describedBy } as const;
 }
 
 /** Estilo compartido de inputs: look shadcn con borde grueso y focus ring de marca. */
@@ -40,7 +51,7 @@ export function TextField({ label, error, hint, id, className, ...props }: TextF
   const fieldId = id ?? props.name ?? label;
   return (
     <FieldWrapper label={label} htmlFor={fieldId} error={error} hint={hint}>
-      <input id={fieldId} className={cn(fieldClassName, className)} {...props} />
+      <input id={fieldId} {...fieldA11y(fieldId, error, hint)} className={cn(fieldClassName, className)} {...props} />
     </FieldWrapper>
   );
 }
@@ -55,7 +66,7 @@ export function TextAreaField({ label, error, hint, id, className, ...props }: T
   const fieldId = id ?? props.name ?? label;
   return (
     <FieldWrapper label={label} htmlFor={fieldId} error={error} hint={hint}>
-      <textarea id={fieldId} className={cn(fieldClassName, className)} rows={4} {...props} />
+      <textarea id={fieldId} {...fieldA11y(fieldId, error, hint)} className={cn(fieldClassName, className)} rows={4} {...props} />
     </FieldWrapper>
   );
 }
@@ -70,9 +81,44 @@ export function SelectField({ label, error, hint, id, className, children, ...pr
   const fieldId = id ?? props.name ?? label;
   return (
     <FieldWrapper label={label} htmlFor={fieldId} error={error} hint={hint}>
-      <select id={fieldId} className={cn(fieldClassName, 'cursor-pointer', className)} {...props}>
+      <select id={fieldId} {...fieldA11y(fieldId, error, hint)} className={cn(fieldClassName, 'cursor-pointer', className)} {...props}>
         {children}
       </select>
+    </FieldWrapper>
+  );
+}
+
+type PasswordFieldProps = Omit<TextFieldProps, 'type'>;
+
+/**
+ * Campo de contraseña con botón mostrar/ocultar. No bloquea el pegado (los
+ * gestores de contraseñas lo necesitan). Usar `autoComplete="new-password"` al
+ * crear/cambiar y `current-password` al verificar la actual.
+ */
+export function PasswordField({ label, error, hint, id, className, ...props }: PasswordFieldProps) {
+  const [visible, setVisible] = useState(false);
+  const fieldId = id ?? props.name ?? label;
+  return (
+    <FieldWrapper label={label} htmlFor={fieldId} error={error} hint={hint}>
+      <div className="relative">
+        <input
+          id={fieldId}
+          type={visible ? 'text' : 'password'}
+          {...fieldA11y(fieldId, error, hint)}
+          className={cn(fieldClassName, 'pr-24', className)}
+          {...props}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((current) => !current)}
+          aria-pressed={visible}
+          aria-controls={fieldId}
+          aria-label="Mostrar contraseña"
+          className="absolute inset-y-0 right-1 my-1 cursor-pointer rounded-lg px-3 text-xs font-semibold text-primary hover:underline"
+        >
+          {visible ? 'Ocultar' : 'Mostrar'}
+        </button>
+      </div>
     </FieldWrapper>
   );
 }

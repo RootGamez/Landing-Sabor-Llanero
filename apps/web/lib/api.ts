@@ -7,6 +7,8 @@
  * SSR), así que todas las llamadas ocurren client-side en el navegador.
  */
 
+import { WRONG_CURRENT_PASSWORD_MESSAGE } from "@sabor/shared";
+
 /** Base pública de la API. Fallback razonable a `wrangler dev` local (:8787). */
 export const API_BASE_URL: string =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:8787";
@@ -79,7 +81,19 @@ async function readErrorMessage(response: Response): Promise<string> {
   return `Error ${response.status}`;
 }
 
+/**
+ * ¿El 401 es por credenciales incorrectas EN ESE REQUEST (y no por un token
+ * vencido o revocado)? `/customers/login` y `/customers/register` no necesitan
+ * sesión; `/customers/change-password` sí, y devuelve 401 tanto para "contraseña
+ * actual incorrecta" como para una sesión muerta: solo el primero es de credenciales.
+ */
+function isCredentialsError(path: string, message: string): boolean {
+  if (path === "/customers/login" || path === "/customers/register") return true;
+  return path === "/customers/change-password" && message === WRONG_CURRENT_PASSWORD_MESSAGE;
+}
+
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T | undefined> {
+  const sentToken = getCustomerToken();
   const response = await fetch(`${API_BASE_URL}/api${path}`, {
     method: options.method ?? "GET",
     headers: buildHeaders(options.body !== undefined),
@@ -87,22 +101,16 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     signal: options.signal,
   });
 
-  // `/customers/login` y `/customers/register` excluidos a propósito: un 401
-  // ahí es por credenciales inválidas EN ESE REQUEST, no por el token ya
-  // guardado (que igual viaja en el header si había una sesión activa desde
-  // antes, ej. alguien logueado que abre /cuenta/login/ por bookmark y escribe
-  // mal la contraseña) — limpiarlo ahí cerraría una sesión válida sin motivo.
-  const AUTH_ENDPOINTS_WITH_OWN_401 = ["/customers/login", "/customers/register"];
-  if (response.status === 401 && !AUTH_ENDPOINTS_WITH_OWN_401.includes(path)) {
-    // Token de cliente vencido/inválido en cualquier otro endpoint: se limpia
-    // acá mismo para no seguir reenviándolo. `customerAuth.tsx` ve
-    // `customer: null` en su próximo `refresh()`/remount — no hace falta un
-    // mecanismo reactivo más elaborado para el volumen de esta pizzería.
-    clearCustomerToken();
-  }
-
   if (!response.ok) {
-    throw new ApiError(response.status, await readErrorMessage(response));
+    const message = await readErrorMessage(response);
+    // Token de cliente vencido/inválido: se limpia aquí mismo para no seguir reenviándolo
+    // (`customerAuth.tsx` ve `customer: null` en su próximo `refresh()`/remount). Solo si el
+    // token guardado sigue siendo el que viajó en ESTE request: una petición lenta lanzada con
+    // el token viejo no debe borrar el token nuevo que dejó un cambio de contraseña.
+    if (response.status === 401 && !isCredentialsError(path, message) && getCustomerToken() === sentToken) {
+      clearCustomerToken();
+    }
+    throw new ApiError(response.status, message);
   }
 
   // Algunas respuestas 2xx no traen body (204/205, o 201 de POST /api/events):
