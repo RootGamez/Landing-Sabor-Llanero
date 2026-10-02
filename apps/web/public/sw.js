@@ -14,18 +14,33 @@
  *
  * Al cambiar la lógica, subir CACHE_VERSION para invalidar lo anterior.
  */
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const STATIC_CACHE = `sabor-static-${CACHE_VERSION}`;
 const IMAGE_CACHE = `sabor-images-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
-// offline.html + el ícono que muestra, para que se vea completa sin internet.
-const PRECACHE_URLS = [OFFLINE_URL, "/icons/icon-192.png"];
+// Ícono que muestra offline.html, para que se vea completa sin internet.
+const OFFLINE_ICON_URL = "/icons/icon-192.png";
+
+/*
+ * Cloudflare sirve /offline.html con un 307 hacia /offline (quita el .html).
+ * Un navegador rechaza responder una navegación con una respuesta que pasó por
+ * una redirección (response.redirected), así que se guarda una copia limpia.
+ */
+async function precacheOfflinePage(cache) {
+  const response = await fetch(OFFLINE_URL);
+  if (!response.ok) throw new Error(`No se pudo precachear ${OFFLINE_URL}: ${response.status}`);
+  const clean = new Response(await response.blob(), {
+    status: 200,
+    headers: { "content-type": "text/html; charset=utf-8" },
+  });
+  await cache.put(OFFLINE_URL, clean);
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(STATIC_CACHE)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) => Promise.all([precacheOfflinePage(cache), cache.add(OFFLINE_ICON_URL)]))
       .then(() => self.skipWaiting()),
   );
 });

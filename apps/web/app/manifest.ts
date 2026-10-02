@@ -33,6 +33,31 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
     ],
+    // Capturas de la ficha de instalación (Chrome/PWABuilder). 1080×1920 = 9:16,
+    // el formato de teléfono que también acepta Google Play.
+    screenshots: [
+      {
+        src: "/screenshots/home.jpg",
+        sizes: "1080x1920",
+        type: "image/jpeg",
+        form_factor: "narrow",
+        label: "Inicio de Pizzería Sabor Llanero",
+      },
+      {
+        src: "/screenshots/menu.jpg",
+        sizes: "1080x1920",
+        type: "image/jpeg",
+        form_factor: "narrow",
+        label: "Carta con fotos y precios",
+      },
+      {
+        src: "/screenshots/promos.jpg",
+        sizes: "1080x1920",
+        type: "image/jpeg",
+        form_factor: "narrow",
+        label: "Promos especiales y pedido por WhatsApp",
+      },
+    ],
     // Accesos directos al mantener pulsado el ícono de la app (Android).
     shortcuts: [
       {
