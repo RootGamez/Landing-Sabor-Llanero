@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { hashPassword } from '../lib/password';
 import { hashResetToken } from '../lib/reset-token';
 import { signCustomerToken } from '../lib/jwt';
-import { WRONG_CURRENT_PASSWORD_MESSAGE } from '@sabor/shared';
+import { LEGAL_VERSION, WRONG_CURRENT_PASSWORD_MESSAGE } from '@sabor/shared';
 
 const app = exports.default;
 const jsonHeaders = { 'Content-Type': 'application/json' };
@@ -196,5 +196,50 @@ describe('POST /api/customers/change-password', () => {
     const ok = await change('currentpassword1', 'brandnewpassword2');
     expect(ok.status).toBe(200);
     expect(await ok.json()).toHaveProperty('token');
+  });
+});
+
+describe('POST /api/customers/register — aceptación de términos', () => {
+  const validBody = (email: string) => ({
+    email,
+    password: 'unaclavelarga123',
+    name: 'Cliente Nuevo',
+    phone: '987654321',
+    acceptedTerms: true,
+    termsVersion: LEGAL_VERSION,
+  });
+
+  it('crea la cuenta y guarda versión y fecha de aceptación', async () => {
+    const res = await post('register', validBody('register-ok@test.local'));
+    expect(res.status).toBe(201);
+
+    const row = await env.DB.prepare(
+      'SELECT terms_version, terms_accepted_at FROM customers WHERE email = ?',
+    )
+      .bind('register-ok@test.local')
+      .first<{ terms_version: string; terms_accepted_at: string }>();
+    expect(row?.terms_version).toBe(LEGAL_VERSION);
+    expect(row?.terms_accepted_at).toBeTruthy();
+  });
+
+  it('rechaza el registro si no se aceptaron los términos (400) y no crea la cuenta', async () => {
+    const res = await post('register', { ...validBody('register-no-terms@test.local'), acceptedTerms: false });
+    expect(res.status).toBe(400);
+
+    const row = await env.DB.prepare('SELECT id FROM customers WHERE email = ?')
+      .bind('register-no-terms@test.local')
+      .first();
+    expect(row).toBeNull();
+  });
+
+  it('rechaza el registro si falta el campo de aceptación (cliente viejo)', async () => {
+    const { acceptedTerms: _omit, termsVersion: _omit2, ...legacyBody } = validBody('register-legacy@test.local');
+    const res = await post('register', legacyBody);
+    expect(res.status).toBe(400);
+  });
+
+  it('rechaza una versión de términos que no es la vigente (400)', async () => {
+    const res = await post('register', { ...validBody('register-old@test.local'), termsVersion: '1999-01-01' });
+    expect(res.status).toBe(400);
   });
 });

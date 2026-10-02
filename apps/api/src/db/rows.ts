@@ -231,6 +231,9 @@ export interface CustomerRow {
   token_version: number;
   last_login_at: string | null;
   created_at: string;
+  /** NULL en cuentas anteriores a la aceptación de términos (migración 0008). */
+  terms_version: string | null;
+  terms_accepted_at: string | null;
 }
 export const mapCustomer = (r: CustomerRow): Customer => ({
   id: r.id,

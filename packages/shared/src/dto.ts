@@ -169,6 +169,8 @@ export interface CustomerRegisterInput {
   password: string;
   name: string;
   phone: string;
+  acceptedTerms: true;
+  termsVersion: string;
 }
 
 export interface CustomerLoginInput {

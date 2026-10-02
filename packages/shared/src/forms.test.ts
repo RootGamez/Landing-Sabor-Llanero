@@ -11,6 +11,7 @@ import {
   passwordConfirmError,
   passwordError,
   phoneError,
+  termsAcceptedError,
 } from './forms';
 
 describe('normalizeFullName', () => {
@@ -164,5 +165,15 @@ describe('passwordError / passwordConfirmError', () => {
     expect(passwordConfirmError('abcdefgh1', 'abcdefgh1')).toBeNull();
     expect(passwordConfirmError('abcdefgh1', 'abcdefgh2')).toMatch(/no coinciden/i);
     expect(passwordConfirmError('abcdefgh1', '')).toMatch(/repite/i);
+  });
+});
+
+describe('termsAcceptedError', () => {
+  it('pide aceptar los términos si el checkbox está sin marcar', () => {
+    expect(termsAcceptedError(false)).toBe('Debes aceptar los Términos y la Política de Privacidad');
+  });
+
+  it('no devuelve error si el checkbox está marcado', () => {
+    expect(termsAcceptedError(true)).toBeNull();
   });
 });

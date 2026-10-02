@@ -91,3 +91,8 @@ export function passwordConfirmError(password: string, confirm: string): string 
 
 /** Mensaje que devuelve la API (401) cuando la contraseña actual no coincide; los clientes lo usan para no cerrar la sesión por error. */
 export const WRONG_CURRENT_PASSWORD_MESSAGE = 'La contraseña actual es incorrecta';
+
+/** El checkbox del registro: sin marcarlo no se puede crear la cuenta. */
+export function termsAcceptedError(accepted: boolean): string | null {
+  return accepted ? null : 'Debes aceptar los Términos y la Política de Privacidad';
+}

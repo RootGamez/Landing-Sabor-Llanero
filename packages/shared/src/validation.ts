@@ -14,6 +14,7 @@
  */
 import { z } from 'zod';
 import { EMAIL_MAX, FULL_NAME_MAX, PASSWORD_MAX, PASSWORD_MIN, PHONE_MAX } from './forms';
+import { LEGAL_VERSION } from './legal';
 
 
 const slugRegex = /^(?=.*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -220,6 +221,10 @@ export const customerRegisterSchema = z.object({
   password: passwordSchema,
   name: nameSchema,
   phone: phoneSchema,
+  /** Aceptación explícita de Términos y Privacidad; sin ella no se crea la cuenta. */
+  acceptedTerms: z.literal(true, { error: 'debes aceptar los Términos y la Política de Privacidad' }),
+  /** Versión que el cliente vio: si no es la vigente, vio un texto desactualizado. */
+  termsVersion: z.literal(LEGAL_VERSION, { error: 'los términos cambiaron, recarga la página e intenta de nuevo' }),
 });
 
 export const customerLoginSchema = z.object({

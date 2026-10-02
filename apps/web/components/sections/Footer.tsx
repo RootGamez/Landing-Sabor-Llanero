@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { PRIVACY_PATH, TERMS_PATH } from "@sabor/shared";
 import Reveal from "@/components/ui/Reveal";
 import TricolorBar from "@/components/ui/TricolorBar";
 import {
@@ -161,6 +163,14 @@ export default function Footer() {
       <div className="border-t border-white/8 py-6 text-center text-xs text-white/50">
         © {year} {siteConfig.fullName} — {siteConfig.address.display}. Hecho con
         cariño por una familia venezolana-peruana.
+        <nav aria-label="Documentos legales" className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-1">
+          <Link href={TERMS_PATH} className="underline-offset-2 hover:text-brand-yellow hover:underline">
+            Términos y Condiciones
+          </Link>
+          <Link href={PRIVACY_PATH} className="underline-offset-2 hover:text-brand-yellow hover:underline">
+            Política de Privacidad
+          </Link>
+        </nav>
       </div>
 
       {/* Franja tricolor: remate visual del footer */}

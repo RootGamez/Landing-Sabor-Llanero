@@ -4,6 +4,7 @@ import {
   customerLoginSchema,
   customerRegisterSchema,
   forgotPasswordSchema,
+  LEGAL_VERSION,
   resetPasswordSchema,
   updateCustomerProfileSchema,
   WRONG_CURRENT_PASSWORD_MESSAGE,
@@ -42,9 +43,10 @@ customerAuthRoutes.post('/register', rateLimit((env) => env.CUSTOMER_AUTH_LIMITE
 
   const passwordHash = await hashPassword(body.password);
   const row = await c.env.DB.prepare(
-    'INSERT INTO customers (email, phone, password_hash, name) VALUES (?, ?, ?, ?) RETURNING *',
+    `INSERT INTO customers (email, phone, password_hash, name, terms_version, terms_accepted_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now')) RETURNING *`,
   )
-    .bind(email, body.phone, passwordHash, body.name)
+    .bind(email, body.phone, passwordHash, body.name, LEGAL_VERSION)
     .first<CustomerRow>();
 
   const token = await signCustomerToken(

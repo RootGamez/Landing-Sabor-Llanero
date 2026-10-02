@@ -6,9 +6,12 @@ import Link from "next/link";
 import {
   EMAIL_MAX,
   FULL_NAME_MAX,
+  LEGAL_VERSION,
   PASSWORD_MAX,
   PASSWORD_MIN,
   PHONE_MAX,
+  PRIVACY_PATH,
+  TERMS_PATH,
   emailError,
   fullNameError,
   normalizeEmail,
@@ -16,10 +19,12 @@ import {
   passwordConfirmError,
   passwordError,
   phoneError,
+  termsAcceptedError,
 } from "@sabor/shared";
 import { ApiError } from "@/lib/api";
 import { useCustomerAuth } from "@/lib/customerAuth";
 import { useFieldErrors } from "@/lib/useFieldErrors";
+import AccountCheckboxField from "@/components/account/AccountCheckboxField";
 import AccountFormField from "@/components/account/AccountFormField";
 import AccountSubmitButton from "@/components/account/AccountSubmitButton";
 import PasswordField from "@/components/account/PasswordField";
@@ -32,6 +37,7 @@ export default function RegisterForm() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -41,6 +47,7 @@ export default function RegisterForm() {
     phone: phoneError(phone),
     password: passwordError(password),
     confirmPassword: passwordConfirmError(password, confirmPassword),
+    acceptedTerms: termsAcceptedError(acceptedTerms),
   });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -54,6 +61,8 @@ export default function RegisterForm() {
         email: normalizeEmail(email),
         phone: phone.trim(),
         password,
+        acceptedTerms: true,
+        termsVersion: LEGAL_VERSION,
       });
       router.push("/cuenta/");
     } catch (err) {
@@ -125,6 +134,37 @@ export default function RegisterForm() {
         onChange={(event) => setConfirmPassword(event.target.value)}
         onBlur={() => fields.touch("confirmPassword")}
       />
+
+      <AccountCheckboxField
+        name="acceptedTerms"
+        required
+        checked={acceptedTerms}
+        onChange={(event) => {
+          setAcceptedTerms(event.target.checked);
+          fields.touch("acceptedTerms");
+        }}
+        error={fields.error("acceptedTerms")}
+      >
+        Acepto los{" "}
+        <Link
+          href={TERMS_PATH}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-brand-blue underline hover:text-brand-red"
+        >
+          Términos y Condiciones
+        </Link>{" "}
+        y la{" "}
+        <Link
+          href={PRIVACY_PATH}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-brand-blue underline hover:text-brand-red"
+        >
+          Política de Privacidad
+        </Link>
+        .
+      </AccountCheckboxField>
 
       {error && (
         <p role="alert" className="text-sm text-brand-red">

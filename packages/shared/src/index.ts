@@ -9,3 +9,4 @@ export * from './format';
 export * from './brand';
 export * from './email';
 export * from './forms';
+export * from './legal';
