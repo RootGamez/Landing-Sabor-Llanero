@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bangers, Poppins } from "next/font/google";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { businessHours } from "@/lib/businessHours";
 import { CartProvider } from "@/lib/cart";
 import { CustomerAuthProvider } from "@/lib/customerAuth";
@@ -20,8 +21,19 @@ const poppins = Poppins({
   display: "swap",
 });
 
+// Color de la barra del navegador / splash de la app instalada (= --color-brand-blue).
+export const viewport: Viewport = {
+  themeColor: "#00247d",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
+  // iOS: al "Añadir a pantalla de inicio" abre sin barra de Safari y con este nombre.
+  appleWebApp: {
+    capable: true,
+    title: "Sabor Llanero",
+    statusBarStyle: "default",
+  },
   title: {
     default: `${siteConfig.fullName} | Pizza Artesanal y Delivery en Pisco, Ica`,
     template: `%s | ${siteConfig.fullName}`,
@@ -124,6 +136,7 @@ export default function RootLayout({
         <CustomerAuthProvider>
           <CartProvider>{children}</CartProvider>
         </CustomerAuthProvider>
+        <ServiceWorkerRegister />
         <script
           type="application/ld+json"
           // JSON-LD para Google: datos estructurados del restaurante

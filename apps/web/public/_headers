@@ -18,6 +18,13 @@
 # endurecer connect-src e img-src de "https:" a la lista explícita de
 # orígenes reales (la API + https://featurable.com + los avatares de Google,
 # ej. https://lh3.googleusercontent.com), en vez del wildcard de esquema.
+#
+# PWA: el service worker y el manifest deben revalidarse siempre; si el
+# navegador cachea sw.js, una versión nueva tarda días en llegar a los usuarios.
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
 /*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
