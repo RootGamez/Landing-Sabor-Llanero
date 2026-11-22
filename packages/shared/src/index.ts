@@ -13,3 +13,4 @@ export * from './legal';
 export * from './money';
 export * from './localDate';
 export * from './backoffice';
+export * from './homebank';
