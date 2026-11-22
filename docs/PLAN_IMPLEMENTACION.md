@@ -35,6 +35,8 @@ de referencia): éste es el plan de trabajo fase por fase, con su estado actuali
 >    puntual) explícitamente — ver la sección de confirmación al pie de cada entrega en el
 >    chat. Este archivo no reemplaza esa confirmación.
 
+> **Parte 3 (back-office: POS, gastos, dashboard)** vive en [`PLAN_BACKOFFICE.md`](./PLAN_BACKOFFICE.md).
+
 ## Cómo leer este documento
 
 Leyenda de estado: `⬜ Pendiente` · `🔄 En curso` · `✅ Completada` · `⚠️ Bloqueada`

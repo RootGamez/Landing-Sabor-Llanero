@@ -40,3 +40,9 @@ docs/BLUEPRINT.md
 # datos reales de la carta/negocio: no debe ir a git (contiene el catálogo real)
 apps/api/seed.sql
 
+
+# Datos reales de negocio (Aronium/HomeBank) — nunca versionar
+*.db
+*.xhb
+*.xhb~
+legacy-import/
