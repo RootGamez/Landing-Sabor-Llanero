@@ -4,7 +4,12 @@
  * implica tocar la migración + Row/mapper de la API + este archivo, juntos.
  */
 
-export type Role = 'owner' | 'admin';
+/**
+ * `cashier` (Plan Parte 3, D9): solo POS (abrir/vender/cerrar caja). No ve
+ * gastos, dashboard financiero ni Tienda/Ajustes.
+ */
+export const ROLES = ['owner', 'admin', 'cashier'] as const;
+export type Role = (typeof ROLES)[number];
 
 export interface User {
   id: number;
@@ -65,6 +70,12 @@ export interface CategoryPrice {
  * categorías con `hasSizes = false`; en categorías con tamaños queda `null`
  * y el precio se resuelve vía `CategoryPrice`/`ItemPrice` (ver pricing.ts).
  */
+/**
+ * Dónde se vende un ítem (Plan Parte 3, D6): `web` solo tienda online, `pos`
+ * solo mostrador, `both` en ambos. La web pública filtra both|web.
+ */
+export type MenuChannel = 'both' | 'web' | 'pos';
+
 export interface MenuItem {
   id: number;
   categoryId: number;
@@ -74,6 +85,7 @@ export interface MenuItem {
   descriptionEs: string;
   descriptionEn: string;
   price: number | null;
+  channel: MenuChannel;
   /** Ítem destacado (ej. Pizza Alborada), para resaltarlo en el catálogo. */
   isFeatured: boolean;
   isActive: boolean;

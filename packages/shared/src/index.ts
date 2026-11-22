@@ -10,3 +10,6 @@ export * from './brand';
 export * from './email';
 export * from './forms';
 export * from './legal';
+export * from './money';
+export * from './localDate';
+export * from './backoffice';

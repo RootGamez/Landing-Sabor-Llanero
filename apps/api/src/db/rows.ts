@@ -5,19 +5,27 @@
  */
 import type {
   AnalyticsEvent,
+  BackofficeSource,
+  CashCloseSnapshot,
+  CashSession,
   Category,
   CategoryPrice,
   Collection,
   CollectionKey,
   Customer,
+  Expense,
+  ExpenseCategory,
+  ExpenseSource,
   ItemPrice,
   LoyaltyConfig,
   MenuItem,
+  MenuChannel,
   MenuItemMedia,
   Order,
   OrderItem,
   OrderSource,
   OrderStatus,
+  PaymentMethod,
   PointsLedgerEntry,
   PointsLedgerReason,
   RaffleDraw,
@@ -25,6 +33,9 @@ import type {
   RedemptionStatus,
   Reward,
   RewardRedemption,
+  Role,
+  Sale,
+  SaleItem,
   Size,
   User,
   WhatsappConfig,
@@ -35,7 +46,7 @@ export interface UserRow {
   email: string;
   password_hash: string;
   name: string;
-  role: 'owner' | 'admin';
+  role: Role;
   token_version: number;
   last_login_at: string | null;
   created_at: string;
@@ -113,6 +124,7 @@ export interface MenuItemRow {
   description_es: string;
   description_en: string;
   price: number | null;
+  channel: MenuChannel;
   is_featured: number;
   is_active: number;
   display_order: number;
@@ -128,6 +140,7 @@ export const mapMenuItem = (r: MenuItemRow): MenuItem => ({
   descriptionEs: r.description_es,
   descriptionEn: r.description_en,
   price: r.price,
+  channel: r.channel,
   isFeatured: Boolean(r.is_featured),
   isActive: Boolean(r.is_active),
   displayOrder: r.display_order,
@@ -416,3 +429,171 @@ export const mapLoyaltyConfig = (r: LoyaltyConfigRow): LoyaltyConfig => ({
   minOrderAmountForPoints: r.min_order_amount_for_points,
   updatedAt: r.updated_at,
 });
+
+// ── Back-office (migración 0009) ────────────────────────────────────────────
+// Todos los montos `*_cents` son INTEGER (céntimos) y pasan tal cual al DTO.
+
+export interface PaymentMethodRow {
+  key: string;
+  label: string;
+  display_order: number;
+  is_active: number;
+}
+export const mapPaymentMethod = (r: PaymentMethodRow): PaymentMethod => ({
+  key: r.key,
+  label: r.label,
+  displayOrder: r.display_order,
+  isActive: Boolean(r.is_active),
+});
+
+export interface CashSessionRow {
+  id: number;
+  opened_at: string;
+  opened_by: number | null;
+  opening_cash_cents: number;
+  closed_at: string | null;
+  closed_by: number | null;
+  counted_cash_cents: number | null;
+  expected_cash_cents: number | null;
+  notes: string;
+  /** JSON de CashCloseSnapshot; NULL mientras la sesión está abierta. */
+  close_snapshot_json: string | null;
+  source: BackofficeSource;
+  legacy_ref: string | null;
+}
+export const mapCashSession = (r: CashSessionRow): CashSession => ({
+  id: r.id,
+  openedAt: r.opened_at,
+  openedBy: r.opened_by,
+  openingCashCents: r.opening_cash_cents,
+  closedAt: r.closed_at,
+  closedBy: r.closed_by,
+  countedCashCents: r.counted_cash_cents,
+  expectedCashCents: r.expected_cash_cents,
+  notes: r.notes,
+  // json_valid() lo garantiza el CHECK de la columna; el cast es seguro porque
+  // solo el cierre de caja (F3) escribe este JSON, con la forma del tipo.
+  closeSnapshot: r.close_snapshot_json
+    ? (JSON.parse(r.close_snapshot_json) as CashCloseSnapshot)
+    : null,
+  source: r.source,
+});
+
+export interface SaleRow {
+  id: number;
+  session_id: number;
+  number: number;
+  created_at: string;
+  created_by: number | null;
+  subtotal_cents: number;
+  discount_cents: number;
+  total_cents: number;
+  payment_method: string;
+  cash_received_cents: number | null;
+  order_id: number | null;
+  client_uuid: string | null;
+  voided_at: string | null;
+  voided_by: number | null;
+  void_reason: string | null;
+  source: BackofficeSource;
+  legacy_ref: string | null;
+}
+/** Las líneas se cargan aparte (un solo SELECT por lote, como db/covers.ts) y se pasan acá. */
+export const mapSale = (r: SaleRow, items: SaleItem[]): Sale => ({
+  id: r.id,
+  sessionId: r.session_id,
+  number: r.number,
+  createdAt: r.created_at,
+  createdBy: r.created_by,
+  subtotalCents: r.subtotal_cents,
+  discountCents: r.discount_cents,
+  totalCents: r.total_cents,
+  paymentMethod: r.payment_method,
+  cashReceivedCents: r.cash_received_cents,
+  changeCents:
+    r.cash_received_cents === null ? null : Math.max(0, r.cash_received_cents - r.total_cents),
+  orderId: r.order_id,
+  clientUuid: r.client_uuid,
+  voidedAt: r.voided_at,
+  voidedBy: r.voided_by,
+  voidReason: r.void_reason,
+  source: r.source,
+  items,
+});
+
+export interface SaleItemRow {
+  id: number;
+  sale_id: number;
+  item_id: number | null;
+  size_id: number | null;
+  name: string;
+  size_label: string | null;
+  unit_price_cents: number;
+  quantity: number;
+  line_total_cents: number;
+}
+export const mapSaleItem = (r: SaleItemRow): SaleItem => ({
+  id: r.id,
+  saleId: r.sale_id,
+  itemId: r.item_id,
+  sizeId: r.size_id,
+  name: r.name,
+  sizeLabel: r.size_label,
+  unitPriceCents: r.unit_price_cents,
+  quantity: r.quantity,
+  lineTotalCents: r.line_total_cents,
+});
+
+export interface ExpenseCategoryRow {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  color: string | null;
+  is_active: number;
+}
+export const mapExpenseCategory = (r: ExpenseCategoryRow): ExpenseCategory => ({
+  id: r.id,
+  name: r.name,
+  parentId: r.parent_id,
+  color: r.color,
+  isActive: Boolean(r.is_active),
+});
+
+export interface ExpenseRow {
+  id: number;
+  date: string;
+  amount_cents: number;
+  category_id: number;
+  description: string;
+  payment_method: string;
+  paid_from_register: number;
+  session_id: number | null;
+  source: ExpenseSource;
+  import_hash: string | null;
+  created_by: number | null;
+  created_at: string;
+  deleted_at: string | null;
+}
+export const mapExpense = (r: ExpenseRow): Expense => ({
+  id: r.id,
+  date: r.date,
+  amountCents: r.amount_cents,
+  categoryId: r.category_id,
+  description: r.description,
+  paymentMethod: r.payment_method,
+  paidFromRegister: Boolean(r.paid_from_register),
+  sessionId: r.session_id,
+  source: r.source,
+  createdBy: r.created_by,
+  createdAt: r.created_at,
+});
+
+/** Mapeo Aronium → menú actual; sin DTO público: solo lo consume el script de importación (F8). */
+export interface LegacyProductMapRow {
+  source: 'aronium';
+  legacy_id: number;
+  legacy_name: string;
+  legacy_group: string;
+  item_id: number | null;
+  size_id: number | null;
+}

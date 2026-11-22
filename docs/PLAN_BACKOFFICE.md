@@ -53,6 +53,7 @@ El CMS actual pasa a ser el módulo **Tienda online**.
   → (`menu_item` por nombre normalizado, `size` mediana/grande/familiar).
 - Encoding: algunos nombres vienen con bytes rotos (`Champi�on`) → normalizar (NFKD, sin
   acentos, lower) y dejar los no resueltos en el CSV de mapeo.
+- **91 líneas con cantidad fraccionaria** (medias porciones: Tequeños ×0.5, Pan al Ajo ×1.5…). `sale_items.quantity` es INTEGER con CHECK `line_total = unit_price × quantity`: el importador las guarda como `quantity=1`, `unit_price_cents = line_total_cents`, `name = "<nombre> (×0,5)"`. Totales intactos.
 - Ignorar: Stock, Customer, Warehouse, FloorPlan, PosVoid, Tax, User.
 
 **HomeBank** (`Downloads/Homebank/Sabor  Llanero.xhb`, XML nativo; NO versionar):
@@ -131,8 +132,8 @@ loguear aterriza en `/ventas/pos`.
 | Fase | Qué | Skills/agentes | Estado |
 |---|---|---|---|
 | F0 | Inspección de datos reales | — | ✅ 2026-11-22 |
-| F1 | Shell modular: `NAV_GROUPS` en Sidebar, rutas `/ventas /gastos /tienda /ajustes` con redirects, layout fullscreen POS, guard por rol (`RequireRole` multi-rol), páginas placeholder | `ui-ux-pro-max` → `ecc:react-reviewer` | ⬜ |
-| F2 | Migración 0009 + seed + tipos/Zod/helpers en `shared` (`money.ts` toCents/fromCents/formatPEN, `localDate.ts`, `backoffice.ts` schemas) + tests unitarios; rol `cashier` en `Role` | `ecc:database-migrations`, `tdd-workflow` | ⬜ |
+| F1 ✅ 2026-11-22 | Shell modular: `NAV_GROUPS` en Sidebar, rutas `/ventas /gastos /tienda /ajustes` con redirects, layout fullscreen POS, guard por rol (`RequireRole` multi-rol), páginas placeholder | `ui-ux-pro-max` → `ecc:react-reviewer` | ⬜ |
+| F2 ✅ 2026-11-22 | Migración 0009 + seed + tipos/Zod/helpers en `shared` (`money.ts` toCents/fromCents/formatPEN, `localDate.ts`, `backoffice.ts` schemas) + tests unitarios; rol `cashier` en `Role` | `ecc:database-migrations`, `tdd-workflow` | ⬜ |
 | F3 | API POS: `/api/cash-sessions` (current, open, close→snapshot, list, get), `/api/sales` (create atómico con `DB.batch`, precios recalculados server-side, void, list paginado), "cobrar pedido web". Tests de integración | `tdd-workflow`, `ecc:security-reviewer` | ⬜ |
 | F4 | UI POS: grilla por categoría (botones grandes, color), selector de tamaño, ticket +/−, método de pago 1 toque, vuelto, atajos teclado, abrir caja si no hay | `ui-ux-pro-max`, `ecc:frontend-a11y` → `ecc:react-reviewer` | ⬜ |
 | F5 | Cierre de caja: conteo efectivo, esperado vs contado, desglose por método, top productos, gastos de caja; PNG en cliente (`html-to-image`) + Web Share API (WhatsApp) / descarga; historial de cierres con regenerar imagen | `ui-ux-pro-max`, `dataviz` → `ecc:react-reviewer` | ⬜ |
@@ -158,3 +159,5 @@ Orden: F1 ∥ F2 → F3 → F4 → F5 ∥ F6 → F7 → F8 → F9 → F10.
 | Fecha | Fase(s) | Qué se hizo | Desvíos |
 |---|---|---|---|
 | 2026-11-22 | F0 | Plan aprobado; inspección de pos.db y .xhb | HomeBank se usa con totales diarios → importador acepta .xhb y convierte ingresos en ventas resumen |
+| 2026-11-22 | F1 | Sidebar `NAV_GROUPS`, rutas nuevas + redirects, `PosShell`, placeholders, `RequireRole` multi-rol | Etiquetas "Categorías de gastos"/"Categorías del menú"; guard de `cashier` en nav/rutas pendiente para F3 |
+| 2026-11-22 | F2 | `0009_backoffice.sql`, money/localDate/backoffice en shared, `cashier` en `ROLES` | Rebuild de `users` con respaldo `_bk_*` de tablas hijas (FK CASCADE/RESTRICT); CHECKs extra de totales; `formatPEN` = formato es-PE existente ("S/ 1,234.50"); `localDayRangeUtc` semiabierto |

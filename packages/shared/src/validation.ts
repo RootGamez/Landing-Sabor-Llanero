@@ -15,6 +15,7 @@
 import { z } from 'zod';
 import { EMAIL_MAX, FULL_NAME_MAX, PASSWORD_MAX, PASSWORD_MIN, PHONE_MAX } from './forms';
 import { LEGAL_VERSION } from './legal';
+import { ROLES } from './types';
 
 
 const slugRegex = /^(?=.*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -27,7 +28,7 @@ const passwordSchema = z
 
 const emailSchema = z.string().email('email inválido').max(EMAIL_MAX, 'email inválido');
 // Sin caracteres de control ni de dirección de texto (RLO/LRO, etc.): evita nombres que se vean distinto de lo guardado.
-const UNSAFE_TEXT = /[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/;
+export const UNSAFE_TEXT = /[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/;
 const nameSchema = z
   .string()
   .trim()
@@ -50,12 +51,12 @@ export const createUserSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   name: nameSchema,
-  role: z.enum(['owner', 'admin']),
+  role: z.enum(ROLES),
 });
 
 export const updateUserSchema = z.object({
   name: nameSchema.optional(),
-  role: z.enum(['owner', 'admin']).optional(),
+  role: z.enum(ROLES).optional(),
   password: passwordSchema.optional(),
 });
 
