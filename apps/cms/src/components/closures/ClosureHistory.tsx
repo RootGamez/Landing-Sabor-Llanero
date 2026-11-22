@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
-import { formatPEN, type CashSession } from '@sabor/shared';
+import { formatPEN, isReconciledSnapshot, type CashSession } from '@sabor/shared';
 import { describeDifference } from '../../lib/cashCount';
 import { HISTORY_PAGE_SIZE } from '../../lib/closuresApi';
 import { formatLimaLongDate, formatShiftRange } from '../../lib/closureFormat';
@@ -12,7 +12,7 @@ import { Skeleton } from '../ui/Skeleton';
 
 function differenceText(session: CashSession): string {
   const snapshot = session.closeSnapshot;
-  if (!snapshot) return '—';
+  if (!snapshot || !isReconciledSnapshot(snapshot)) return '—';
   const diff = describeDifference(snapshot.differenceCents);
   return diff.kind === 'even' ? diff.label : `${diff.label} ${formatPEN(diff.absCents)}`;
 }
@@ -33,6 +33,7 @@ function HistoryRow({ session, onSelect }: { session: CashSession; onSelect: (id
         <div className="flex flex-wrap items-center gap-1.5">
           {session.closedAt === null && <Badge variant="accent">Abierta</Badge>}
           {session.source !== 'pos' && <Badge variant="muted">Importado</Badge>}
+          {snapshot && !isReconciledSnapshot(snapshot) && <Badge variant="muted">Sin cuadrar</Badge>}
         </div>
       </td>
       <td className="px-3 py-3 text-right">

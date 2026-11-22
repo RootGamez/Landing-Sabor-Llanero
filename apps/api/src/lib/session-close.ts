@@ -1,12 +1,13 @@
-import type { CashCloseSnapshot } from '@sabor/shared';
 import type { CashSessionRow } from '../db/rows';
 import { conflict } from './http-error';
+import { buildCloseSnapshot, expectedForSnapshot } from './session-snapshot';
 import { computeSessionSummary } from './session-summary';
 
 const MAX_CLOSE_ATTEMPTS = 3;
 
 export interface CloseInput {
-  countedCashCents: number;
+  /** `null` = cierre sin cuadrar (D15): no se guarda esperado ni contado. */
+  countedCashCents: number | null;
   notes: string;
   closedBy: number;
 }
@@ -14,19 +15,6 @@ export interface CloseInput {
 /** Mismo formato que `datetime('now')` de SQLite (UTC, sin zona). */
 function nowSqliteUtc(): string {
   return new Date().toISOString().slice(0, 19).replace('T', ' ');
-}
-
-function buildSnapshot(
-  summary: Awaited<ReturnType<typeof computeSessionSummary>>,
-  input: CloseInput,
-  closedAt: string,
-): CashCloseSnapshot {
-  return {
-    ...summary,
-    closedAt,
-    countedCashCents: input.countedCashCents,
-    differenceCents: input.countedCashCents - summary.expectedCashCents,
-  };
 }
 
 /**
@@ -45,7 +33,7 @@ export async function closeCashSession(
   for (let attempt = 0; attempt < MAX_CLOSE_ATTEMPTS; attempt += 1) {
     const summary = await computeSessionSummary(db, session);
     const closedAt = nowSqliteUtc();
-    const snapshot = buildSnapshot(summary, input, closedAt);
+    const snapshot = buildCloseSnapshot(summary, closedAt, input.countedCashCents);
     const closed = await db
       .prepare(
         `UPDATE cash_sessions
@@ -62,7 +50,7 @@ export async function closeCashSession(
         closedAt,
         input.closedBy,
         input.countedCashCents,
-        summary.expectedCashCents,
+        expectedForSnapshot(snapshot),
         notes,
         JSON.stringify(snapshot),
         session.id,

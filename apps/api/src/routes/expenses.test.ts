@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { CashSessionDetail, Expense, ExpenseListResult } from '@sabor/shared';
+import type { CashSessionDetail, Expense, ExpenseListResult, ExpenseSummary } from '@sabor/shared';
 import { api, createUser, openCash, resetPos, type TestUser } from '../../test/pos-fixtures';
 
 type ExpenseBody = Partial<{
@@ -53,6 +53,7 @@ describe('routes/expenses', () => {
     it('anónimo 401 y cajero 403 en todas las rutas', async () => {
       for (const [method, path] of [
         ['GET', '/expenses'],
+        ['GET', '/expenses/summary'],
         ['POST', '/expenses'],
         ['PATCH', '/expenses/1'],
         ['DELETE', '/expenses/1'],
@@ -256,7 +257,7 @@ describe('routes/expenses', () => {
     it('editar el monto de un gasto de caja ya cerrada: solo owner (admin 403) y recalcula el snapshot', async () => {
       const sessionId = await openCash(owner.token, 10_000);
       const created = await post(owner.token, { paidFromRegister: true, amountCents: 2_000 });
-      await api(`/cash-sessions/${sessionId}/close`, { token: owner.token, method: 'POST', body: { countedCashCents: 8_000 } });
+      await api(`/cash-sessions/${sessionId}/close`, { token: owner.token, method: 'POST', body: { reconcile: true, countedCashCents: 8_000 } });
 
       const denied = await api(`/expenses/${created.body.id}`, { token: admin.token, method: 'PATCH', body: { amountCents: 3_000 } });
       expect(denied.status).toBe(403);
@@ -277,7 +278,7 @@ describe('routes/expenses', () => {
     it('editar la nota de un gasto de caja cerrada no requiere owner', async () => {
       const sessionId = await openCash(owner.token);
       const created = await post(owner.token, { paidFromRegister: true });
-      await api(`/cash-sessions/${sessionId}/close`, { token: owner.token, method: 'POST', body: { countedCashCents: 0 } });
+      await api(`/cash-sessions/${sessionId}/close`, { token: owner.token, method: 'POST', body: { reconcile: true, countedCashCents: 0 } });
       const res = await api(`/expenses/${created.body.id}`, { token: admin.token, method: 'PATCH', body: { description: 'Nota' } });
       expect(res.status).toBe(200);
     });
@@ -307,12 +308,79 @@ describe('routes/expenses', () => {
     it('eliminar un gasto de caja de una sesión cerrada: solo owner y recalcula el snapshot', async () => {
       const sessionId = await openCash(owner.token, 10_000);
       const created = await post(owner.token, { paidFromRegister: true, amountCents: 2_000 });
-      await api(`/cash-sessions/${sessionId}/close`, { token: owner.token, method: 'POST', body: { countedCashCents: 8_000 } });
+      await api(`/cash-sessions/${sessionId}/close`, { token: owner.token, method: 'POST', body: { reconcile: true, countedCashCents: 8_000 } });
       expect((await api(`/expenses/${created.body.id}`, { token: admin.token, method: 'DELETE' })).status).toBe(403);
       expect((await api(`/expenses/${created.body.id}`, { token: owner.token, method: 'DELETE' })).status).toBe(200);
       const detail = await api<CashSessionDetail>(`/cash-sessions/${sessionId}`, { token: owner.token });
       expect(detail.body.expectedCashCents).toBe(10_000);
       expect(detail.body.closeSnapshot).toMatchObject({ cashExpensesCents: 0, differenceCents: -2_000 });
+    });
+  });
+
+  describe('GET /summary', () => {
+    const summary = (qs = '', token = owner.token) => api<ExpenseSummary & { error?: string }>(`/expenses/summary${qs}`, { token });
+
+    async function childOfInsumos(name: string): Promise<number> {
+      const row = await env.DB.prepare('INSERT INTO expense_categories (name, parent_id) VALUES (?, ?) RETURNING id')
+        .bind(name, insumos)
+        .first<{ id: number }>();
+      return row!.id;
+    }
+
+    it('sin gastos devuelve ceros', async () => {
+      const res = await summary('?from=2026-03-10&to=2026-03-10');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ count: 0, totalCents: 0, byCategory: [], items: [], moreCount: 0 });
+    });
+
+    it('suma el total, agrupa por categoría (hijas dentro del padre) y ordena de mayor a menor', async () => {
+      const hija = await childOfInsumos(`Lácteos ${Date.now()}`);
+      await post(owner.token, { amountCents: 1_000, categoryId: insumos });
+      await post(owner.token, { amountCents: 2_000, categoryId: hija });
+      await post(owner.token, { amountCents: 2_500, categoryId: gas });
+      const res = await summary('?from=2026-03-10&to=2026-03-10');
+      expect(res.body.count).toBe(3);
+      expect(res.body.totalCents).toBe(5_500);
+      expect(res.body.byCategory.map((c) => [c.name, c.totalCents, c.count])).toEqual([
+        ['Insumos', 3_000, 2],
+        ['Gas', 2_500, 1],
+      ]);
+      expect(res.body.byCategory[0]!.categoryId).toBe(insumos);
+    });
+
+    it('items vienen del más reciente al más antiguo, respetan limit y reportan moreCount', async () => {
+      await post(owner.token, { date: '2026-03-08', amountCents: 100, description: 'a' });
+      await post(owner.token, { date: '2026-03-10', amountCents: 200, description: 'b' });
+      await post(owner.token, { date: '2026-03-10', amountCents: 300, description: 'c' });
+      const res = await summary('?limit=2');
+      expect(res.body.count).toBe(3);
+      expect(res.body.items.map((i) => i.description)).toEqual(['c', 'b']);
+      expect(res.body.items[0]).toMatchObject({ date: '2026-03-10', amountCents: 300, categoryName: 'Insumos' });
+      expect(res.body.moreCount).toBe(1);
+    });
+
+    it('usa los mismos filtros que el listado y excluye eliminados', async () => {
+      const keep = await post(owner.token, { amountCents: 700, categoryId: gas, paymentMethod: 'yape', description: 'Balón' });
+      const gone = await post(owner.token, { amountCents: 900, categoryId: gas, paymentMethod: 'yape' });
+      await api(`/expenses/${gone.body.id}`, { token: owner.token, method: 'DELETE' });
+      await post(owner.token, { amountCents: 400, categoryId: insumos });
+      const res = await summary(`?category_id=${gas}&payment_method=yape&q=Bal`);
+      expect(res.body).toMatchObject({ count: 1, totalCents: 700, moreCount: 0 });
+      expect(res.body.items[0]!.id).toBe(keep.body.id);
+    });
+
+    it('limit inválido o fuera de rango da 400; sin limit usa 12', async () => {
+      expect((await summary('?limit=0')).status).toBe(400);
+      expect((await summary('?limit=abc')).status).toBe(400);
+      expect((await summary('?limit=101')).status).toBe(400);
+      for (let i = 0; i < 14; i++) await post(owner.token, { amountCents: 100 + i });
+      const res = await summary();
+      expect(res.body.items).toHaveLength(12);
+      expect(res.body.moreCount).toBe(2);
+    });
+
+    it('fechas inválidas dan 400', async () => {
+      expect((await summary('?from=2026-13-01')).status).toBe(400);
     });
   });
 });

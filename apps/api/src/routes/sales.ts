@@ -1,5 +1,6 @@
 import { Hono, type Context } from 'hono';
 import {
+  DEFAULT_PAYMENT_METHOD,
   createSaleSchema,
   isValidLocalDate,
   localDayRangeUtc,
@@ -33,9 +34,9 @@ const PENDING_WEB_ORDERS_DAYS = 7;
 const PENDING_WEB_ORDERS_LIMIT = 100;
 
 /** Solo el efectivo lleva "recibido" (≥ total) para calcular el vuelto; no se acepta en otros métodos. */
-function resolveCashReceived(body: CreateSaleInput, totalCents: number): number | null {
+function resolveCashReceived(body: CreateSaleInput, paymentMethod: string, totalCents: number): number | null {
   if (body.cashReceivedCents === undefined) return null;
-  if (body.paymentMethod !== CASH_METHOD_KEY) {
+  if (paymentMethod !== CASH_METHOD_KEY) {
     throw badRequest('cashReceivedCents solo aplica al pagar en efectivo');
   }
   if (body.cashReceivedCents < totalCents) {
@@ -70,17 +71,19 @@ saleRoutes.post('/', async (c) => {
 
   const session = await findOpenSession(db);
   if (!session) throw conflict('Abre la caja antes de registrar ventas');
-  await assertPaymentMethodActive(db, body.paymentMethod);
+  // D15: sin método elegido se registra Yape.
+  const paymentMethod = body.paymentMethod ?? DEFAULT_PAYMENT_METHOD;
+  await assertPaymentMethodActive(db, paymentMethod);
 
   const lines = await linesForSale(db, body);
   const subtotalCents = sumLines(lines);
   if (body.discountCents > subtotalCents) throw badRequest('El descuento no puede superar el subtotal');
-  const cashReceivedCents = resolveCashReceived(body, subtotalCents - body.discountCents);
+  const cashReceivedCents = resolveCashReceived(body, paymentMethod, subtotalCents - body.discountCents);
 
   const result = await insertSale(db, {
     sessionId: session.id,
     createdBy: user.id,
-    paymentMethod: body.paymentMethod,
+    paymentMethod,
     discountCents: body.discountCents,
     cashReceivedCents,
     orderId: body.orderId ?? null,

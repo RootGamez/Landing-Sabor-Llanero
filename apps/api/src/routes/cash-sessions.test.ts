@@ -116,7 +116,7 @@ describe('routes/cash-sessions', () => {
       const res = await api<CashSessionDetail>(`/cash-sessions/${id}/close`, {
         token: cashier.token,
         method: 'POST',
-        body: { countedCashCents: 14_000, notes: 'Cierre normal' },
+        body: { reconcile: true, countedCashCents: 14_000, notes: 'Cierre normal' },
       });
 
       expect(res.status).toBe(200);
@@ -137,6 +137,77 @@ describe('routes/cash-sessions', () => {
       expect(res.body.summary.expectedCashCents).toBe(14_500);
     });
 
+    it('sin cuadrar (por defecto): guarda esperado y contado en NULL y un snapshot reconciled=false', async () => {
+      const id = await openCash(cashier.token, 10_000);
+      const voided = await sell(cashier.token, [{ itemId: menu.gaseosa, quantity: 1 }]);
+      await sell(cashier.token, [{ itemId: menu.gaseosa, quantity: 2 }]);
+      await sell(cashier.token, [{ itemId: menu.gaseosa, quantity: 1 }], 'yape');
+      await api(`/sales/${voided.id}/void`, { token: cashier.token, method: 'POST', body: { reason: 'Error' } });
+      await env.DB.prepare(
+        `INSERT INTO expenses (date, amount_cents, category_id, payment_method, paid_from_register, session_id)
+         VALUES ('2026-11-22', 1500, 1, 'efectivo', 1, ?)`,
+      ).bind(id).run();
+
+      const res = await api<CashSessionDetail>(`/cash-sessions/${id}/close`, {
+        token: cashier.token,
+        method: 'POST',
+        body: { notes: 'Cierre rápido' },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.closedAt).not.toBeNull();
+      expect(res.body.expectedCashCents).toBeNull();
+      expect(res.body.countedCashCents).toBeNull();
+      const snap = res.body.closeSnapshot!;
+      expect(snap).toMatchObject({
+        reconciled: false,
+        salesCount: 2,
+        voidedCount: 1,
+        totalSalesCents: 1_650,
+        cashExpensesCents: 1_500,
+      });
+      for (const key of ['expectedCashCents', 'countedCashCents', 'differenceCents']) {
+        expect(snap).not.toHaveProperty(key);
+      }
+      expect(snap.byMethod.map((m) => m.paymentMethod)).toEqual(['efectivo', 'yape']);
+      expect(res.body.summary).not.toHaveProperty('expectedCashCents');
+      const row = await env.DB.prepare('SELECT counted_cash_cents c, expected_cash_cents e FROM cash_sessions WHERE id = ?')
+        .bind(id)
+        .first<{ c: number | null; e: number | null }>();
+      expect(row).toEqual({ c: null, e: null });
+    });
+
+    it('reconcile=false explícito equivale al cierre sin cuadrar', async () => {
+      const id = await openCash(cashier.token);
+      const res = await api<CashSessionDetail>(`/cash-sessions/${id}/close`, {
+        token: cashier.token,
+        method: 'POST',
+        body: { reconcile: false },
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.closeSnapshot).toMatchObject({ reconciled: false });
+    });
+
+    it('rechaza countedCashCents sin cuadrar la caja (400) y la sesión sigue abierta', async () => {
+      const id = await openCash(cashier.token);
+      for (const body of [{ countedCashCents: 5_000 }, { reconcile: false, countedCashCents: 0 }]) {
+        const res = await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body });
+        expect(res.status).toBe(400);
+      }
+      const current = await api<CashSessionDetail | null>('/cash-sessions/current', { token: cashier.token });
+      expect(current.body?.closedAt).toBeNull();
+    });
+
+    it('con reconcile=true marca el snapshot como cuadrado', async () => {
+      const id = await openCash(cashier.token, 1_000);
+      const res = await api<CashSessionDetail>(`/cash-sessions/${id}/close`, {
+        token: cashier.token,
+        method: 'POST',
+        body: { reconcile: true, countedCashCents: 1_200 },
+      });
+      expect(res.body.closeSnapshot).toMatchObject({ reconciled: true, differenceCents: 200 });
+    });
+
     it('limita topProducts a 10', async () => {
       const id = await openCash(cashier.token, 0);
       for (let i = 0; i < 12; i += 1) {
@@ -150,34 +221,34 @@ describe('routes/cash-sessions', () => {
       const res = await api<CashSession>(`/cash-sessions/${id}/close`, {
         token: cashier.token,
         method: 'POST',
-        body: { countedCashCents: 0 },
+        body: { reconcile: true, countedCashCents: 0 },
       });
       expect(res.body.closeSnapshot!.topProducts).toHaveLength(10);
     });
 
     it('rechaza cerrar una sesión ya cerrada (409)', async () => {
       const id = await openCash(cashier.token);
-      const body = { countedCashCents: 10_000 };
+      const body = { reconcile: true, countedCashCents: 10_000 };
       expect((await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body })).status).toBe(200);
       expect((await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body })).status).toBe(409);
     });
 
     it('404 si la sesión no existe y 400 si el id es inválido', async () => {
-      expect((await api('/cash-sessions/9999/close', { token: cashier.token, method: 'POST', body: { countedCashCents: 0 } })).status).toBe(404);
-      expect((await api('/cash-sessions/abc/close', { token: cashier.token, method: 'POST', body: { countedCashCents: 0 } })).status).toBe(400);
+      expect((await api('/cash-sessions/9999/close', { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 0 } })).status).toBe(404);
+      expect((await api('/cash-sessions/abc/close', { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 0 } })).status).toBe(400);
     });
 
-    it('exige countedCashCents entero >= 0 (400)', async () => {
+    it('con reconcile=true exige countedCashCents entero >= 0 (400)', async () => {
       const id = await openCash(cashier.token);
       for (const countedCashCents of [-5, 1.5, undefined]) {
-        const res = await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents } });
+        const res = await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents } });
         expect(res.status).toBe(400);
       }
     });
 
     it('tras cerrar ya se puede abrir otra caja y no se vende en la cerrada', async () => {
       const id = await openCash(cashier.token);
-      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 10_000 } });
+      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 10_000 } });
       const sale = await api('/sales', {
         token: cashier.token,
         method: 'POST',
@@ -191,7 +262,7 @@ describe('routes/cash-sessions', () => {
   describe('GET / y GET /:id', () => {
     it('lista paginada para owner/admin y 403 para el cajero', async () => {
       const id = await openCash(cashier.token);
-      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 10_000 } });
+      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 10_000 } });
       await openCash(owner.token);
 
       for (const staff of [owner, admin]) {
@@ -206,7 +277,7 @@ describe('routes/cash-sessions', () => {
 
     it('detalle con snapshot (cerrada) o resumen en vivo (abierta)', async () => {
       const closedId = await openCash(cashier.token, 1_000);
-      await api(`/cash-sessions/${closedId}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 1_000 } });
+      await api(`/cash-sessions/${closedId}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 1_000 } });
       const openId = await openCash(cashier.token, 2_000);
 
       const closed = await api<CashSessionDetail>(`/cash-sessions/${closedId}`, { token: admin.token });
@@ -221,7 +292,7 @@ describe('routes/cash-sessions', () => {
 
     it('el cajero ve la sesión abierta y la que él mismo cerró hace poco', async () => {
       const closedId = await openCash(cashier.token);
-      await api(`/cash-sessions/${closedId}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 10_000 } });
+      await api(`/cash-sessions/${closedId}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 10_000 } });
       const openId = await openCash(cashier.token);
       const closed = await api<CashSessionDetail>(`/cash-sessions/${closedId}`, { token: cashier.token });
       expect(closed.status).toBe(200);
@@ -231,13 +302,13 @@ describe('routes/cash-sessions', () => {
 
     it('el cajero no ve una caja cerrada por otra persona (403)', async () => {
       const id = await openCash(owner.token);
-      await api(`/cash-sessions/${id}/close`, { token: owner.token, method: 'POST', body: { countedCashCents: 10_000 } });
+      await api(`/cash-sessions/${id}/close`, { token: owner.token, method: 'POST', body: { reconcile: true, countedCashCents: 10_000 } });
       expect((await api(`/cash-sessions/${id}`, { token: cashier.token })).status).toBe(403);
     });
 
     it('el cajero no ve su propio cierre pasadas 12 h (403)', async () => {
       const id = await openCash(cashier.token);
-      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 10_000 } });
+      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 10_000 } });
       await env.DB.prepare("UPDATE cash_sessions SET closed_at = datetime('now', '-13 hours') WHERE id = ?").bind(id).run();
       expect((await api(`/cash-sessions/${id}`, { token: cashier.token })).status).toBe(403);
       expect((await api(`/cash-sessions/${id}`, { token: admin.token })).status).toBe(200);

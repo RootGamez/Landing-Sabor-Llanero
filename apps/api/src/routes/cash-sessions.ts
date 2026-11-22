@@ -61,7 +61,7 @@ cashSessionRoutes.post('/:id/close', async (c) => {
   if (session.closed_at) throw conflict('La caja ya está cerrada');
 
   const closed = await closeCashSession(c.env.DB, session, {
-    countedCashCents: body.countedCashCents,
+    countedCashCents: body.reconcile ? (body.countedCashCents ?? null) : null,
     notes: body.notes,
     closedBy: c.get('user').id,
   });

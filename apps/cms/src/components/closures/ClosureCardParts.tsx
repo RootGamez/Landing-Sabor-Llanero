@@ -94,13 +94,33 @@ function Figure({ label, children, tone }: { label: string; children: ReactNode;
   );
 }
 
+function CashFooter({ data }: { data: ClosureData }) {
+  return (
+    <p className="flex justify-between gap-4 border-t-[3px] border-border pt-[14px] text-[28px] font-bold text-text-muted">
+      <span>Gastos de caja {formatPEN(data.cashExpensesCents)}</span>
+      <span>Anuladas {data.voidedCount}</span>
+    </p>
+  );
+}
+
+/** Caja cerrada sin cuadrar (D15): no hay esperado/contado/diferencia, pero sí gastos de caja y anuladas. */
+function UnreconciledBlock({ data }: { data: ClosureData }) {
+  return (
+    <section className="flex flex-col gap-[14px] rounded-[20px] border-[4px] border-forest bg-white px-[32px] py-[20px]">
+      <p className="text-[38px] font-extrabold leading-none text-forest">Caja no cuadrada</p>
+      <CashFooter data={data} />
+    </section>
+  );
+}
+
 export function CashBlock({ data }: { data: ClosureData }) {
+  if (!data.reconciled) return <UnreconciledBlock data={data} />;
   const diff = data.differenceCents === null ? null : describeDifference(data.differenceCents);
   const style = diff ? DIFF_STYLE[diff.kind] : null;
   return (
     <section className="flex flex-col gap-[14px] rounded-[20px] border-[4px] border-forest bg-white px-[32px] py-[20px]">
       <dl className="grid grid-cols-[1fr_1fr_1.8fr] gap-[24px]">
-        <Figure label="Esperado">{formatPEN(data.expectedCashCents)}</Figure>
+        <Figure label="Esperado">{data.expectedCashCents === null ? '—' : formatPEN(data.expectedCashCents)}</Figure>
         <Figure label="Contado">{data.countedCashCents === null ? 'Sin conteo' : formatPEN(data.countedCashCents)}</Figure>
         <Figure label="Diferencia" tone={style?.tone}>
           {diff && style ? (
@@ -113,10 +133,7 @@ export function CashBlock({ data }: { data: ClosureData }) {
           )}
         </Figure>
       </dl>
-      <p className="flex justify-between gap-4 border-t-[3px] border-border pt-[14px] text-[28px] font-bold text-text-muted">
-        <span>Gastos de caja {formatPEN(data.cashExpensesCents)}</span>
-        <span>Anuladas {data.voidedCount}</span>
-      </p>
+      <CashFooter data={data} />
     </section>
   );
 }

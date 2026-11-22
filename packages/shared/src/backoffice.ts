@@ -19,6 +19,9 @@ const DESCRIPTION_MAX = 200;
 const CATEGORY_NAME_MAX = 60;
 const SALE_QUANTITY_MAX = 99;
 
+/** Método de pago que la API asigna cuando la venta no trae uno (D15). Es la clave del seed de `payment_methods`. */
+export const DEFAULT_PAYMENT_METHOD = 'yape';
+
 /** Claves de `payment_methods` (efectivo, yape, ...): minúsculas/guion bajo. La existencia real la valida la API contra la tabla. */
 const paymentMethodKeySchema = z
   .string()
@@ -54,10 +57,25 @@ export const openSessionSchema = z.object({
   notes: safeText(NOTES_MAX, 'notes').default(''),
 });
 
-export const closeSessionSchema = z.object({
-  countedCashCents: centsSchema,
-  notes: safeText(NOTES_MAX, 'notes').default(''),
-});
+/**
+ * Cierre de caja (D15): por defecto NO se cuadra. Con `reconcile=true` el
+ * efectivo contado es obligatorio; sin cuadrar, no se admite (evita guardar un
+ * conteo que nadie va a comparar).
+ */
+export const closeSessionSchema = z
+  .object({
+    reconcile: z.boolean().default(false),
+    countedCashCents: centsSchema.optional(),
+    notes: safeText(NOTES_MAX, 'notes').default(''),
+  })
+  .superRefine((data, ctx) => {
+    if (data.reconcile && data.countedCashCents === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['countedCashCents'], message: 'cuenta el efectivo para cuadrar la caja' });
+    }
+    if (!data.reconcile && data.countedCashCents !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['countedCashCents'], message: 'countedCashCents solo aplica al cuadrar la caja' });
+    }
+  });
 
 // ── Ventas ──────────────────────────────────────────────────────────────────
 
@@ -96,7 +114,8 @@ export const createSaleSchema = z
     clientUuid: z.uuid('clientUuid inválido'),
     /** Opcional solo al cobrar un pedido web (`orderId`): entonces las líneas salen del pedido y se ignora esta lista. */
     items: saleItemsSchema.optional(),
-    paymentMethod: paymentMethodKeySchema,
+    /** Opcional: si falta, la API registra `DEFAULT_PAYMENT_METHOD` (Yape). */
+    paymentMethod: paymentMethodKeySchema.optional(),
     discountCents: centsSchema.default(0),
     /** Solo efectivo: lo que entregó el cliente, para calcular el vuelto. */
     cashReceivedCents: centsSchema.optional(),
@@ -282,8 +301,8 @@ export interface CashCloseTopProduct {
   totalCents: number;
 }
 
-/** Resumen de una sesión (en vivo mientras está abierta; base del snapshot al cerrar). */
-export interface CashSessionSummary {
+/** Totales de una sesión, sin el efectivo esperado (lo único que un cierre sin cuadrar no guarda). */
+export interface CashSessionTotals {
   sessionId: number;
   openedAt: string;
   openingCashCents: number;
@@ -294,22 +313,45 @@ export interface CashSessionSummary {
   byMethod: CashCloseMethodTotal[];
   /** Gastos pagados de caja (`paid_from_register`) de la sesión. */
   cashExpensesCents: number;
-  /** apertura + ventas en efectivo − gastos de caja (nunca negativo). */
-  expectedCashCents: number;
   topProducts: CashCloseTopProduct[];
 }
 
-/** Foto inmutable del cierre de caja: de acá se regenera la imagen PNG sin recalcular (F5). */
-export interface CashCloseSnapshot extends CashSessionSummary {
+/** Resumen de una sesión (en vivo mientras está abierta; base del snapshot al cerrar). */
+export interface CashSessionSummary extends CashSessionTotals {
+  /** apertura + ventas en efectivo − gastos de caja (nunca negativo). */
+  expectedCashCents: number;
+}
+
+/** Cierre cuadrado (con conteo). Los snapshots viejos e importados no traen `reconciled`: valen como cuadrados. */
+export interface ReconciledCloseSnapshot extends CashSessionSummary {
+  reconciled?: true;
   closedAt: string;
   countedCashCents: number;
   /** contado − esperado: negativo = faltante, positivo = sobrante. */
   differenceCents: number;
 }
 
+/** Cierre sin cuadrar (D15): ventas, métodos, top, gastos de caja y anuladas, sin esperado/contado/diferencia. */
+export interface UnreconciledCloseSnapshot extends CashSessionTotals {
+  reconciled: false;
+  closedAt: string;
+}
+
+/** Foto inmutable del cierre de caja: de acá se regenera la imagen PNG sin recalcular (F5). */
+export type CashCloseSnapshot = ReconciledCloseSnapshot | UnreconciledCloseSnapshot;
+
+export function isReconciledSnapshot(snapshot: CashCloseSnapshot): snapshot is ReconciledCloseSnapshot {
+  return snapshot.reconciled !== false;
+}
+
+/** ¿El resumen trae efectivo esperado? Falso solo en el snapshot de una caja cerrada sin cuadrar. */
+export function hasExpectedCash(summary: CashSessionSummary | UnreconciledCloseSnapshot): summary is CashSessionSummary {
+  return 'expectedCashCents' in summary;
+}
+
 /** Sesión + su resumen (snapshot congelado si está cerrada, en vivo si está abierta). */
 export interface CashSessionDetail extends CashSession {
-  summary: CashSessionSummary;
+  summary: CashSessionSummary | UnreconciledCloseSnapshot;
 }
 
 /** Pedido web confirmado y aún sin cobrar en caja ("Cobrar pedido web"), con el total ya en céntimos. */

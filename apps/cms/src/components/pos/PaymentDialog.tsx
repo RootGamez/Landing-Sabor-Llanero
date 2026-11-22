@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { formatPEN, type CreateSaleInput, type PaymentMethod, type Sale } from '@sabor/shared';
+import { DEFAULT_PAYMENT_METHOD, formatPEN, type CreateSaleInput, type PaymentMethod, type Sale } from '@sabor/shared';
 import type { AsyncState } from '../../hooks/useAsync';
 import { useMutation } from '../../hooks/useMutation';
 import { createSale } from '../../lib/posApi';
@@ -39,7 +39,7 @@ export function PaymentDialog({ open, onOpenChange, title, ...formProps }: Payme
     onOpenChange(next);
   };
   return (
-    <PosModal open={open} onOpenChange={handleOpenChange} title={title} description="Elige cómo paga el cliente.">
+    <PosModal open={open} onOpenChange={handleOpenChange} title={title} description="Elige cómo paga el cliente o cobra directo.">
       <PaymentForm {...formProps} submitSale={mutate} loading={loading} />
     </PosModal>
   );
@@ -53,46 +53,41 @@ type PaymentFormProps = Omit<PaymentDialogProps, 'open' | 'onOpenChange' | 'titl
 /** Ventana tras abrir el diálogo en la que se ignora el envío (evita que un Enter doble cobre sin querer). */
 const SUBMIT_GRACE_MS = 400;
 
-function MethodRadios({
+/** Botones de alternancia: ninguno viene marcado; volver a tocar el marcado lo desmarca. */
+function MethodToggles({
   methods,
   selected,
-  onSelect,
+  onToggle,
 }: {
   methods: readonly PaymentMethod[];
-  selected: string;
-  onSelect: (key: string) => void;
+  selected: string | null;
+  onToggle: (key: string) => void;
 }) {
   return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-1 text-xs font-bold font-display uppercase tracking-wide text-text-muted">
-        Método de pago
-      </legend>
+    <div role="group" aria-labelledby="pos-method-legend" className="flex flex-col gap-2">
+      <p id="pos-method-legend" className="mb-1 text-xs font-bold font-display uppercase tracking-wide text-text-muted">
+        Método de pago (opcional)
+      </p>
       <div className="grid grid-cols-3 gap-2">
         {methods.map((method) => (
-          <label
+          <button
             key={method.key}
+            type="button"
+            aria-pressed={selected === method.key}
+            onClick={() => onToggle(method.key)}
             className={cn(
-              'flex min-h-14 cursor-pointer items-center justify-center rounded-xl border-2 px-2 text-center text-sm font-bold text-text transition-colors',
-              'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2',
+              'flex min-h-14 items-center justify-center rounded-xl border-2 px-2 text-center text-sm font-bold text-text outline-none transition-colors',
+              'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               selected === method.key
                 ? 'border-forest bg-accent text-accent-foreground shadow-sticker'
                 : 'border-border bg-surface hover:border-forest-line',
             )}
           >
-            <input
-              type="radio"
-              name="payment-method"
-              value={method.key}
-              checked={selected === method.key}
-              onChange={() => onSelect(method.key)}
-              data-autofocus={selected === method.key ? '' : undefined}
-              className="sr-only"
-            />
             {method.label}
-          </label>
+          </button>
         ))}
       </div>
-    </fieldset>
+    </div>
   );
 }
 
@@ -198,26 +193,30 @@ function PaymentForm({
   const [openedAt] = useState(() => Date.now());
 
   const available = methods.data ?? [];
-  const methodKey = selectedKey ?? (available.find((m) => m.key === CASH_METHOD_KEY) ?? available[0])?.key ?? null;
-  const isCash = methodKey === CASH_METHOD_KEY;
+  // D15: nada preseleccionado. Sin elección, la API registra el método por defecto (Yape).
+  const isCash = selectedKey === CASH_METHOD_KEY;
+  const chargeLabel = available.find((m) => m.key === (selectedKey ?? DEFAULT_PAYMENT_METHOD))?.label ?? 'Yape';
   const receivedCents = cashText.trim() === '' ? totalCents : parseSolesToCents(cashText);
   const cashInvalid = isCash && (receivedCents === null || receivedCents < totalCents);
-  const canSubmit = methodKey !== null && !cashInvalid && !loading;
+  // Si Yape está desactivado no hay método por defecto: hay que elegir uno (la API rechazaría el cobro).
+  const defaultAvailable = available.some((m) => m.key === DEFAULT_PAYMENT_METHOD);
+  const canSubmit = !cashInvalid && !loading && (selectedKey !== null || defaultAvailable);
+  const toggleMethod = (key: string) => setSelectedKey((current) => (current === key ? null : key));
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!canSubmit || methodKey === null || Date.now() - openedAt < SUBMIT_GRACE_MS) return;
+    if (!canSubmit || Date.now() - openedAt < SUBMIT_GRACE_MS) return;
     const sale = await submitSale({
       clientUuid,
       ...payload,
-      paymentMethod: methodKey,
+      ...(selectedKey !== null ? { paymentMethod: selectedKey } : {}),
       ...(isCash && receivedCents !== null ? { cashReceivedCents: receivedCents } : {}),
     });
     if (sale) onPaid(sale);
     else onFailed();
   }
 
-  if (methodKey === null) return <MethodsLoader methods={methods} />;
+  if (available.length === 0) return <MethodsLoader methods={methods} />;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -225,11 +224,23 @@ function PaymentForm({
         <span className="font-display text-sm font-bold uppercase tracking-wide">Total a cobrar</span>
         <span className="text-4xl font-extrabold tabular-nums">{formatPEN(totalCents)}</span>
       </p>
-      <MethodRadios methods={available} selected={methodKey} onSelect={setSelectedKey} />
+      <MethodToggles methods={available} selected={selectedKey} onToggle={toggleMethod} />
+      {selectedKey === null && (
+        <p className="text-sm text-text-muted">
+          {defaultAvailable ? `Si no eliges, se registra como ${chargeLabel}.` : 'Elige un método de pago para cobrar.'}
+        </p>
+      )}
       {isCash && <CashFields totalCents={totalCents} text={cashText} onTextChange={setCashText} />}
       <div className="sticky bottom-0 -mx-5 -mb-5 border-t border-border bg-surface p-4">
-        <Button type="submit" size="lg" className="h-16 w-full text-lg" loading={loading} disabled={!canSubmit}>
-          Confirmar cobro
+        <Button
+          type="submit"
+          size="lg"
+          className="h-16 w-full text-lg"
+          loading={loading}
+          disabled={!canSubmit}
+          data-autofocus=""
+        >
+          Cobrar ({chargeLabel})
         </Button>
       </div>
     </form>

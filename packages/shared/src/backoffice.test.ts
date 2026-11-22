@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_PAYMENT_METHOD,
   closeSessionSchema,
   createSaleSchema,
+  isReconciledSnapshot,
+  type CashCloseSnapshot,
   expenseCategorySchema,
   expenseSchema,
   openSessionSchema,
@@ -33,13 +36,54 @@ describe('openSessionSchema', () => {
 });
 
 describe('closeSessionSchema', () => {
-  it('exige el efectivo contado', () => {
-    expect(closeSessionSchema.safeParse({}).success).toBe(false);
-    expect(closeSessionSchema.safeParse({ countedCashCents: 12050 }).success).toBe(true);
+  it('cierra sin cuadrar por defecto: no pide efectivo contado', () => {
+    const parsed = closeSessionSchema.parse({});
+    expect(parsed.reconcile).toBe(false);
+    expect(parsed.countedCashCents).toBeUndefined();
+    expect(parsed.notes).toBe('');
   });
 
-  it('rechaza contado negativo', () => {
-    expect(closeSessionSchema.safeParse({ countedCashCents: -1 }).success).toBe(false);
+  it('con reconcile=true exige el efectivo contado', () => {
+    expect(closeSessionSchema.safeParse({ reconcile: true }).success).toBe(false);
+    expect(closeSessionSchema.safeParse({ reconcile: true, countedCashCents: 12050 }).success).toBe(true);
+    expect(closeSessionSchema.safeParse({ reconcile: true, countedCashCents: 0 }).success).toBe(true);
+  });
+
+  it('rechaza contado negativo o con decimales', () => {
+    expect(closeSessionSchema.safeParse({ reconcile: true, countedCashCents: -1 }).success).toBe(false);
+    expect(closeSessionSchema.safeParse({ reconcile: true, countedCashCents: 1.5 }).success).toBe(false);
+  });
+
+  it('no permite countedCashCents cuando no se cuadra la caja', () => {
+    expect(closeSessionSchema.safeParse({ countedCashCents: 5000 }).success).toBe(false);
+    expect(closeSessionSchema.safeParse({ reconcile: false, countedCashCents: 5000 }).success).toBe(false);
+  });
+});
+
+describe('isReconciledSnapshot', () => {
+  const base = {
+    sessionId: 1,
+    openedAt: '2026-11-22 14:00:00',
+    openingCashCents: 0,
+    salesCount: 0,
+    voidedCount: 0,
+    totalSalesCents: 0,
+    byMethod: [],
+    cashExpensesCents: 0,
+    topProducts: [],
+    closedAt: '2026-11-22 20:00:00',
+  };
+
+  it('toma como cuadrado un snapshot viejo sin el campo reconciled', () => {
+    const legacy: CashCloseSnapshot = { ...base, expectedCashCents: 100, countedCashCents: 100, differenceCents: 0 };
+    expect(isReconciledSnapshot(legacy)).toBe(true);
+  });
+
+  it('distingue el snapshot explícito de caja sin cuadrar', () => {
+    const open: CashCloseSnapshot = { ...base, reconciled: false };
+    const done: CashCloseSnapshot = { ...base, reconciled: true, expectedCashCents: 0, countedCashCents: 0, differenceCents: 0 };
+    expect(isReconciledSnapshot(open)).toBe(false);
+    expect(isReconciledSnapshot(done)).toBe(true);
   });
 });
 
@@ -90,6 +134,13 @@ describe('createSaleSchema', () => {
 
   it.each([-1, 0.5])('rechaza discountCents %s', (discountCents) => {
     expect(createSaleSchema.safeParse({ ...validSale, discountCents }).success).toBe(false);
+  });
+
+  it('el método de pago es opcional (la API usa Yape cuando falta)', () => {
+    const { paymentMethod: _method, ...withoutMethod } = validSale;
+    const parsed = createSaleSchema.parse(withoutMethod);
+    expect(parsed.paymentMethod).toBeUndefined();
+    expect(DEFAULT_PAYMENT_METHOD).toBe('yape');
   });
 
   it('rechaza método de pago con formato inválido', () => {

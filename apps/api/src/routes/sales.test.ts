@@ -97,7 +97,7 @@ describe('routes/sales', () => {
       const b = await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 1 }] });
       expect([a.body.number, b.body.number]).toEqual([1, 2]);
       expect(a.body.sessionId).toBe(first);
-      await api(`/cash-sessions/${first}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 0 } });
+      await api(`/cash-sessions/${first}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 0 } });
       await openCash(cashier.token);
       const c = await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 1 }] });
       expect(c.body.number).toBe(1);
@@ -120,7 +120,7 @@ describe('routes/sales', () => {
       const id = await openCash(cashier.token);
       const body = { clientUuid: crypto.randomUUID(), items: [{ itemId: menu.gaseosa, quantity: 1 }] };
       const first = await postSale(cashier.token, body);
-      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 0 } });
+      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 0 } });
       const retry = await postSale(cashier.token, body);
       expect(retry.status).toBe(200);
       expect(retry.body.id).toBe(first.body.id);
@@ -224,6 +224,57 @@ describe('routes/sales', () => {
     });
   });
 
+  describe('POST / sin paymentMethod (D15: por defecto Yape)', () => {
+    const postWithoutMethod = (body: Omit<SaleBody, 'paymentMethod'>) =>
+      api<Sale & { error?: string }>('/sales', {
+        token: cashier.token,
+        method: 'POST',
+        body: { clientUuid: crypto.randomUUID(), ...body },
+      });
+
+    it('guarda yape cuando no se manda método', async () => {
+      await openCash(cashier.token);
+      const res = await postWithoutMethod({ items: [{ itemId: menu.gaseosa, quantity: 1 }] });
+      expect(res.status).toBe(201);
+      expect(res.body.paymentMethod).toBe('yape');
+      expect(res.body.cashReceivedCents).toBeNull();
+      expect(res.body.changeCents).toBeNull();
+    });
+
+    it('rechaza cashReceivedCents sin método: el default no es efectivo (400)', async () => {
+      await openCash(cashier.token);
+      const res = await postWithoutMethod({ items: [{ itemId: menu.gaseosa, quantity: 1 }], cashReceivedCents: 1_000 });
+      expect(res.status).toBe(400);
+    });
+
+    it('si Yape está desactivado, la venta sin método se rechaza (400)', async () => {
+      await openCash(cashier.token);
+      await env.DB.prepare("UPDATE payment_methods SET is_active = 0 WHERE key = 'yape'").run();
+      const res = await postWithoutMethod({ items: [{ itemId: menu.gaseosa, quantity: 1 }] });
+      await env.DB.prepare("UPDATE payment_methods SET is_active = 1 WHERE key = 'yape'").run();
+      expect(res.status).toBe(400);
+    });
+
+    it('cobrar un pedido web sin método también queda en yape', async () => {
+      await openCash(cashier.token);
+      const orderId = await createConfirmedOrder(menu.pizza, 28.9, 1);
+      const res = await postWithoutMethod({ orderId });
+      expect(res.status).toBe(201);
+      expect(res.body.paymentMethod).toBe('yape');
+    });
+
+    it('con efectivo explícito sigue calculando el vuelto', async () => {
+      await openCash(cashier.token);
+      const res = await postSale(cashier.token, {
+        items: [{ itemId: menu.gaseosa, quantity: 2 }],
+        paymentMethod: 'efectivo',
+        cashReceivedCents: 2_000,
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.changeCents).toBe(900);
+    });
+  });
+
   describe('POST / con orderId (cobrar pedido web)', () => {
     it('toma ítems y total del pedido, enlaza la venta y no deja cobrarlo dos veces', async () => {
       await openCash(cashier.token);
@@ -315,7 +366,7 @@ describe('routes/sales', () => {
     it('cajero y admin no anulan ventas de una sesión cerrada (403); el owner sí', async () => {
       const id = await openCash(cashier.token);
       const sale = await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 1 }] });
-      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 0 } });
+      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 0 } });
       for (const staff of [cashier, admin]) {
         const res = await api(`/sales/${sale.body.id}/void`, { token: staff.token, method: 'POST', body: { reason: 'tarde' } });
         expect(res.status).toBe(403);
@@ -328,7 +379,7 @@ describe('routes/sales', () => {
       const id = await openCash(cashier.token, 10_000);
       const sale = await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 2 }] }); // 11.00 efectivo
       await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 1 }], paymentMethod: 'yape' }); // 5.50 yape
-      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 11_100 } });
+      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 11_100 } });
 
       const before = await api<CashSessionDetail>(`/cash-sessions/${id}`, { token: owner.token });
       expect(before.body.expectedCashCents).toBe(11_100);
@@ -349,6 +400,23 @@ describe('routes/sales', () => {
         differenceCents: 1_100,
         closedAt: before.body.closedAt,
       });
+    });
+
+    it('anular en una caja cerrada sin cuadrar mantiene reconciled=false y no calcula diferencia', async () => {
+      const id = await openCash(cashier.token, 10_000);
+      const sale = await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 2 }] });
+      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: {} });
+
+      const res = await api(`/sales/${sale.body.id}/void`, { token: owner.token, method: 'POST', body: { reason: 'Corrección contable' } });
+      expect(res.status).toBe(200);
+
+      const after = await api<CashSessionDetail>(`/cash-sessions/${id}`, { token: owner.token });
+      expect(after.body.expectedCashCents).toBeNull();
+      expect(after.body.countedCashCents).toBeNull();
+      expect(after.body.closeSnapshot).toMatchObject({ reconciled: false, salesCount: 0, voidedCount: 1, totalSalesCents: 0 });
+      for (const key of ['expectedCashCents', 'countedCashCents', 'differenceCents']) {
+        expect(after.body.closeSnapshot).not.toHaveProperty(key);
+      }
     });
 
     it('anular en una sesión abierta no toca ningún snapshot', async () => {
@@ -380,7 +448,7 @@ describe('routes/sales', () => {
       const a = await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 1 }] });
       await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 2 }] });
       await api(`/sales/${a.body.id}/void`, { token: cashier.token, method: 'POST', body: { reason: 'Prueba' } });
-      await api(`/cash-sessions/${first}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 0 } });
+      await api(`/cash-sessions/${first}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 0 } });
       const second = await openCash(cashier.token);
       await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 3 }] });
 
@@ -415,7 +483,7 @@ describe('routes/sales', () => {
     it('el cajero solo ve las ventas de la caja abierta', async () => {
       const first = await openCash(cashier.token);
       const old = await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 1 }] });
-      await api(`/cash-sessions/${first}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 0 } });
+      await api(`/cash-sessions/${first}/close`, { token: cashier.token, method: 'POST', body: { reconcile: true, countedCashCents: 0 } });
       const second = await openCash(cashier2.token);
       const current = await postSale(cashier2.token, { items: [{ itemId: menu.gaseosa, quantity: 1 }] });
 

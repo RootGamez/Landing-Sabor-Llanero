@@ -105,7 +105,7 @@ export function CashClosuresPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-8">
       <PageHeading
         title="Cierres de caja"
-        subtitle="Cuenta el efectivo, compara con lo esperado y comparte el resumen del día en imagen."
+        subtitle="Cierra la caja, cuenta el efectivo si quieres cuadrarla y comparte el resumen del día en imagen."
       />
       {session === undefined && (current.error ? <ErrorState message={current.error} onRetry={current.refetch} /> : <Skeleton className="h-72 w-full" />)}
       {session === null && <NoOpenRegister canSeeHistory={!isCashier} />}
