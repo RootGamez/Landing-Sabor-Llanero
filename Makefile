@@ -37,6 +37,7 @@ D1_NAME := sabor-llanero
 	api web cms dev \
 	db-migrate-local db-seed-local create-owner \
 	typecheck lint build build-web clean \
+	e2e-cms import-aronium \
 	cf-login secrets build-mailer db-migrate-remote db-seed-remote create-owner-remote deploy-api
 
 help: ## Muestra esta ayuda
@@ -112,6 +113,16 @@ clean: ## Borra node_modules, dist, out, .next y .wrangler de todo el monorepo
 	find . -name .next -type d -prune -exec rm -rf {} +
 	find . -name .wrangler -type d -prune -exec rm -rf {} +
 	echo "Limpio. Corré 'make init' de nuevo antes de levantar algo."
+
+## --- E2E ---
+
+e2e-cms: ## Corre los tests E2E del CMS (Playwright, base aislada en e2e/.state)
+	cd $(CMS_DIR) && pnpm test:e2e
+
+import-aronium: ## Importa datos de Aronium desde pos.db (solo local; pide el backup al dueño)
+	@echo "Uso: coloca el backup en apps/api/scripts/aronium/pos.db y corre:"
+	@echo "  cd apps/api && pnpm exec tsx scripts/aronium/import.ts --local"
+	@echo "Revisa apps/api/scripts/aronium/ para el mapeo de productos."
 
 ## --- Despliegue a Cloudflare (producción) ---
 ## El D1 y el R2 ya existen en la cuenta ("sabor-llanero"); apps/api/wrangler.toml

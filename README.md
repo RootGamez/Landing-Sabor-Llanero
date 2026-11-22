@@ -40,6 +40,37 @@ make typecheck        # tsc --noEmit en todos los paquetes
 make clean             # borra node_modules/.next/out/.wrangler
 ```
 
+## Back-office (CMS)
+
+Panel de gestión para el dueño, administradores y cajeros. Módulos:
+
+- **POS** (`/ventas/pos`) — Punto de venta: catálogo, ticket, cobro, anular
+- **Cierres** (`/ventas/cierres`) — Arqueo de caja con PNG descargable
+- **Gastos** (`/gastos`) — Registro y listado de egresos con expresiones (`15+5`)
+- **Importar HomeBank** (`/gastos/importar`) — Carga de `.xhb`/`.csv` idempotente
+- **Dashboard** (`/`) — KPIs, ingresos vs egresos, top productos (solo owner/admin)
+- **Ajustes** — Menú, categorías, usuarios, perfil
+
+### Comandos
+
+```bash
+make cms                # CMS en modo dev (:5174)
+make dev                # api + web + cms juntos
+make e2e-cms            # Suite E2E del CMS (Playwright, base aislada)
+make create-owner EMAIL=x@x.com PASSWORD=abc NAME="Nombre"
+```
+
+### Importar HomeBank
+
+Ve a Gastos → Importar → sube tu `.xhb` o `.csv`. Los datos reales (`pos.db`,
+`.xhb`) nunca se commitean. Reimportar el mismo archivo da 0 duplicados.
+
+### Importar Aronium (F8 — pendiente)
+
+Requiere el backup actualizado de `pos.db` de Aronium. Contactar al dueño.
+
+---
+
 ## Documentación
 
 - [`docs/BLUEPRINT.md`](docs/BLUEPRINT.md) — arquitectura completa (catálogo,
@@ -47,4 +78,6 @@ make clean             # borra node_modules/.next/out/.wrangler
 - [`docs/PLAN_IMPLEMENTACION.md`](docs/PLAN_IMPLEMENTACION.md) — plan de
   ejecución vivo (seguridad de cuentas admin, carrito, puntos y sorteo). Se
   actualiza fase por fase a medida que se implementa.
+- [`docs/PLAN_BACKOFFICE.md`](docs/PLAN_BACKOFFICE.md) — plan de fases del
+  back-office (F1–F10), criterios de aceptación y registro de cambios.
 - [`apps/web/README.md`](apps/web/README.md) — guía de la landing actual.

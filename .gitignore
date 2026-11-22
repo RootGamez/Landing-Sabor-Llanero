@@ -46,3 +46,8 @@ apps/api/seed.sql
 *.xhb
 *.xhb~
 legacy-import/
+
+# E2E del CMS: base aislada, resultados y reportes (Playwright)
+apps/cms/e2e/.state/
+apps/cms/e2e/.results/
+apps/cms/e2e/.report/
