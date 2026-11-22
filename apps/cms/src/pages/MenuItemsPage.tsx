@@ -6,9 +6,9 @@ import { useCategories, useMenuItems } from '../hooks/useCmsData';
 import { useMutation } from '../hooks/useMutation';
 import { api } from '../lib/api';
 import { toastSuccess } from '../store/toastStore';
-import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
-import { fieldClassName } from '../components/ui/FormField';
+import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
 import { Skeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -68,37 +68,29 @@ export function MenuItemsPage() {
 
       <div className="relative max-w-sm">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
-        <input
+        <Input
           type="search"
           aria-label="Buscar ítems"
           placeholder="Buscar por nombre (es/en)…"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className={cn(fieldClassName, 'pl-10')}
+          className="pl-10"
         />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        <FilterChip
-          label="Todas"
-          active={categoryId === undefined}
-          onClick={() => {
-            setCategoryId(undefined);
-            setPage(1);
-          }}
-        />
-        {categories?.map((c) => (
-          <FilterChip
-            key={c.id}
-            label={c.nameEs}
-            active={categoryId === c.id}
-            onClick={() => {
-              setCategoryId(c.id);
-              setPage(1);
-            }}
-          />
-        ))}
-      </div>
+      <Select
+        aria-label="Filtrar por categoría"
+        className="max-w-sm"
+        value={categoryId === undefined ? '' : String(categoryId)}
+        onValueChange={(next) => {
+          setCategoryId(next === '' ? undefined : Number(next));
+          setPage(1);
+        }}
+        options={[
+          { value: '', label: 'Todas las categorías' },
+          ...(categories ?? []).map((c) => ({ value: String(c.id), label: c.nameEs })),
+        ]}
+      />
 
       <div>
         {loading && (
@@ -150,23 +142,5 @@ export function MenuItemsPage() {
         )}
       </div>
     </div>
-  );
-}
-
-function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        'shrink-0 rounded-full border-2 px-4 py-1.5 text-sm font-bold font-display uppercase tracking-wide transition-all active:scale-95',
-        active
-          ? 'border-forest bg-primary text-primary-foreground shadow-sticker-lime'
-          : 'border-border bg-surface text-text hover:border-forest'
-      )}
-    >
-      {label}
-    </button>
   );
 }

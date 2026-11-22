@@ -8,6 +8,7 @@ import { api } from '../lib/api';
 import { formatPrice, mediaUrl } from '../lib/format';
 import { toastError, toastSuccess } from '../store/toastStore';
 import { TextField, TextAreaField } from '../components/ui/FormField';
+import { SwitchField } from '../components/ui/Switch';
 import { NumberField } from '../components/ui/NumberField';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/card';
@@ -327,20 +328,12 @@ function RewardForm({
           hint="Opcional. Si lo completas, debe ser menor al precio de referencia."
         />
       </div>
-      {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- texto anidado bajo
-          <label> (label > span.flex-col > span), mismo patrón ya usado en MenuItemFormPage.tsx. */}
-      <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl2 border-2 border-border bg-surface p-4">
-        <span className="flex flex-col">
-          <span className="text-sm font-bold text-text">Premio activo</span>
-          <span className="text-xs text-text-muted">Visible y canjeable para los clientes.</span>
-        </span>
-        <input
-          type="checkbox"
-          checked={values.isActive}
-          onChange={(e) => setValues((v) => ({ ...v, isActive: e.target.checked }))}
-          className="size-5 accent-primary"
-        />
-      </label>
+      <SwitchField
+        label="Premio activo"
+        description="Visible y canjeable para los clientes."
+        checked={values.isActive}
+        onCheckedChange={(isActive) => setValues((v) => ({ ...v, isActive }))}
+      />
 
       <Button type="submit" loading={saving} className="self-start">
         {reward ? 'Guardar cambios' : 'Crear premio'}

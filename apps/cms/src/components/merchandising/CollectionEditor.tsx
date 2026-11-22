@@ -6,9 +6,10 @@ import { api } from '../../lib/api';
 import { formatPrice, mediaUrl } from '../../lib/format';
 import { useMutation } from '../../hooks/useMutation';
 import { toastError, toastSuccess } from '../../store/toastStore';
-import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
-import { TextField, fieldClassName } from '../ui/FormField';
+import { TextField } from '../ui/FormField';
+import { CheckboxField } from '../ui/Checkbox';
+import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 
@@ -162,15 +163,11 @@ export function CollectionEditor({ collection, clicksByItem, onChange }: Collect
             />
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-text">
-              <input
-                type="checkbox"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-                className="size-5 accent-primary"
-              />
-              Visible en el catálogo
-            </label>
+            <CheckboxField
+              label="Visible en el catálogo"
+              checked={isActive}
+              onCheckedChange={(checked) => setIsActive(checked === true)}
+            />
             <Button type="submit" size="sm" loading={savingMeta}>
               Guardar título
             </Button>
@@ -254,13 +251,13 @@ export function CollectionEditor({ collection, clicksByItem, onChange }: Collect
           {/* Buscador para agregar */}
           <div className="relative mt-1 max-w-md">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
-            <input
+            <Input
               type="search"
               aria-label={`Buscar ítems para agregar a ${collection.titleEs}`}
               placeholder="Buscar ítem del menú para agregar…"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className={cn(fieldClassName, 'pl-10')}
+              className="pl-10"
             />
             {searchInput.trim() && (
               <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border-2 border-border bg-surface shadow-lg">

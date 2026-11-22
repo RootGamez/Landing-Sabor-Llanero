@@ -3,7 +3,8 @@ import { useAsync } from '../hooks/useAsync';
 import { api } from '../lib/api';
 import type { ByCategoryRow, OrderClickRow } from '../lib/adminTypes';
 import { ReportTable } from '../components/reports/ReportTable';
-import { TextField } from '../components/ui/FormField';
+import { DateRangePicker, type DateRange } from '../components/ui/DateRangePicker';
+import { today } from '../components/ui/dateUtils';
 
 /**
  * Los 2 reportes que expone la API (apps/api/src/routes/reports.ts):
@@ -11,8 +12,8 @@ import { TextField } from '../components/ui/FormField';
  * most-viewed — este catálogo no tiene stock y no registra vistas.
  */
 export function ReportsPage() {
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [range, setRange] = useState<DateRange>({ from: '', to: '' });
+  const { from, to } = range;
   const dateQuery = `${from ? `from=${from}&` : ''}${to ? `to=${to}` : ''}`;
 
   const orderClicks = useAsync<OrderClickRow[]>(
@@ -26,8 +27,14 @@ export function ReportsPage() {
       <div>
         <h1 className="font-display text-2xl font-bold text-text">Reportes</h1>
         <div className="mt-3 flex flex-wrap gap-3">
-          <TextField label="Desde" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <TextField label="Hasta" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          <DateRangePicker
+            label="Período"
+            value={range}
+            onValueChange={setRange}
+            max={today()}
+            clearable
+            className="w-full max-w-xs"
+          />
           <p className="self-end text-xs text-text-muted">Aplica a los clics de pedido.</p>
         </div>
       </div>

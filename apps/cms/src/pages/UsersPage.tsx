@@ -21,7 +21,8 @@ import { useSessionStore } from '../store/sessionStore';
 import { api } from '../lib/api';
 import { toastSuccess } from '../store/toastStore';
 import { formatDateTime } from '../lib/format';
-import { TextField, PasswordField, SelectField } from '../components/ui/FormField';
+import { TextField, PasswordField } from '../components/ui/FormField';
+import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -30,6 +31,7 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog';
 
 const ROLE_LABELS: Record<Role, string> = { owner: 'Owner', admin: 'Admin', cashier: 'Cajero' };
+const ROLE_OPTIONS = (['admin', 'cashier', 'owner'] as Role[]).map((value) => ({ value, label: ROLE_LABELS[value] }));
 
 /** Solo owner (BLUEPRINT §1.6): gestión de cuentas del panel. */
 export function UsersPage() {
@@ -200,11 +202,12 @@ export function UsersPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               onBlur={() => fields.touch('newUserConfirm')}
             />
-            <SelectField label="Rol" value={role} onChange={(e) => setRole(e.target.value as Role)}>
-              <option value="admin">Admin</option>
-              <option value="cashier">Cajero</option>
-              <option value="owner">Owner</option>
-            </SelectField>
+            <Select
+              label="Rol"
+              value={role}
+              onValueChange={(next) => setRole(next as Role)}
+              options={ROLE_OPTIONS}
+            />
             <Button type="submit" loading={creating} className="self-start">
               Crear usuario
             </Button>
@@ -296,16 +299,13 @@ function EditUserForm({ user, onClose, onSaved }: EditUserFormProps) {
         onChange={(e) => setName(e.target.value)}
         onBlur={() => fields.touch('edit-user-name')}
       />
-      <SelectField
+      <Select
         id="edit-user-role"
         label="Rol"
         value={role}
-        onChange={(e) => setRole(e.target.value as Role)}
-      >
-        <option value="admin">Admin</option>
-        <option value="cashier">Cajero</option>
-        <option value="owner">Owner</option>
-      </SelectField>
+        onValueChange={(next) => setRole(next as Role)}
+        options={ROLE_OPTIONS}
+      />
       <PasswordField
         id="edit-user-password"
         label="Contraseña nueva"

@@ -6,9 +6,8 @@ import { useMutation } from '../../hooks/useMutation';
 import { api } from '../../lib/api';
 import { formatPrice } from '../../lib/format';
 import { toastError, toastSuccess } from '../../store/toastStore';
-import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
-import { fieldClassName } from '../ui/FormField';
+import { Input } from '../ui/Input';
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 const SEARCH_DEBOUNCE_MS = 350;
@@ -297,13 +296,13 @@ function EditOrderItemsForm({ order, categories, sizes, onClose, onSaved, onSavi
       <div className="flex flex-col gap-2">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
-          <input
+          <Input
             type="search"
             aria-label="Buscar productos para agregar"
             placeholder="Buscar producto por nombre…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className={cn(fieldClassName, 'pl-10')}
+            className="pl-10"
           />
         </div>
         {searchInput.trim() && (

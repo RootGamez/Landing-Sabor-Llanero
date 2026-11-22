@@ -1,4 +1,3 @@
-import { useId } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, LogOut } from 'lucide-react';
 import { BRAND } from '@sabor/shared';
@@ -6,6 +5,7 @@ import { useSessionStore } from '../../store/sessionStore';
 import { cn } from '../../lib/utils';
 import { NAV_GROUPS, filterNavGroups, isGroupActive, type NavGroup, type NavItem } from './navConfig';
 import { useClosedNavGroups } from './useClosedNavGroups';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/Collapsible';
 
 /** Anillo de foco visible sobre el fondo azul oscuro (el global es azul sobre azul). */
 const FOCUS_RING =
@@ -51,38 +51,37 @@ interface NavGroupSectionProps {
   onNavigate?: () => void;
 }
 
-/** Grupo colapsable: cabecera con `aria-expanded` + lista de enlaces. */
+/** Grupo colapsable (Radix Collapsible): cabecera con `aria-expanded` + lista de enlaces. */
 function NavGroupSection({ group, isOpen, isActive, onToggle, onNavigate }: NavGroupSectionProps) {
-  const panelId = `${useId()}-${group.id}`;
   return (
     <li>
-      <button
-        type="button"
-        onClick={() => onToggle(group.id)}
-        aria-expanded={isOpen}
-        aria-controls={panelId}
-        className={cn(
-          'flex min-h-11 w-full items-center justify-between rounded-xl px-3 text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/10 hover:text-text-inverse',
-          FOCUS_RING,
-          isActive ? 'text-accent' : 'text-text-inverse/60',
-        )}
-      >
-        <span>
-          {group.label}
-          {isActive && !isOpen && <span className="sr-only"> (sección actual)</span>}
-        </span>
-        <ChevronDown
-          aria-hidden="true"
-          className={cn('size-4 shrink-0 transition-transform duration-200', !isOpen && '-rotate-90')}
-        />
-      </button>
-      <ul id={panelId} hidden={!isOpen} className="mt-1 flex flex-col gap-1 pb-2">
-        {group.items.map((item) => (
-          <li key={item.to}>
-            <NavItemLink item={item} collapsed={false} onNavigate={onNavigate} />
-          </li>
-        ))}
-      </ul>
+      <Collapsible open={isOpen} onOpenChange={() => onToggle(group.id)}>
+        <CollapsibleTrigger
+          className={cn(
+            'flex min-h-11 w-full cursor-pointer items-center justify-between rounded-xl px-3 text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/10 hover:text-text-inverse',
+            FOCUS_RING,
+            isActive ? 'text-accent' : 'text-text-inverse/60',
+          )}
+        >
+          <span>
+            {group.label}
+            {isActive && !isOpen && <span className="sr-only"> (sección actual)</span>}
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className={cn('size-4 shrink-0 transition-transform duration-200 motion-reduce:transition-none', !isOpen && '-rotate-90')}
+          />
+        </CollapsibleTrigger>
+        <CollapsibleContent asChild>
+          <ul className="mt-1 flex flex-col gap-1 pb-2">
+            {group.items.map((item) => (
+              <li key={item.to}>
+                <NavItemLink item={item} collapsed={false} onNavigate={onNavigate} />
+              </li>
+            ))}
+          </ul>
+        </CollapsibleContent>
+      </Collapsible>
     </li>
   );
 }

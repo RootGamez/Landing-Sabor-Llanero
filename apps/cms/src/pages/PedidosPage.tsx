@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import type { OrderStatus } from '@sabor/shared';
 import { useCategories, useOrders, useSizes } from '../hooks/useCmsData';
-import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { Skeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -49,19 +49,15 @@ export function PedidosPage() {
         <p className="text-sm text-text-muted">Confirma o cancela los pedidos que coordinas por WhatsApp.</p>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {TABS.map((tab) => (
-          <FilterChip
-            key={tab.value}
-            label={tab.label}
-            active={status === tab.value}
-            onClick={() => {
-              setStatus(tab.value);
-              setPage(1);
-            }}
-          />
-        ))}
-      </div>
+      <SegmentedControl
+        aria-label="Filtrar pedidos por estado"
+        value={status}
+        onValueChange={(next) => {
+          setStatus(next as StatusFilter);
+          setPage(1);
+        }}
+        options={TABS}
+      />
 
       <div>
         {loading && (
@@ -108,23 +104,5 @@ export function PedidosPage() {
         )}
       </div>
     </div>
-  );
-}
-
-function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        'shrink-0 rounded-full border-2 px-4 py-1.5 text-sm font-bold font-display uppercase tracking-wide transition-all active:scale-95',
-        active
-          ? 'border-forest bg-primary text-primary-foreground shadow-sticker-lime'
-          : 'border-border bg-surface text-text hover:border-forest'
-      )}
-    >
-      {label}
-    </button>
   );
 }

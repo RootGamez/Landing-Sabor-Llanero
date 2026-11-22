@@ -15,6 +15,7 @@ import { NumberField } from '../components/ui/NumberField';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { SwitchField } from '../components/ui/Switch';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -187,24 +188,14 @@ export function CategoriesPage() {
                 />
               </div>
 
-              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- el texto
-                  accesible está anidado 3 niveles bajo <label> (label > span.flex-col > span de
-                  texto), uno más que el depth:2 por defecto de la regla; sigue siendo accesible. */}
-              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl2 border-2 border-border bg-surface p-4">
-                <span className="flex flex-col">
-                  <span className="text-sm font-bold text-text">Vende por tamaño</span>
-                  <span className="text-xs text-text-muted">
-                    Los ítems heredan un precio por cada tamaño (Mediana / Grande / Familiar).
-                    {editing && ' No se puede cambiar si la categoría ya tiene ítems.'}
-                  </span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={form.hasSizes}
-                  onChange={(e) => update('hasSizes', e.target.checked)}
-                  className="size-5 accent-primary"
-                />
-              </label>
+              <SwitchField
+                label="Vende por tamaño"
+                description={`Los ítems heredan un precio por cada tamaño (Mediana / Grande / Familiar).${
+                  editing ? ' No se puede cambiar si la categoría ya tiene ítems.' : ''
+                }`}
+                checked={form.hasSizes}
+                onCheckedChange={(checked) => update('hasSizes', checked)}
+              />
 
               {form.hasSizes &&
                 (sizes ? (
@@ -223,20 +214,12 @@ export function CategoriesPage() {
                   <p className="text-sm text-text-muted">Cargando tamaños…</p>
                 ))}
 
-              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- ver comentario
-                  del label anterior (mismo patrón, texto anidado 3 niveles bajo <label>). */}
-              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl2 border-2 border-border bg-surface p-4">
-                <span className="flex flex-col">
-                  <span className="text-sm font-bold text-text">Categoría activa</span>
-                  <span className="text-xs text-text-muted">Visible en el catálogo público.</span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={form.isActive}
-                  onChange={(e) => update('isActive', e.target.checked)}
-                  className="size-5 accent-primary"
-                />
-              </label>
+              <SwitchField
+                label="Categoría activa"
+                description="Visible en el catálogo público."
+                checked={form.isActive}
+                onCheckedChange={(checked) => update('isActive', checked)}
+              />
 
               <Button type="submit" loading={saving} className="self-start">
                 {editing ? 'Guardar cambios' : 'Crear categoría'}

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 import { fieldClassName } from './FormField';
+import { useFieldId } from './useFieldId';
 
 interface NumberFieldProps {
   label: string;
@@ -57,7 +58,7 @@ export function NumberField({
   prefix,
   suffix,
 }: NumberFieldProps) {
-  const fieldId = id ?? name ?? label;
+  const fieldId = useFieldId(id ?? name);
   const [text, setText] = useState<string>(() => toText(value));
 
   useEffect(() => {

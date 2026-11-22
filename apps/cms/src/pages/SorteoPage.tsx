@@ -5,7 +5,7 @@ import { useMutation } from '../hooks/useMutation';
 import { api } from '../lib/api';
 import { toastSuccess } from '../store/toastStore';
 import { formatDateTime } from '../lib/format';
-import { fieldClassName } from '../components/ui/FormField';
+import { MonthPicker } from '../components/ui/MonthPicker';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -50,18 +50,7 @@ export function SorteoPage() {
           <CardTitle>Sortear</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="raffle-period" className="text-xs font-bold font-display uppercase tracking-wide text-text-muted">
-              Período
-            </label>
-            <input
-              id="raffle-period"
-              type="month"
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className={fieldClassName}
-            />
-          </div>
+          <MonthPicker label="Período" value={period} onValueChange={setPeriod} className="max-w-xs" />
 
           {loadingEntries && <Skeleton className="h-6 w-40" />}
           {entriesError && <ErrorState message={entriesError} onRetry={refetchEntries} />}
