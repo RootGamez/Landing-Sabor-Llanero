@@ -85,11 +85,24 @@ cashSessionRoutes.get('/', requireRole('owner', 'admin'), async (c) => {
   return c.json(body);
 });
 
+/** Ventana en la que el cajero aún puede ver (y compartir) el resumen de la caja que él mismo cerró. */
+const CASHIER_RECENT_CLOSE_MS = 12 * 60 * 60 * 1000;
+
+/** `closed_at` es UTC "YYYY-MM-DD HH:MM:SS" (sin zona). */
+function closedWithin(closedAt: string, windowMs: number, now = Date.now()): boolean {
+  const closedMs = new Date(`${closedAt.replace(' ', 'T')}Z`).getTime();
+  return Number.isFinite(closedMs) && now - closedMs <= windowMs;
+}
+
 cashSessionRoutes.get('/:id', async (c) => {
   const id = requireIdParam(c);
   const row = await c.env.DB.prepare('SELECT * FROM cash_sessions WHERE id = ?').bind(id).first<CashSessionRow>();
   if (!row) throw notFound('Sesión de caja no encontrada');
-  // El cajero solo ve la caja abierta; el historial es de owner/admin.
-  if (c.get('user').role === 'cashier' && row.closed_at) throw forbidden();
+  // El cajero ve la caja abierta y la que él mismo cerró hace poco; el historial es de owner/admin.
+  const user = c.get('user');
+  if (user.role === 'cashier' && row.closed_at) {
+    const closedByMe = row.closed_by === user.id && closedWithin(row.closed_at, CASHIER_RECENT_CLOSE_MS);
+    if (!closedByMe) throw forbidden();
+  }
   return c.json(await toDetail(c.env.DB, row));
 });

@@ -219,12 +219,28 @@ describe('routes/cash-sessions', () => {
       expect(live.body.summary.openingCashCents).toBe(2_000);
     });
 
-    it('el cajero solo ve el detalle de la sesión abierta', async () => {
+    it('el cajero ve la sesión abierta y la que él mismo cerró hace poco', async () => {
       const closedId = await openCash(cashier.token);
       await api(`/cash-sessions/${closedId}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 10_000 } });
       const openId = await openCash(cashier.token);
-      expect((await api(`/cash-sessions/${closedId}`, { token: cashier.token })).status).toBe(403);
+      const closed = await api<CashSessionDetail>(`/cash-sessions/${closedId}`, { token: cashier.token });
+      expect(closed.status).toBe(200);
+      expect(closed.body.closeSnapshot?.countedCashCents).toBe(10_000);
       expect((await api(`/cash-sessions/${openId}`, { token: cashier.token })).status).toBe(200);
+    });
+
+    it('el cajero no ve una caja cerrada por otra persona (403)', async () => {
+      const id = await openCash(owner.token);
+      await api(`/cash-sessions/${id}/close`, { token: owner.token, method: 'POST', body: { countedCashCents: 10_000 } });
+      expect((await api(`/cash-sessions/${id}`, { token: cashier.token })).status).toBe(403);
+    });
+
+    it('el cajero no ve su propio cierre pasadas 12 h (403)', async () => {
+      const id = await openCash(cashier.token);
+      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 10_000 } });
+      await env.DB.prepare("UPDATE cash_sessions SET closed_at = datetime('now', '-13 hours') WHERE id = ?").bind(id).run();
+      expect((await api(`/cash-sessions/${id}`, { token: cashier.token })).status).toBe(403);
+      expect((await api(`/cash-sessions/${id}`, { token: admin.token })).status).toBe(200);
     });
 
     it('404 si no existe', async () => {

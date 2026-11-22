@@ -43,6 +43,8 @@ export interface NavGroup {
 
 /** Roles con acceso al back-office completo; el cajero (D9) solo ve el POS y su perfil. */
 const BACKOFFICE: readonly Role[] = ['owner', 'admin'];
+/** Todos los roles de staff: el cajero solo cierra su caja y comparte el resumen (D9). */
+const ALL_STAFF: readonly Role[] = ['owner', 'admin', 'cashier'];
 
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
@@ -57,7 +59,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     collapsible: true,
     items: [
       { to: '/ventas/pos', label: 'Punto de venta', icon: ShoppingCart },
-      { to: '/ventas/cierres', label: 'Cierres de caja', icon: Calculator, roles: BACKOFFICE },
+      { to: '/ventas/cierres', label: 'Cierres de caja', icon: Calculator, roles: ALL_STAFF },
       { to: '/ventas/historial', label: 'Historial de ventas', icon: History, roles: BACKOFFICE },
     ],
   },

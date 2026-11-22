@@ -90,6 +90,8 @@ menuItemRoutes.get('/', async (c) => {
 
 const SECTION_ITEMS_DEFAULT = 8;
 const SECTION_ITEMS_MAX = 24;
+/** Mostrador (`channel=pos|all`, exige sesión): sin el tope público, el POS lista la carta completa. */
+const SECTION_ITEMS_MAX_STAFF = 200;
 
 interface MenuSectionResponse {
   category: Category;
@@ -102,11 +104,10 @@ interface MenuSectionResponse {
  * YA resueltos (BLUEPRINT §4.2) — el público nunca calcula precios.
  */
 menuItemRoutes.get('/sections', async (c) => {
-  const limit = Math.min(
-    SECTION_ITEMS_MAX,
-    Math.max(1, parsePositiveInt(c.req.query('limit'), SECTION_ITEMS_DEFAULT)),
-  );
-  const channel = channelCondition(await requestedChannels(c), 'mi.channel');
+  const channels = await requestedChannels(c);
+  const maxItems = channels.includes('pos') ? SECTION_ITEMS_MAX_STAFF : SECTION_ITEMS_MAX;
+  const limit = Math.min(maxItems, Math.max(1, parsePositiveInt(c.req.query('limit'), SECTION_ITEMS_DEFAULT)));
+  const channel = channelCondition(channels, 'mi.channel');
 
   const [{ results: categories }, { results: items }, sizeRows] = await Promise.all([
     c.env.DB.prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order ASC, name_es ASC').all<CategoryRow>(),

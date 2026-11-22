@@ -33,6 +33,7 @@ import { ToastContainer } from './components/ui/ToastContainer';
 
 const BACKOFFICE_ROLES: readonly Role[] = ['owner', 'admin'];
 const OWNER_ONLY: readonly Role[] = ['owner'];
+const ALL_STAFF_ROLES: readonly Role[] = ['owner', 'admin', 'cashier'];
 
 export default function App() {
   return (
@@ -48,8 +49,13 @@ export default function App() {
         </Route>
 
         <Route element={<ShellLayout />}>
-          {/* Única ruta del shell abierta al cajero (D9), junto con el POS. */}
+          {/* Perfil: abierto al cajero (D9), junto con el POS y los cierres. */}
           <Route path="/ajustes/perfil" element={<ProfilePage />} />
+
+          {/* El cajero cierra su caja y comparte el resumen; el historial lo oculta la propia página. */}
+          <Route element={<RoleLayout roles={ALL_STAFF_ROLES} />}>
+            <Route path="/ventas/cierres" element={<CashClosuresPage />} />
+          </Route>
 
           <Route element={<RoleLayout roles={OWNER_ONLY} />}>
             <Route path="/ajustes/usuarios" element={<UsersPage />} />
@@ -58,7 +64,6 @@ export default function App() {
           <Route element={<RoleLayout roles={BACKOFFICE_ROLES} />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/reportes" element={<ReportsPage />} />
-            <Route path="/ventas/cierres" element={<CashClosuresPage />} />
             <Route path="/ventas/historial" element={<SalesHistoryPage />} />
             <Route path="/gastos" element={<ExpensesPage />} />
             <Route path="/gastos/importar" element={<ExpenseImportPage />} />

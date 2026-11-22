@@ -6,8 +6,8 @@
 import { toCents, type Category, type MenuItemWithPrices, type Size } from '@sabor/shared';
 import type { PriceSource } from './posCart';
 
-/** Tope de ítems por categoría que devuelve la API de secciones. */
-export const POS_SECTION_ITEM_LIMIT = 24;
+/** Tope de ítems por categoría que devuelve la API de secciones para el mostrador (`channel=pos`). */
+export const POS_SECTION_ITEM_LIMIT = 200;
 
 export interface PosMenuSection {
   category: Category;
