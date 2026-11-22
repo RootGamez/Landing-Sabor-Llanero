@@ -94,7 +94,7 @@ export function ExpenseFiltersBar({ filters, searchText, categories, methods, on
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="ef-search" className="text-xs font-bold font-display uppercase tracking-wide text-text-muted">
-          Buscar en la nota
+          Buscar en el detalle
         </label>
         <div className="relative">
           <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-text-muted" />

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   fetchActivePaymentMethods,
   fetchExpenseCategories,
+  fetchExpenseSummary,
   fetchExpenses,
   fetchHasOpenCash,
   type ExpenseFilterValues,
@@ -37,5 +38,14 @@ export function useExpenseList(filters: ExpenseFilterValues, page: number, pageS
   return useAsync(
     () => fetchExpenses({ from, to, categoryId, paymentMethod, q }, page, pageSize),
     [from, to, categoryId, paymentMethod, q, page, pageSize],
+  );
+}
+
+/** Resumen de egresos del filtro actual (lo usa la imagen compartible). */
+export function useExpenseSummary(filters: ExpenseFilterValues, limit: number) {
+  const { from, to, categoryId, paymentMethod, q } = filters;
+  return useAsync(
+    () => fetchExpenseSummary({ from, to, categoryId, paymentMethod, q }, limit),
+    [from, to, categoryId, paymentMethod, q, limit],
   );
 }

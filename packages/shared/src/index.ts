@@ -16,3 +16,5 @@ export * from './backoffice';
 export * from './homebank';
 export * from './reports';
 export * from './reportPeriods';
+export * from './amountExpression';
+export * from './expenseSummary';

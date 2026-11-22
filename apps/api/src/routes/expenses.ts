@@ -10,6 +10,7 @@ import {
 import type { AppEnv } from '../env';
 import { mapExpense, type ExpenseRow } from '../db/rows';
 import { buildExpenseFilters } from '../lib/expense-filters';
+import { loadExpenseSummary, parseSummaryLimit } from '../lib/expense-summary';
 import { assertCashRegisterMethod, assertCategoryActive } from '../lib/expense-rules';
 import { conflict, forbidden, notFound } from '../lib/http-error';
 import { parsePagination, requireIdParam } from '../lib/params';
@@ -71,6 +72,12 @@ expenseRoutes.get('/', async (c) => {
     dayTotals: await loadDayTotals(db, where, params, [...new Set(results.map((r) => r.date))]),
   };
   return c.json(body);
+});
+
+/** Resumen del filtro (total, por categoría, últimos N) para la imagen compartible de egresos. */
+expenseRoutes.get('/summary', async (c) => {
+  const filters = buildExpenseFilters(c);
+  return c.json(await loadExpenseSummary(c.env.DB, filters, parseSummaryLimit(c)));
 });
 
 /**

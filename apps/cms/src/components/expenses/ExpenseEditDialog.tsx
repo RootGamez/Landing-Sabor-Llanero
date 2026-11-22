@@ -8,7 +8,7 @@ import { Button } from '../ui/Button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog';
 import { SelectField, TextField } from '../ui/FormField';
 import { AmountInput } from './AmountInput';
-import { centsToAmountText, parseAmountToCents, type CategoryOption } from './expenseUtils';
+import { amountErrorMessage, centsToAmountText, parseAmountToCents, type CategoryOption } from './expenseUtils';
 import { PaidFromRegisterToggle } from './PaidFromRegisterToggle';
 
 const CASH_KEY = 'efectivo';
@@ -46,7 +46,7 @@ export function ExpenseEditDialog({ expense, categories, methods, hasOpenCash, o
 
   const amountCents = parseAmountToCents(amount);
   const { error, touch, validate } = useFieldErrors({
-    'ee-amount': amountCents === null ? 'Ingresa un monto mayor a 0 (ej. 12.50)' : null,
+    'ee-amount': amountErrorMessage(amount),
     'ee-date': date ? null : 'Elige la fecha del gasto',
   });
   // Una categoría desactivada se puede conservar, pero no elegir de nuevo.
@@ -120,8 +120,9 @@ export function ExpenseEditDialog({ expense, categories, methods, hasOpenCash, o
             <PaidFromRegisterToggle id="ee-paid" checked={paid} onChange={chooseRegisterCash} />
           )}
           <TextField
-            id="ee-note"
-            label="Nota (opcional)"
+            id="ee-detail"
+            label="Detalle (opcional)"
+            placeholder="Ej.: queso mozzarella 5 kg"
             value={note}
             maxLength={200}
             autoComplete="off"

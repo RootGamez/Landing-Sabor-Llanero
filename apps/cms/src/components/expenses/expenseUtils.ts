@@ -1,15 +1,18 @@
-import { toCents, todayLocal, type Expense, type ExpenseCategoryNode, type ExpenseDayTotal } from '@sabor/shared';
+import { evaluateAmountExpression, todayLocal, type Expense, type ExpenseCategoryNode, type ExpenseDayTotal } from '@sabor/shared';
 
 const MS_PER_DAY = 86_400_000;
-const AMOUNT_PATTERN = /^\d{1,6}([.,]\d{1,2})?$/;
 const QUICK_CATEGORY_COUNT = 6;
 
-/** "12", "12.5" o "12,50" (soles) → céntimos; `null` si no es un monto válido mayor a 0. */
+/** "12", "12,50" o una suma como "12+10+5" (soles) → céntimos; `null` si no es un monto válido mayor a 0. */
 export function parseAmountToCents(text: string): number | null {
-  const clean = text.trim();
-  if (!AMOUNT_PATTERN.test(clean)) return null;
-  const cents = toCents(Number(clean.replace(',', '.')));
-  return cents > 0 ? cents : null;
+  const result = evaluateAmountExpression(text);
+  return result.ok ? result.cents : null;
+}
+
+/** Motivo (en español) por el que el texto no es un monto válido; `null` si sí lo es. */
+export function amountErrorMessage(text: string): string | null {
+  const result = evaluateAmountExpression(text);
+  return result.ok ? null : result.error;
 }
 
 /** Céntimos → texto editable ("12.50") para precargar el formulario de edición. */

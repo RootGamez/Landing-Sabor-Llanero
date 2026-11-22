@@ -23,7 +23,7 @@ interface RowProps {
 }
 
 function ExpenseRow({ expense, category, categoriesReady, methodLabel, onEdit, onDelete }: RowProps) {
-  const title = expense.description || 'Sin nota';
+  const title = expense.description || 'Sin detalle';
   return (
     <li className="flex items-center gap-3 py-3">
       <span

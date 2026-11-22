@@ -6,6 +6,7 @@ import type {
   ExpenseCategoryUpdateInput,
   ExpenseInput,
   ExpenseListResult,
+  ExpenseSummary,
   ExpenseUpdateInput,
   PaymentMethod,
 } from '@sabor/shared';
@@ -19,19 +20,28 @@ export interface ExpenseFilterValues {
   q: string;
 }
 
-/** Arma el query string del listado omitiendo los filtros vacíos. */
-export function expenseListQuery(filters: ExpenseFilterValues, page: number, pageSize: number): string {
-  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+/** Filtros del listado y del resumen como parámetros de URL, omitiendo los vacíos. */
+function filterParams(filters: ExpenseFilterValues, base: Record<string, string> = {}): URLSearchParams {
+  const params = new URLSearchParams(base);
   if (filters.from) params.set('from', filters.from);
   if (filters.to) params.set('to', filters.to);
   if (filters.categoryId !== null) params.set('category_id', String(filters.categoryId));
   if (filters.paymentMethod) params.set('payment_method', filters.paymentMethod);
   if (filters.q.trim()) params.set('q', filters.q.trim());
-  return params.toString();
+  return params;
+}
+
+/** Arma el query string del listado omitiendo los filtros vacíos. */
+export function expenseListQuery(filters: ExpenseFilterValues, page: number, pageSize: number): string {
+  return filterParams(filters, { page: String(page), pageSize: String(pageSize) }).toString();
 }
 
 export const fetchExpenses = (filters: ExpenseFilterValues, page: number, pageSize: number) =>
   api.get<ExpenseListResult>(`/expenses?${expenseListQuery(filters, page, pageSize)}`);
+
+/** Total, desglose por categoría y los últimos `limit` gastos del filtro (para la imagen compartible). */
+export const fetchExpenseSummary = (filters: ExpenseFilterValues, limit: number) =>
+  api.get<ExpenseSummary>(`/expenses/summary?${filterParams(filters, { limit: String(limit) }).toString()}`);
 
 export const createExpense = (input: ExpenseInput) => api.post<Expense>('/expenses', input);
 

@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
+import { Share2 } from 'lucide-react';
 import { formatPEN, type Expense } from '@sabor/shared';
 import { ConfirmDialog } from '../components/expenses/ConfirmDialog';
 import { ExpenseEditDialog } from '../components/expenses/ExpenseEditDialog';
 import { ExpenseFiltersBar } from '../components/expenses/ExpenseFiltersBar';
 import { ExpenseList } from '../components/expenses/ExpenseList';
 import { ExpenseQuickForm } from '../components/expenses/ExpenseQuickForm';
+import { describeFilters } from '../components/expenses/expenseReportData';
+import { ExpenseShareDialog } from '../components/expenses/ExpenseShareDialog';
 import { flattenCategories, groupByDay, presetRange } from '../components/expenses/expenseUtils';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -25,7 +28,8 @@ import { toastSuccess } from '../store/toastStore';
 const PAGE_SIZE = 50;
 
 function initialFilters(): ExpenseFilterValues {
-  return { ...presetRange('month'), categoryId: null, paymentMethod: '', q: '' };
+  // Por defecto, el día de hoy (hora de Lima): es lo que se anota y lo que se comparte al cerrar.
+  return { ...presetRange('today'), categoryId: null, paymentMethod: '', q: '' };
 }
 
 export function ExpensesPage() {
@@ -34,6 +38,7 @@ export function ExpensesPage() {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState<Expense | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   const debouncedSearch = useDebouncedValue(searchText);
   const effectiveFilters = useMemo(() => ({ ...filters, q: debouncedSearch }), [filters, debouncedSearch]);
@@ -102,8 +107,12 @@ export function ExpensesPage() {
       />
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle>Historial</CardTitle>
+          <Button variant="outline" onClick={() => setSharing(true)}>
+            <Share2 aria-hidden="true" />
+            Compartir imagen
+          </Button>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           <ExpenseFiltersBar
@@ -162,6 +171,14 @@ export function ExpensesPage() {
           hasOpenCash={openCashState.data ?? false}
           onClose={() => setEditing(null)}
           onSaved={refreshAll}
+        />
+      )}
+
+      {sharing && (
+        <ExpenseShareDialog
+          filters={effectiveFilters}
+          filterNote={describeFilters(effectiveFilters, categoriesById, methods)}
+          onClose={() => setSharing(false)}
         />
       )}
 
