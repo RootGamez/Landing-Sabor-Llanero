@@ -21,7 +21,7 @@ export const PickerTrigger = React.forwardRef<HTMLButtonElement, PickerTriggerPr
       {...props}
     >
       <Icon className="size-4 shrink-0 text-text-muted" aria-hidden="true" />
-      <span className={cn('flex-1 truncate tabular-nums', !display && 'text-text-muted/70')}>
+      <span className={cn('flex-1 truncate tabular-nums', !display && 'text-text-muted')}>
         {display || placeholder}
       </span>
     </button>

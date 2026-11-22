@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Share2 } from 'lucide-react';
 import { formatPEN, type Expense } from '@sabor/shared';
-import { ConfirmDialog } from '../components/expenses/ConfirmDialog';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ExpenseEditDialog } from '../components/expenses/ExpenseEditDialog';
 import { ExpenseFiltersBar } from '../components/expenses/ExpenseFiltersBar';
 import { ExpenseList } from '../components/expenses/ExpenseList';

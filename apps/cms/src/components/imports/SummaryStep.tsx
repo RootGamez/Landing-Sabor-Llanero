@@ -1,4 +1,5 @@
-import { useId } from 'react';
+import { CheckboxField } from '../ui/Checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleSummary } from '../ui/Collapsible';
 import { AlertTriangle } from 'lucide-react';
 import { formatPEN, type HomebankParseError, type PreparedHomebankImport } from '@sabor/shared';
 import { Button } from '../ui/Button';
@@ -52,7 +53,6 @@ export function SummaryStep({
   onBack,
   onContinue,
 }: SummaryStepProps) {
-  const toggleId = useId();
   const problemCount = parseErrors.length + prepared.rejected.length;
   const shownParseErrors = parseErrors.slice(0, MAX_LISTED_ERRORS);
   const shownRejected = prepared.rejected.slice(0, Math.max(MAX_LISTED_ERRORS - shownParseErrors.length, 0));
@@ -81,48 +81,40 @@ export function SummaryStep({
       </dl>
 
       {problemCount > 0 ? (
-        <details className="rounded-xl border-2 border-border bg-card px-4 py-3">
-          <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-display text-sm font-bold text-text">
-            <AlertTriangle className="size-4 text-destructive" aria-hidden="true" />
-            Ver las {problemCount} filas con errores
-          </summary>
-          <ul className="mt-2 flex max-h-64 flex-col gap-1 overflow-y-auto text-sm text-text-muted">
-            {shownParseErrors.map((item, index) => (
-              <li key={`p-${index}`}>
-                {item.line > 0 ? `Línea ${item.line}: ` : ''}
-                {item.message}
-              </li>
-            ))}
-            {shownRejected.map((item) => (
-              <li key={`r-${item.index}`}>
-                Movimiento {item.index}: {item.message}
-              </li>
-            ))}
-            {problemCount > MAX_LISTED_ERRORS ? <li>… y {problemCount - MAX_LISTED_ERRORS} más.</li> : null}
-          </ul>
-        </details>
+        <Collapsible className="rounded-xl border-2 border-border bg-card p-1">
+          <CollapsibleSummary className="font-display">
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="size-4 text-destructive" aria-hidden="true" />
+              Ver las {problemCount} filas con errores
+            </span>
+          </CollapsibleSummary>
+          <CollapsibleContent>
+            <ul className="mx-3 mb-3 mt-2 flex max-h-64 flex-col gap-1 overflow-y-auto text-sm text-text-muted">
+              {shownParseErrors.map((item, index) => (
+                <li key={`p-${index}`}>
+                  {item.line > 0 ? `Línea ${item.line}: ` : ''}
+                  {item.message}
+                </li>
+              ))}
+              {shownRejected.map((item) => (
+                <li key={`r-${item.index}`}>
+                  Movimiento {item.index}: {item.message}
+                </li>
+              ))}
+              {problemCount > MAX_LISTED_ERRORS ? <li>… y {problemCount - MAX_LISTED_ERRORS} más.</li> : null}
+            </ul>
+          </CollapsibleContent>
+        </Collapsible>
       ) : null}
 
-      <div className="flex items-start gap-3 rounded-xl border-2 border-border bg-surface p-4">
-        <input
-          id={toggleId}
-          type="checkbox"
-          checked={includeIncomes}
-          disabled={busy}
-          onChange={(event) => onIncludeIncomes(event.target.checked)}
-          aria-describedby={`${toggleId}-hint`}
-          className="mt-1 size-5 shrink-0 cursor-pointer accent-primary"
-        />
-        <div>
-          <label htmlFor={toggleId} className="cursor-pointer font-display text-sm font-bold text-text">
-            Importar también los ingresos como ventas resumen del día
-          </label>
-          <p id={`${toggleId}-hint`} className="mt-1 text-sm text-text-muted">
-            Cada ingreso entra como una venta en efectivo dentro de una caja ya cerrada de ese día, así el dashboard tiene
-            tus ingresos completos. No se mezcla con las cajas que abras en el POS.
-          </p>
-        </div>
-      </div>
+      <CheckboxField
+        variant="card"
+        label="Importar también los ingresos como ventas resumen del día"
+        description="Cada ingreso entra como una venta en efectivo dentro de una caja ya cerrada de ese día, así el dashboard tiene tus ingresos completos. No se mezcla con las cajas que abras en el POS."
+        checked={includeIncomes}
+        disabled={busy}
+        onCheckedChange={(value) => onIncludeIncomes(value === true)}
+      />
 
       <p className="rounded-xl bg-muted px-4 py-3 text-sm text-text">
         Puedes volver a subir el mismo archivo cuando quieras: lo que ya importaste se reconoce y no se duplica.

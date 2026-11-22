@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
 import { cn } from '../../lib/utils';
 import { fieldClassName } from './fieldStyles';
 import { Input, Textarea } from './Input';
@@ -108,24 +108,6 @@ export function TextAreaField({ label, error, hint, id, className, ...props }: T
   return (
     <Field label={label} htmlFor={fieldId} error={error} hint={hint} required={props.required}>
       <Textarea id={fieldId} {...fieldA11y(fieldId, error, hint)} className={className} {...props} />
-    </Field>
-  );
-}
-
-/** @deprecated Select nativo: usa `Select` de `./Select`. Se mantiene solo hasta migrar la fase 2 (gastos). */
-interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label: string;
-  error?: string;
-  hint?: string;
-}
-
-export function SelectField({ label, error, hint, id, className, children, ...props }: SelectFieldProps) {
-  const fieldId = useFieldId(id ?? props.name);
-  return (
-    <Field label={label} htmlFor={fieldId} error={error} hint={hint} required={props.required}>
-      <select id={fieldId} {...fieldA11y(fieldId, error, hint)} className={cn(fieldClassName, 'cursor-pointer', className)} {...props}>
-        {children}
-      </select>
     </Field>
   );
 }

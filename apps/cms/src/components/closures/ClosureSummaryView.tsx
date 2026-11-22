@@ -1,3 +1,4 @@
+import { Collapsible, CollapsibleContent, CollapsibleSummary } from '../ui/Collapsible';
 import { useMemo, useRef } from 'react';
 import { ArrowLeft, CircleCheck } from 'lucide-react';
 import type { CashSessionDetail } from '@sabor/shared';
@@ -48,10 +49,12 @@ export function ClosureSummaryView({ detail, justClosed = false, onBack, backLab
         <ClosurePreview ref={cardRef} data={data} />
         <div className="flex flex-col gap-5">
           <ClosureActions image={image} fileName={closureFileName(data)} text={text} />
-          <details className="rounded-xl border-2 border-border bg-card p-4">
-            <summary className="min-h-6 cursor-pointer text-sm font-bold text-text">Ver resumen en texto</summary>
-            <pre className="mt-3 whitespace-pre-wrap font-sans text-sm text-text">{text}</pre>
-          </details>
+          <Collapsible className="rounded-xl border-2 border-border bg-card p-1">
+            <CollapsibleSummary>Ver resumen en texto</CollapsibleSummary>
+            <CollapsibleContent>
+              <pre className="m-3 whitespace-pre-wrap font-sans text-sm text-text">{text}</pre>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </div>
     </div>

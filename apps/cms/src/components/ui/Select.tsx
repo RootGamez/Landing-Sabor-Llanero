@@ -20,6 +20,8 @@ export interface SelectProps extends FieldShellProps {
   placeholder?: string;
   name?: string;
   disabled?: boolean;
+  /** Marca el campo como inválido sin mostrar mensaje (el mensaje vive en otro sitio). */
+  invalid?: boolean;
   className?: string;
   'aria-label'?: string;
 }
@@ -38,7 +40,7 @@ export const SelectTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       fieldClassName,
-      'flex cursor-pointer items-center justify-between gap-2 text-left data-[placeholder]:text-text-muted/70 [&>span]:truncate',
+      'flex cursor-pointer items-center justify-between gap-2 text-left data-[placeholder]:text-text-muted [&>span]:truncate',
       className
     )}
     {...props}
@@ -96,6 +98,7 @@ export function Select({
   placeholder = 'Selecciona…',
   name,
   disabled,
+  invalid,
   className,
   'aria-label': ariaLabel,
 }: SelectProps) {
@@ -111,7 +114,7 @@ export function Select({
         disabled={disabled}
         required={required}
       >
-        <SelectTrigger id={fieldId} aria-label={label ? undefined : ariaLabel} {...fieldA11y(fieldId, error, hint)}>
+        <SelectTrigger id={fieldId} aria-label={label ? undefined : ariaLabel} {...fieldA11y(fieldId, error, hint)} aria-invalid={error || invalid ? true : undefined}>
           <SelectPrimitive.Value placeholder={placeholder} />
         </SelectTrigger>
         <SelectList options={options} />

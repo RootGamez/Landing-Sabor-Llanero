@@ -142,7 +142,7 @@ export function Combobox({
             className={cn(fieldClassName, 'flex cursor-pointer items-center justify-between gap-2 text-left')}
             {...fieldA11y(fieldId, error, hint)}
           >
-            <span className={cn('truncate', !selected && 'text-text-muted/70')}>{selected?.label ?? placeholder}</span>
+            <span className={cn('truncate', !selected && 'text-text-muted')}>{selected?.label ?? placeholder}</span>
             <ChevronDown className="size-4 shrink-0 text-text-muted" aria-hidden="true" />
           </button>
         </PopoverTrigger>

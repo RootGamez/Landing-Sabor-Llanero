@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useState, type FormEvent } from 'react';
 import { Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { CreateCategoryInput, Size } from '@sabor/shared';
@@ -118,8 +119,10 @@ export function CategoriesPage() {
     }
   }
 
+  const confirm = useConfirm();
+
   async function handleDelete(id: number) {
-    if (!window.confirm('¿Eliminar esta categoría? Esta acción no se puede deshacer.')) return;
+    if (!(await confirm({ title: '¿Eliminar esta categoría?', description: 'Esta acción no se puede deshacer.', confirmLabel: 'Eliminar' }))) return;
     const result = await remove(id);
     if (result !== undefined) {
       toastSuccess('Categoría eliminada');

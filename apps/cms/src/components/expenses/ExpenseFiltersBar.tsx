@@ -2,7 +2,9 @@ import type { PaymentMethod } from '@sabor/shared';
 import { Search } from 'lucide-react';
 import type { ExpenseFilterValues } from '../../lib/expensesApi';
 import { cn } from '../../lib/utils';
-import { SelectField, TextField, fieldClassName } from '../ui/FormField';
+import { DatePicker } from '../ui/DatePicker';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 import { RANGE_PRESETS, presetRange, type CategoryOption, type RangePreset } from './expenseUtils';
 
 interface ExpenseFiltersBarProps {
@@ -48,48 +50,36 @@ export function ExpenseFiltersBar({ filters, searchText, categories, methods, on
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <TextField
+        <DatePicker
           id="ef-from"
           label="Desde"
-          type="date"
           value={filters.from}
           max={filters.to || undefined}
-          onChange={(event) => onChange({ from: event.target.value })}
+          onValueChange={(from) => onChange({ from })}
+          clearable
         />
-        <TextField
+        <DatePicker
           id="ef-to"
           label="Hasta"
-          type="date"
           value={filters.to}
           min={filters.from || undefined}
-          onChange={(event) => onChange({ to: event.target.value })}
+          onValueChange={(to) => onChange({ to })}
+          clearable
         />
-        <SelectField
+        <Select
           id="ef-category"
           label="Categoría"
-          value={filters.categoryId ?? ''}
-          onChange={(event) => onChange({ categoryId: event.target.value ? Number(event.target.value) : null })}
-        >
-          <option value="">Todas</option>
-          {categories.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
+          value={filters.categoryId === null ? '' : String(filters.categoryId)}
+          onValueChange={(next) => onChange({ categoryId: next ? Number(next) : null })}
+          options={[{ value: '', label: 'Todas' }, ...categories.map((o) => ({ value: String(o.id), label: o.label }))]}
+        />
+        <Select
           id="ef-method"
           label="Método de pago"
           value={filters.paymentMethod}
-          onChange={(event) => onChange({ paymentMethod: event.target.value })}
-        >
-          <option value="">Todos</option>
-          {methods.map((method) => (
-            <option key={method.key} value={method.key}>
-              {method.label}
-            </option>
-          ))}
-        </SelectField>
+          onValueChange={(paymentMethod) => onChange({ paymentMethod })}
+          options={[{ value: '', label: 'Todos' }, ...methods.map((m) => ({ value: m.key, label: m.label }))]}
+        />
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -98,7 +88,7 @@ export function ExpenseFiltersBar({ filters, searchText, categories, methods, on
         </label>
         <div className="relative">
           <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-text-muted" />
-          <input
+          <Input
             id="ef-search"
             type="search"
             value={searchText}
@@ -106,7 +96,7 @@ export function ExpenseFiltersBar({ filters, searchText, categories, methods, on
             autoComplete="off"
             placeholder="Ej. harina, gas, delivery"
             onChange={(event) => onSearchTextChange(event.target.value)}
-            className={cn(fieldClassName, 'pl-10')}
+            className="pl-10"
           />
         </div>
       </div>

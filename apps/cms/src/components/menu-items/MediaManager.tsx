@@ -1,3 +1,4 @@
+import { useConfirm } from '../ui/ConfirmDialog';
 import { useRef, useState, type ChangeEvent } from 'react';
 import { ChevronLeft, ChevronRight, Trash2, Upload } from 'lucide-react';
 import type { MenuItemMedia } from '@sabor/shared';
@@ -54,8 +55,10 @@ export function MediaManager({ itemId, media, onChange }: MediaManagerProps) {
     }
   }
 
+  const confirm = useConfirm();
+
   async function handleRemove(id: number) {
-    if (!window.confirm('¿Eliminar esta imagen/video?')) return;
+    if (!(await confirm({ title: '¿Eliminar esta imagen/video?', confirmLabel: 'Eliminar' }))) return;
     const result = await remove(id);
     if (result !== undefined) {
       toastSuccess('Media eliminada');

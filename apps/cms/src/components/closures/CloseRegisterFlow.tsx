@@ -7,7 +7,7 @@ import { formatLimaShort } from '../../lib/closureFormat';
 import { useCashCount } from '../../hooks/useCashCount';
 import { useMutation } from '../../hooks/useMutation';
 import { cn } from '../../lib/utils';
-import { ConfirmDialog } from '../expenses/ConfirmDialog';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { CashCountPanel } from './CashCountPanel';

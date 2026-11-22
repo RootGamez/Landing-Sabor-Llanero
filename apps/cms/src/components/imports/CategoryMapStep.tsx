@@ -1,9 +1,8 @@
-import { useId } from 'react';
 import type { HomebankCategoryPreview } from '@sabor/shared';
 import type { CategoryOption } from '../expenses/expenseUtils';
 import { Button } from '../ui/Button';
 import { ErrorState } from '../ui/ErrorState';
-import { fieldClassName } from '../ui/FormField';
+import { Select } from '../ui/Select';
 import { CREATE_CHOICE, NO_CHOICE, cannotCreate, unresolvedCategories, type PreviewTotals } from './importUtils';
 
 interface CategoryMapStepProps {
@@ -120,8 +119,12 @@ interface CategoryRowProps {
 }
 
 function CategoryRow({ category, active, value, onChange }: CategoryRowProps) {
-  const selectId = useId();
   const canCreate = !cannotCreate(category.name);
+  const options = [
+    ...(canCreate ? [{ value: CREATE_CHOICE, label: `Crear «${categoryLabel(category.name)}»` }] : []),
+    ...(value === NO_CHOICE ? [{ value: NO_CHOICE, label: 'Elige una categoría…', disabled: true }] : []),
+    ...active.map((option) => ({ value: String(option.id), label: `Asignar a ${option.label}` })),
+  ];
   return (
     <li className="flex flex-col gap-2 rounded-xl border-2 border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
@@ -129,28 +132,13 @@ function CategoryRow({ category, active, value, onChange }: CategoryRowProps) {
         <p className="text-xs text-text-muted tabular-nums">{category.count} gastos</p>
       </div>
       <div className="sm:w-72">
-        <label htmlFor={selectId} className="sr-only">
-          Destino de {categoryLabel(category.name)}
-        </label>
-        <select
-          id={selectId}
+        <Select
+          aria-label={`Destino de ${categoryLabel(category.name)}`}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
-          aria-invalid={value === NO_CHOICE ? true : undefined}
-          className={`${fieldClassName} min-h-11 cursor-pointer`}
-        >
-          {canCreate ? <option value={CREATE_CHOICE}>Crear «{categoryLabel(category.name)}»</option> : null}
-          {value === NO_CHOICE ? (
-            <option value={NO_CHOICE} disabled>
-              Elige una categoría…
-            </option>
-          ) : null}
-          {active.map((option) => (
-            <option key={option.id} value={String(option.id)}>
-              Asignar a {option.label}
-            </option>
-          ))}
-        </select>
+          onValueChange={onChange}
+          invalid={value === NO_CHOICE}
+          options={options}
+        />
       </div>
     </li>
   );

@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
@@ -38,8 +39,10 @@ export function MenuItemsPage() {
 
   const categoryById = new Map(categories?.map((c) => [c.id, c]) ?? []);
 
+  const confirm = useConfirm();
+
   async function handleDelete(item: MenuItemWithCover) {
-    if (!window.confirm(`¿Eliminar "${item.nameEs}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirm({ title: `¿Eliminar "${item.nameEs}"?`, description: 'Esta acción no se puede deshacer.', confirmLabel: 'Eliminar' }))) return;
     setDeletingId(item.id);
     const res = await remove(item.id);
     setDeletingId(null);

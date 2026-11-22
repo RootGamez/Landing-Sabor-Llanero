@@ -7,6 +7,7 @@ import { toastSuccess } from '../../store/toastStore';
 import { Button } from '../ui/Button';
 import { Card, CardContent } from '../ui/card';
 import { TextField } from '../ui/FormField';
+import { DatePicker } from '../ui/DatePicker';
 import { AmountInput } from './AmountInput';
 import { CategoryField } from './CategoryField';
 import { ChipGroup } from './ChipGroup';
@@ -135,14 +136,12 @@ export function ExpenseQuickForm({ categories, methods, hasOpenCash, onSaved }: 
           {hasOpenCash && <PaidFromRegisterToggle checked={paidFromRegister} onChange={chooseRegisterCash} />}
 
           <div className="grid gap-4 sm:grid-cols-[12rem_1fr] sm:items-end">
-            <TextField
+            <DatePicker
               id="qe-date"
               label="Fecha"
-              type="date"
               value={date}
               max={todayLocal()}
-              onChange={(event) => setDate(event.target.value)}
-              onBlur={() => touch('qe-date')}
+              onValueChange={setDate}
               error={error('qe-date')}
             />
             <Button type="submit" size="lg" variant="accent" loading={loading} className="w-full sm:w-auto sm:self-end sm:justify-self-end">

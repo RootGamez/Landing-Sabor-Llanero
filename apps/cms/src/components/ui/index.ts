@@ -7,6 +7,7 @@ export * from './card';
 export * from './Checkbox';
 export * from './Collapsible';
 export * from './Combobox';
+export * from './ConfirmDialog';
 export * from './DatePicker';
 export * from './DateRangePicker';
 export * from './dialog';

@@ -1,5 +1,5 @@
 import { isValidLocalDate, type ReportRange } from '@sabor/shared';
-import { TextField } from '../ui/FormField';
+import { DateRangePicker } from '../ui/DateRangePicker';
 import { cn } from '../../lib/utils';
 import { PERIOD_OPTIONS, formatRangeLabel, type PeriodKey } from '../../lib/dashboardFormat';
 
@@ -12,17 +12,14 @@ interface PeriodSelectorProps {
 /** Evita rangos absurdos mientras se teclea el año (0002, 0020…). */
 const MIN_DATE = '2020-01-01';
 
-/** Fecha editada: solo se aplica si es un día real y el rango sigue ordenado. */
-function applyDate(range: ReportRange, field: keyof ReportRange, value: string): ReportRange | null {
-  if (!isValidLocalDate(value) || value < MIN_DATE) return null;
-  const next = { ...range, [field]: value };
-  return next.from <= next.to ? next : null;
+/** Rango elegido: solo se aplica si ambos días son reales y posteriores al mínimo. */
+function isApplicable(range: ReportRange): boolean {
+  return isValidLocalDate(range.from) && isValidLocalDate(range.to) && range.from >= MIN_DATE && range.from <= range.to;
 }
 
 export function PeriodSelector({ period, range, onChange }: PeriodSelectorProps) {
-  const handleDate = (field: keyof ReportRange) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    const next = applyDate(range, field, event.target.value);
-    if (next) onChange('personalizado', next);
+  const handleRange = (next: ReportRange) => {
+    if (isApplicable(next)) onChange('personalizado', next);
   };
 
   return (
@@ -49,10 +46,14 @@ export function PeriodSelector({ period, range, onChange }: PeriodSelectorProps)
         })}
       </div>
       {period === 'personalizado' && (
-        <div className="flex flex-wrap gap-3">
-          <TextField label="Desde" type="date" value={range.from} min={MIN_DATE} max={range.to} onChange={handleDate('from')} />
-          <TextField label="Hasta" type="date" value={range.to} min={range.from > MIN_DATE ? range.from : MIN_DATE} onChange={handleDate('to')} />
-        </div>
+        <DateRangePicker
+          label="Rango personalizado"
+          value={range}
+          onValueChange={handleRange}
+          presets={[]}
+          min={MIN_DATE}
+          className="max-w-xs"
+        />
       )}
       <p className="text-sm text-text-muted" aria-live="polite">
         Mostrando {formatRangeLabel(range)} (hora de Lima)

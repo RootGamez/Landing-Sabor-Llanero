@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import type { ExpenseCategoryNode } from '@sabor/shared';
 import { CategoryDialog, type CategoryDialogTarget } from '../components/expenses/CategoryDialog';
 import { CategoryRow } from '../components/expenses/CategoryRow';
-import { ConfirmDialog } from '../components/expenses/ConfirmDialog';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/card';
 import { EmptyState } from '../components/ui/EmptyState';

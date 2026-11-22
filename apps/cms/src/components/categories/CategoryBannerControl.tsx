@@ -1,3 +1,4 @@
+import { useConfirm } from '../ui/ConfirmDialog';
 import { useRef, useState, type ChangeEvent } from 'react';
 import { ImageIcon, Trash2, Upload } from 'lucide-react';
 import type { Category } from '@sabor/shared';
@@ -39,8 +40,10 @@ export function CategoryBannerControl({ category, onChange }: CategoryBannerCont
     }
   }
 
+  const confirm = useConfirm();
+
   async function handleRemove() {
-    if (!window.confirm('¿Quitar el banner de esta categoría?')) return;
+    if (!(await confirm({ title: '¿Quitar el banner de esta categoría?', confirmLabel: 'Quitar' }))) return;
     const result = await removeBanner();
     if (result !== undefined) {
       toastSuccess('Banner eliminado');

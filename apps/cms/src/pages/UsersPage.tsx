@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useState, type FormEvent } from 'react';
 import { Pencil, Trash2, UserPlus } from 'lucide-react';
 import {
@@ -79,8 +80,10 @@ export function UsersPage() {
     }
   }
 
+  const confirm = useConfirm();
+
   async function handleDelete(id: number) {
-    if (!window.confirm('¿Eliminar este usuario?')) return;
+    if (!(await confirm({ title: '¿Eliminar este usuario?', description: 'Esta acción no se puede deshacer.', confirmLabel: 'Eliminar' }))) return;
     const result = await remove(id);
     if (result !== undefined) {
       toastSuccess('Usuario eliminado');

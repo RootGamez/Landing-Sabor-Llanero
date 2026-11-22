@@ -6,7 +6,9 @@ import { updateExpense } from '../../lib/expensesApi';
 import { toastSuccess } from '../../store/toastStore';
 import { Button } from '../ui/Button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog';
-import { SelectField, TextField } from '../ui/FormField';
+import { TextField } from '../ui/FormField';
+import { DatePicker } from '../ui/DatePicker';
+import { Select } from '../ui/Select';
 import { AmountInput } from './AmountInput';
 import { amountErrorMessage, centsToAmountText, parseAmountToCents, type CategoryOption } from './expenseUtils';
 import { PaidFromRegisterToggle } from './PaidFromRegisterToggle';
@@ -88,34 +90,36 @@ export function ExpenseEditDialog({ expense, categories, methods, hasOpenCash, o
         <DialogDescription>Corrige los datos y guarda. El total de la caja se recalcula si el gasto era de caja.</DialogDescription>
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
           <AmountInput id="ee-amount" value={amount} onChange={setAmount} onBlur={() => touch('ee-amount')} error={error('ee-amount')} />
-          <TextField
+          <DatePicker
             id="ee-date"
             label="Fecha"
-            type="date"
             value={date}
             max={todayLocal()}
-            onChange={(event) => setDate(event.target.value)}
-            onBlur={() => touch('ee-date')}
+            onValueChange={setDate}
             error={error('ee-date')}
           />
-          <SelectField id="ee-category" label="Categoría" value={categoryId} onChange={(event) => setCategoryId(Number(event.target.value))}>
-            {options.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-                {option.isActive ? '' : ' (desactivada)'}
-              </option>
-            ))}
-          </SelectField>
-          <SelectField id="ee-method" label="Método de pago" value={method} onChange={(event) => chooseMethod(event.target.value)}>
-            {!methods.some((m) => m.key === expense.paymentMethod) && (
-              <option value={expense.paymentMethod}>{expense.paymentMethod}</option>
-            )}
-            {methods.map((m) => (
-              <option key={m.key} value={m.key}>
-                {m.label}
-              </option>
-            ))}
-          </SelectField>
+          <Select
+            id="ee-category"
+            label="Categoría"
+            value={String(categoryId)}
+            onValueChange={(next) => setCategoryId(Number(next))}
+            options={options.map((option) => ({
+              value: String(option.id),
+              label: `${option.label}${option.isActive ? '' : ' (desactivada)'}`,
+            }))}
+          />
+          <Select
+            id="ee-method"
+            label="Método de pago"
+            value={method}
+            onValueChange={chooseMethod}
+            options={[
+              ...(methods.some((m) => m.key === expense.paymentMethod)
+                ? []
+                : [{ value: expense.paymentMethod, label: expense.paymentMethod }]),
+              ...methods.map((m) => ({ value: m.key, label: m.label })),
+            ]}
+          />
           {(hasOpenCash || expense.paidFromRegister) && (
             <PaidFromRegisterToggle id="ee-paid" checked={paid} onChange={chooseRegisterCash} />
           )}

@@ -87,7 +87,7 @@ export function DatePicker({
             autoFocusDay
           />
           <div className="mt-2 flex justify-between gap-2 border-t-2 border-border pt-2">
-            <Button type="button" variant="ghost" size="md" onClick={() => pick(clampDate(today(), min, max))}>
+            <Button type="button" variant="ghost" size="md" disabled={clampDate(today(), min, max) !== today()} onClick={() => pick(today())}>
               Hoy
             </Button>
             {clearable && valid && (

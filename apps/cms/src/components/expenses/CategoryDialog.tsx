@@ -7,10 +7,20 @@ import { cn } from '../../lib/utils';
 import { toastSuccess } from '../../store/toastStore';
 import { Button } from '../ui/Button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog';
-import { SelectField, TextField } from '../ui/FormField';
+import { TextField } from '../ui/FormField';
+import { Select } from '../ui/Select';
 
 const NAME_MAX = 60;
-const COLOR_PRESETS = ['#cf142b', '#e6b800', '#2e7d4f', '#00247d', '#0a8f9c', '#8a4fff', '#e0762b', '#5b5f6b'] as const;
+const COLOR_PRESETS = [
+  { hex: '#cf142b', name: 'Rojo' },
+  { hex: '#e6b800', name: 'Amarillo' },
+  { hex: '#2e7d4f', name: 'Verde' },
+  { hex: '#00247d', name: 'Azul' },
+  { hex: '#0a8f9c', name: 'Turquesa' },
+  { hex: '#8a4fff', name: 'Violeta' },
+  { hex: '#e0762b', name: 'Naranja' },
+  { hex: '#5b5f6b', name: 'Gris' },
+] as const;
 
 export interface CategoryDialogTarget {
   /** Categoría que se edita; `null` = crear. */
@@ -31,11 +41,11 @@ function ColorPicker({ value, onChange }: { value: string | null; onChange: (col
     <fieldset className="flex flex-col gap-2">
       <legend className="text-xs font-bold font-display uppercase tracking-wide text-text-muted">Color (opcional)</legend>
       <div className="flex flex-wrap gap-2">
-        {COLOR_PRESETS.map((color) => (
+        {COLOR_PRESETS.map(({ hex: color, name: colorName }) => (
           <button
             key={color}
             type="button"
-            aria-label={`Color ${color}`}
+            aria-label={`Color ${colorName}`}
             aria-pressed={value?.toLowerCase() === color}
             onClick={() => onChange(color)}
             style={{ backgroundColor: color }}
@@ -96,19 +106,16 @@ export function CategoryDialog({ target, roots, onClose, onSaved }: CategoryDial
             error={error('cat-name')}
           />
           {canHaveParent && (
-            <SelectField
+            <Select
               id="cat-parent"
               label="Categoría principal"
-              value={parentId ?? ''}
-              onChange={(event) => setParentId(event.target.value ? Number(event.target.value) : null)}
-            >
-              <option value="">Ninguna (es principal)</option>
-              {parentOptions.map((root) => (
-                <option key={root.id} value={root.id}>
-                  {root.name}
-                </option>
-              ))}
-            </SelectField>
+              value={parentId === null ? '' : String(parentId)}
+              onValueChange={(next) => setParentId(next ? Number(next) : null)}
+              options={[
+                { value: '', label: 'Ninguna (es principal)' },
+                ...parentOptions.map((root) => ({ value: String(root.id), label: root.name })),
+              ]}
+            />
           )}
           <ColorPicker value={color} onChange={setColor} />
           <div className="flex flex-wrap justify-end gap-3">

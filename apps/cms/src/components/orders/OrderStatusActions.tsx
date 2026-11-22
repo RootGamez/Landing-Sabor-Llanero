@@ -1,3 +1,4 @@
+import { useConfirm } from '../ui/ConfirmDialog';
 import { useState } from 'react';
 import type { OrderDto, OrderStatusUpdateInput } from '@sabor/shared';
 import { useMutation } from '../../hooks/useMutation';
@@ -28,6 +29,8 @@ export function OrderStatusActions({ order, onUpdated }: OrderStatusActionsProps
   );
   const [pendingAction, setPendingAction] = useState<ConfirmableStatus | null>(null);
 
+  const confirm = useConfirm();
+
   async function handleUpdate(next: ConfirmableStatus) {
     const isRewardRedemption = order.source === 'reward_redemption';
     let question: string;
@@ -40,7 +43,13 @@ export function OrderStatusActions({ order, onUpdated }: OrderStatusActionsProps
         ? `¿Cancelar el pedido #${order.code}? Se le devuelven los puntos canjeados al cliente.`
         : `¿Cancelar el pedido #${order.code}? Esta acción no se puede deshacer.`;
     }
-    if (!window.confirm(question)) return;
+    const accepted = await confirm({
+      title: question,
+      confirmLabel: next === 'confirmed' ? 'Confirmar' : 'Cancelar pedido',
+      cancelLabel: 'Volver',
+      tone: next === 'confirmed' ? 'primary' : 'danger',
+    });
+    if (!accepted) return;
 
     setPendingAction(next);
     const res = await updateStatus(next);

@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useState } from 'react';
 import { Dices, Trophy } from 'lucide-react';
 import { useRaffleDraws, useRaffleEntries } from '../hooks/useCmsData';
@@ -26,8 +27,10 @@ export function SorteoPage() {
 
   const alreadyDrawn = draws?.items.some((d) => d.period === period) ?? false;
 
+  const confirm = useConfirm();
+
   async function handleDraw() {
-    if (!window.confirm(`¿Sortear el ganador del período ${period}? No se puede deshacer.`)) return;
+    if (!(await confirm({ title: `¿Sortear el ganador del período ${period}?`, description: 'No se puede deshacer.', confirmLabel: 'Sortear', tone: 'primary' }))) return;
     const result = await draw();
     if (result !== undefined) {
       toastSuccess('¡Sorteo realizado!');

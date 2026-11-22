@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { DoorOpen, LogOut } from 'lucide-react';
 import { BRAND } from '@sabor/shared';
 import { homePathForRole } from '../../lib/homePath';
-import { ConfirmDialog } from '../expenses/ConfirmDialog';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useSessionStore } from '../../store/sessionStore';
 
 const EXIT_BUTTON =

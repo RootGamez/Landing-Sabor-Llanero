@@ -133,7 +133,7 @@ export function DateRangePicker({
           onOpenAutoFocus={(event) => event.preventDefault()}
           className="flex flex-col gap-3 sm:flex-row"
         >
-          <PresetList presets={presets} value={value} onPick={commit} />
+          {presets.length > 0 && <PresetList presets={presets} value={value} onPick={commit} />}
           <div className="mx-auto sm:mx-0">
             <p role="status" className="mb-1 text-xs text-text-muted">
               {pendingFrom ? 'Ahora elige el último día.' : 'Elige el primer día del rango.'}

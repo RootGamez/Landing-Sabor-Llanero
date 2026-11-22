@@ -79,7 +79,7 @@ function DayCell({ iso, inMonth, isFocused, isEdge, isBetween, disabled, onPick,
         onMouseEnter={() => onHover?.(iso)}
         className={cn(
           'inline-flex size-11 cursor-pointer items-center justify-center rounded-lg text-sm tabular-nums transition-colors hover:bg-lime-soft disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent',
-          !inMonth && 'text-text-muted/60',
+          !inMonth && 'text-text-muted',
           isToday && !isEdge && 'border-2 border-forest font-bold',
           isBetween && 'rounded-none bg-lime-soft',
           isEdge && 'rounded-lg bg-primary font-bold text-primary-foreground hover:bg-primary'

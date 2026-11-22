@@ -3,6 +3,7 @@ import { buildExpenseSummaryText } from '@sabor/shared';
 import { useClosureImage } from '../../hooks/useClosureImage';
 import { useExpenseSummary } from '../../hooks/useExpenses';
 import type { ExpenseFilterValues } from '../../lib/expensesApi';
+import { Collapsible, CollapsibleContent, CollapsibleSummary } from '../ui/Collapsible';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../ui/dialog';
 import { ErrorState } from '../ui/ErrorState';
 import { Skeleton } from '../ui/Skeleton';
@@ -29,10 +30,12 @@ function ShareBody({ data }: { data: ExpenseReportData }) {
       <ExpenseSharePreview ref={cardRef} data={data} />
       <div className="flex flex-col gap-5">
         <ExpenseShareActions image={image} fileName={data.fileName} text={text} />
-        <details className="rounded-xl border-2 border-border bg-card p-4">
-          <summary className="min-h-6 cursor-pointer text-sm font-bold text-text">Ver resumen en texto</summary>
-          <pre className="mt-3 whitespace-pre-wrap font-sans text-sm text-text">{text}</pre>
-        </details>
+        <Collapsible className="rounded-xl border-2 border-border bg-card p-1">
+          <CollapsibleSummary>Ver resumen en texto</CollapsibleSummary>
+          <CollapsibleContent>
+            <pre className="m-3 whitespace-pre-wrap font-sans text-sm text-text">{text}</pre>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );

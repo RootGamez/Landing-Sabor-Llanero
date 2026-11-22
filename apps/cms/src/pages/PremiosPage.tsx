@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Gift, ImageUp, Pencil, Trash2 } from 'lucide-react';
 import type { Reward } from '@sabor/shared';
@@ -131,8 +132,10 @@ function RewardCard({ reward, onEdit, onChanged }: RewardCardProps) {
     }
   }
 
+  const confirm = useConfirm();
+
   async function handleDelete() {
-    if (!window.confirm(`¿Eliminar "${reward.nameEs}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirm({ title: `¿Eliminar "${reward.nameEs}"?`, description: 'Esta acción no se puede deshacer.', confirmLabel: 'Eliminar' }))) return;
     const result = await remove();
     if (result !== undefined) {
       toastSuccess('Premio eliminado');
