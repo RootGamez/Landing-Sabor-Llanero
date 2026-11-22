@@ -12,7 +12,9 @@
     "db:migrations:apply:prod": "wrangler d1 migrations apply sabor-llanero --env production --remote",
     "db:seed:local": "wrangler d1 execute sabor-llanero --local --file=./seed.sql",
     "create-owner": "tsx scripts/create-owner.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "import-aronium": "tsx scripts/aronium/cli.ts",
+    "test:aronium": "vitest run --config scripts/aronium/vitest.config.ts"
   },
   "dependencies": {
     "@sabor/shared": "workspace:*",
