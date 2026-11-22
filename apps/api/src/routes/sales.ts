@@ -13,11 +13,13 @@ import {
 import type { AppEnv } from '../env';
 import { mapOrder, type OrderRow, type SaleRow } from '../db/rows';
 import { badRequest, conflict, forbidden, notFound } from '../lib/http-error';
+import { assertPaymentMethodActive } from '../lib/payment-method-check';
 import { parseBody } from '../lib/validate';
 import { parsePagination, requireIdParam } from '../lib/params';
 import { insertSale } from '../lib/sale-create';
 import { linesFromOrder, priceCartLines, sumLines, type SaleLine } from '../lib/sale-pricing';
 import { findOpenSession, findSaleRow, findSaleRowByUuid, hydrateSales } from '../lib/sale-queries';
+import { refreshClosedSessionSnapshot } from '../lib/session-refresh';
 import { CASH_METHOD_KEY } from '../lib/session-summary';
 import { orderItemsByOrder } from './orders';
 import { requireAuth, requireRole } from '../middleware/auth';
@@ -29,14 +31,6 @@ saleRoutes.use('*', requireAuth, requireRole('owner', 'admin', 'cashier'));
 /** Ventana de "Cobrar pedido web": evita que pedidos confirmados antes del POS inunden la lista. */
 const PENDING_WEB_ORDERS_DAYS = 7;
 const PENDING_WEB_ORDERS_LIMIT = 100;
-
-async function assertPaymentMethodActive(db: D1Database, key: string): Promise<void> {
-  const row = await db
-    .prepare('SELECT key FROM payment_methods WHERE key = ? AND is_active = 1')
-    .bind(key)
-    .first();
-  if (!row) throw badRequest('Método de pago inválido o inactivo');
-}
 
 /** Solo el efectivo lleva "recibido" (≥ total) para calcular el vuelto; no se acepta en otros métodos. */
 function resolveCashReceived(body: CreateSaleInput, totalCents: number): number | null {
@@ -64,6 +58,8 @@ saleRoutes.post('/', async (c) => {
   const body = await parseBody(c, createSaleSchema);
   const user = c.get('user');
   const db = c.env.DB;
+  // Los descuentos son decisión del dueño/admin: el cajero no puede rebajar el total.
+  if (body.discountCents > 0 && user.role === 'cashier') throw forbidden('El cajero no puede aplicar descuentos');
 
   // Idempotencia (D13): el reintento de un POST ya guardado devuelve la misma venta.
   const existing = await findSaleRowByUuid(db, body.clientUuid);
@@ -223,7 +219,11 @@ saleRoutes.post('/:id/void', async (c) => {
   )
     .bind(user.id, body.reason, id, user.role === 'owner' ? 1 : 0)
     .first<SaleRow>();
-  if (voided) return respondWithSale(c, voided, 200);
+  if (voided) {
+    // Solo el owner llega acá con una caja cerrada: el snapshot debe reflejar la corrección.
+    await refreshClosedSessionSnapshot(c.env.DB, voided.session_id);
+    return respondWithSale(c, voided, 200);
+  }
 
   const current = await findSaleRow(c.env.DB, id);
   if (!current) throw notFound('Venta no encontrada');

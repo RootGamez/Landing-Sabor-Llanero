@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { PaginatedResult, PendingWebOrder, Sale } from '@sabor/shared';
+import type { CashSessionDetail, PaginatedResult, PendingWebOrder, Sale } from '@sabor/shared';
 import {
   api,
   createConfirmedOrder,
@@ -199,12 +199,21 @@ describe('routes/sales', () => {
       expect(res.status).toBe(400);
     });
 
-    it('aplica descuento a nivel venta y rechaza uno mayor al subtotal (400)', async () => {
-      await openCash(cashier.token);
+    it('aplica descuento a nivel venta (owner/admin) y rechaza uno mayor al subtotal (400)', async () => {
+      await openCash(admin.token);
       const items = [{ itemId: menu.gaseosa, quantity: 2 }]; // 11.00
-      const ok = await postSale(cashier.token, { items, discountCents: 100 });
+      const ok = await postSale(admin.token, { items, discountCents: 100 });
       expect(ok.body).toMatchObject({ subtotalCents: 1_100, discountCents: 100, totalCents: 1_000 });
-      expect((await postSale(cashier.token, { items, discountCents: 1_101 })).status).toBe(400);
+      expect((await postSale(admin.token, { items, discountCents: 1_101 })).status).toBe(400);
+    });
+
+    it('el cajero no puede aplicar descuentos (403) pero sí vender sin descuento', async () => {
+      await openCash(cashier.token);
+      const items = [{ itemId: menu.gaseosa, quantity: 2 }];
+      expect((await postSale(cashier.token, { items, discountCents: 100 })).status).toBe(403);
+      expect((await postSale(cashier.token, { items, discountCents: 0 })).status).toBe(201);
+      const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM sales').first<{ n: number }>();
+      expect(count!.n).toBe(1);
     });
 
     it('el admin y el owner también pueden vender', async () => {
@@ -313,6 +322,43 @@ describe('routes/sales', () => {
       }
       const ok = await api(`/sales/${sale.body.id}/void`, { token: owner.token, method: 'POST', body: { reason: 'Corrección contable' } });
       expect(ok.status).toBe(200);
+    });
+
+    it('anular una venta de una sesión cerrada recalcula el snapshot y el esperado, sin tocar lo contado', async () => {
+      const id = await openCash(cashier.token, 10_000);
+      const sale = await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 2 }] }); // 11.00 efectivo
+      await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 1 }], paymentMethod: 'yape' }); // 5.50 yape
+      await api(`/cash-sessions/${id}/close`, { token: cashier.token, method: 'POST', body: { countedCashCents: 11_100 } });
+
+      const before = await api<CashSessionDetail>(`/cash-sessions/${id}`, { token: owner.token });
+      expect(before.body.expectedCashCents).toBe(11_100);
+      expect(before.body.closeSnapshot).toMatchObject({ salesCount: 2, voidedCount: 0, totalSalesCents: 1_650 });
+
+      const res = await api(`/sales/${sale.body.id}/void`, { token: owner.token, method: 'POST', body: { reason: 'Corrección contable' } });
+      expect(res.status).toBe(200);
+
+      const after = await api<CashSessionDetail>(`/cash-sessions/${id}`, { token: owner.token });
+      expect(after.body.expectedCashCents).toBe(10_000);
+      expect(after.body.countedCashCents).toBe(11_100);
+      expect(after.body.closeSnapshot).toMatchObject({
+        salesCount: 1,
+        voidedCount: 1,
+        totalSalesCents: 550,
+        expectedCashCents: 10_000,
+        countedCashCents: 11_100,
+        differenceCents: 1_100,
+        closedAt: before.body.closedAt,
+      });
+    });
+
+    it('anular en una sesión abierta no toca ningún snapshot', async () => {
+      const id = await openCash(cashier.token);
+      const sale = await postSale(cashier.token, { items: [{ itemId: menu.gaseosa, quantity: 1 }] });
+      await api(`/sales/${sale.body.id}/void`, { token: owner.token, method: 'POST', body: { reason: 'Prueba' } });
+      const row = await env.DB.prepare('SELECT close_snapshot_json, expected_cash_cents FROM cash_sessions WHERE id = ?')
+        .bind(id)
+        .first<{ close_snapshot_json: string | null; expected_cash_cents: number | null }>();
+      expect(row).toEqual({ close_snapshot_json: null, expected_cash_cents: null });
     });
 
     it('el admin puede anular mientras la caja siga abierta', async () => {

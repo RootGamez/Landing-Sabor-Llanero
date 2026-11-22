@@ -207,7 +207,8 @@ CREATE TABLE expense_categories (
   id        INTEGER PRIMARY KEY AUTOINCREMENT,
   name      TEXT NOT NULL CHECK (length(trim(name)) > 0),
   parent_id INTEGER REFERENCES expense_categories(id) ON DELETE RESTRICT,
-  color     TEXT CHECK (color IS NULL OR color GLOB '#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]'),
+  -- D1 limita los patrones LIKE/GLOB a 50 bytes: '#RRGGBB' se valida en dos partes (largo + dígitos hex).
+  color     TEXT CHECK (color IS NULL OR (length(color) = 7 AND color GLOB '#*' AND substr(color, 2) NOT GLOB '*[^0-9a-fA-F]*')),
   is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
   UNIQUE (parent_id, name)
 );

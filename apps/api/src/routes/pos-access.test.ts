@@ -50,6 +50,14 @@ describe('acceso del cajero y canal del menú', () => {
       ['GET', '/raffle/entries'],
       ['POST', '/rewards', {}],
       ['PATCH', '/loyalty-config', {}],
+      ['GET', '/expenses'],
+      ['POST', '/expenses', {}],
+      ['PATCH', '/expenses/1', {}],
+      ['DELETE', '/expenses/1'],
+      ['GET', '/expense-categories'],
+      ['POST', '/expense-categories', {}],
+      ['PATCH', '/expense-categories/1', {}],
+      ['DELETE', '/expense-categories/1'],
     ];
 
     it.each(forbidden)('%s %s', async (method, path, body) => {

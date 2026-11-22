@@ -125,6 +125,19 @@ export const expenseSchema = z.object({
   paidFromRegister: z.boolean().default(false),
 });
 
+/** PATCH de gasto: todos los campos opcionales y sin defaults (un default pisaría el valor guardado). */
+export const expenseUpdateSchema = z
+  .object({
+    date: localDateSchema,
+    amountCents: positiveCentsSchema,
+    categoryId: z.number().int().positive('categoryId inválido'),
+    description: safeText(DESCRIPTION_MAX, 'description'),
+    paymentMethod: paymentMethodKeySchema,
+    paidFromRegister: z.boolean(),
+  })
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, 'no hay campos para actualizar');
+
 export const expenseCategorySchema = z.object({
   name: requiredSafeText(CATEGORY_NAME_MAX, 'name'),
   parentId: z.number().int().positive('parentId inválido').nullable().optional(),
@@ -136,12 +149,19 @@ export const expenseCategorySchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+/** PATCH de categoría de gasto: cualquier subconjunto de campos (al menos uno). */
+export const expenseCategoryUpdateSchema = expenseCategorySchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, 'no hay campos para actualizar');
+
 export type OpenSessionInput = z.infer<typeof openSessionSchema>;
 export type CloseSessionInput = z.infer<typeof closeSessionSchema>;
 export type CreateSaleInput = z.infer<typeof createSaleSchema>;
 export type VoidSaleInput = z.infer<typeof voidSaleSchema>;
 export type ExpenseInput = z.infer<typeof expenseSchema>;
+export type ExpenseUpdateInput = z.infer<typeof expenseUpdateSchema>;
 export type ExpenseCategoryInput = z.infer<typeof expenseCategorySchema>;
+export type ExpenseCategoryUpdateInput = z.infer<typeof expenseCategoryUpdateSchema>;
 
 // ── DTOs de respuesta (espejo de las tablas de 0009_backoffice.sql) ─────────
 
@@ -226,6 +246,27 @@ export interface Expense {
   source: ExpenseSource;
   createdBy: number | null;
   createdAt: string;
+}
+
+/** Categoría con su uso (gastos no borrados) y sus hijas: el árbol de dos niveles de `GET /expense-categories`. */
+export interface ExpenseCategoryNode extends ExpenseCategory {
+  expenseCount: number;
+  children: ExpenseCategoryNode[];
+}
+
+export interface ExpenseDayTotal {
+  date: string;
+  totalCents: number;
+}
+
+/** Página de gastos + total (en céntimos) de TODO el filtro y total diario de los días presentes en la página. */
+export interface ExpenseListResult {
+  items: Expense[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalCents: number;
+  dayTotals: ExpenseDayTotal[];
 }
 
 export interface CashCloseMethodTotal {
