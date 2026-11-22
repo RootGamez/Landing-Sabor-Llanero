@@ -4,7 +4,7 @@ import type { MenuItem, PaginatedResult, PaymentMethod } from '@sabor/shared';
 import { api, createUser, seedMenu, type MenuFixture, type TestUser } from '../../test/pos-fixtures';
 
 interface Section {
-  items: Array<{ id: number }>;
+  items: Array<{ id: number; slug?: string }>;
 }
 
 describe('acceso del cajero y canal del menú', () => {
@@ -58,6 +58,8 @@ describe('acceso del cajero y canal del menú', () => {
       ['POST', '/expense-categories', {}],
       ['PATCH', '/expense-categories/1', {}],
       ['DELETE', '/expense-categories/1'],
+      ['POST', '/imports/homebank/preview', {}],
+      ['POST', '/imports/homebank/commit', {}],
     ];
 
     it.each(forbidden)('%s %s', async (method, path, body) => {
@@ -97,6 +99,26 @@ describe('acceso del cajero y canal del menú', () => {
       expect(ids).not.toContain(menu.pizzaWebOnly);
     });
 
+    it('el POS no tiene tope de 24 por categoría; la web pública sí', async () => {
+      const cat = await env.DB.prepare(
+        "INSERT INTO categories (slug, name_es, has_sizes) VALUES ('bulk', 'Bulk', 0) RETURNING id",
+      ).first<{ id: number }>();
+      const inserts = Array.from({ length: 30 }, (_, i) =>
+        env.DB.prepare(
+          "INSERT INTO menu_items (category_id, slug, name_es, price, channel, is_active) VALUES (?, ?, ?, 1, 'both', 1)",
+        ).bind(cat!.id, `bulk-${i}`, `Bulk ${i}`),
+      );
+      await env.DB.batch(inserts);
+      const countBulk = (sections: Section[]) =>
+        sections.filter((s) => s.items.some((i) => i.slug?.startsWith('bulk-')))
+          .flatMap((s) => s.items).length;
+
+      const pos = await api<Section[]>('/menu-items/sections?channel=pos&limit=200', { token: cashier.token });
+      expect(countBulk(pos.body)).toBe(30);
+      const web = await api<Section[]>('/menu-items/sections?limit=200');
+      expect(countBulk(web.body)).toBe(24);
+    });
+
     it('channel=pos y channel=all exigen sesión de staff (401 anónimo)', async () => {
       expect((await api('/menu-items?channel=pos')).status).toBe(401);
       expect((await api('/menu-items/sections?channel=all')).status).toBe(401);
@@ -117,7 +139,7 @@ describe('acceso del cajero y canal del menú', () => {
         env.DB.prepare('INSERT INTO collection_items (collection_id, item_id) VALUES (?, ?)').bind(col!.id, menu.gaseosaPosOnly),
         env.DB.prepare('INSERT INTO collection_items (collection_id, item_id) VALUES (?, ?)').bind(col!.id, menu.gaseosa),
       ]);
-      const res = await api<Array<{ items: Array<{ id: number }> }>>('/collections');
+      const res = await api<Array<{ items: Array<{ id: number; slug?: string }> }>>('/collections');
       const ids = res.body.flatMap((c) => c.items.map((i) => i.id));
       expect(ids).toContain(menu.gaseosa);
       expect(ids).not.toContain(menu.gaseosaPosOnly);

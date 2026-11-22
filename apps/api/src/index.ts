@@ -24,6 +24,7 @@ import { saleRoutes } from './routes/sales';
 import { paymentMethodRoutes } from './routes/payment-methods';
 import { expenseRoutes } from './routes/expenses';
 import { expenseCategoryRoutes } from './routes/expense-categories';
+import { importRoutes } from './routes/imports';
 
 const app = new Hono<AppEnv>().basePath('/api');
 
@@ -123,6 +124,7 @@ app.route('/sales', saleRoutes);
 app.route('/payment-methods', paymentMethodRoutes);
 app.route('/expenses', expenseRoutes);
 app.route('/expense-categories', expenseCategoryRoutes);
+app.route('/imports', importRoutes);
 
 app.notFound((c) => c.json({ error: 'Ruta no encontrada' }, 404));
 

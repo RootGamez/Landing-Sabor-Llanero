@@ -6,3 +6,5 @@ export * from './xhb';
 export { parseHomebankCsv, type HomebankCsvOptions } from './csv';
 export * from './classify';
 export * from './hash';
+export * from './importSchemas';
+export * from './prepare';
