@@ -14,3 +14,5 @@ export * from './money';
 export * from './localDate';
 export * from './backoffice';
 export * from './homebank';
+export * from './reports';
+export * from './reportPeriods';

@@ -2,11 +2,14 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../env';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { badRequest } from '../lib/http-error';
+import { businessReportRoutes } from './reports-business';
 
 // Alcance recortado (BLUEPRINT §4.4/§7.1): sin low-stock ni most-viewed —
 // el catálogo es vitrina sin stock, y "view" no se registra por defecto.
 export const reportRoutes = new Hono<AppEnv>();
 reportRoutes.use('*', requireAuth, requireRole('owner', 'admin'));
+// Dashboard general (F9): resumen, series, top productos y distribuciones.
+reportRoutes.route('/', businessReportRoutes);
 
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 

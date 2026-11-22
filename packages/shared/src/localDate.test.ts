@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   LIMA_OFFSET_MINUTES,
+  addLocalDays,
   isValidLocalDate,
   localDate,
   localDayRangeUtc,
@@ -93,5 +94,17 @@ describe('todayLocal', () => {
 
   it('por defecto devuelve una fecha con formato YYYY-MM-DD', () => {
     expect(todayLocal()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('addLocalDays', () => {
+  it('suma y resta días cruzando mes y año', () => {
+    expect(addLocalDays('2026-01-01', -1)).toBe('2025-12-31');
+    expect(addLocalDays('2026-02-28', 1)).toBe('2026-03-01');
+    expect(addLocalDays('2028-02-28', 1)).toBe('2028-02-29');
+  });
+
+  it('rechaza fechas inválidas', () => {
+    expect(() => addLocalDays('2026-02-30', 1)).toThrow(RangeError);
   });
 });

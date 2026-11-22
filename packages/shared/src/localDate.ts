@@ -83,3 +83,12 @@ export function localDayRangeUtc(day: string): UtcRange {
     toUtc: toSqliteUtc(new Date(startUtcMs + MS_PER_DAY)),
   };
 }
+
+/** Suma `n` días (puede ser negativo) a una fecha local 'YYYY-MM-DD'. Aritmética de calendario pura. */
+export function addLocalDays(day: string, n: number): string {
+  if (!isValidLocalDate(day)) {
+    throw new RangeError(`fecha local inválida (se espera YYYY-MM-DD): ${day}`);
+  }
+  const [y, m, d] = day.split('-').map(Number) as [number, number, number];
+  return utcDateString(new Date(Date.UTC(y, m - 1, d) + n * MS_PER_DAY));
+}

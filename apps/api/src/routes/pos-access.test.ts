@@ -34,6 +34,13 @@ describe('acceso del cajero y canal del menú', () => {
     const forbidden: Array<[string, string, unknown?]> = [
       ['GET', '/reports/order-clicks'],
       ['GET', '/reports/by-category'],
+      ['GET', '/reports/summary'],
+      ['GET', '/reports/timeseries'],
+      ['GET', '/reports/top-products'],
+      ['GET', '/reports/sales-by-hour'],
+      ['GET', '/reports/sales-by-weekday'],
+      ['GET', '/reports/expenses-by-category'],
+      ['GET', '/reports/sales-by-payment'],
       ['GET', '/orders'],
       ['PATCH', '/orders/1', { status: 'confirmed' }],
       ['PUT', '/orders/1/items', { items: [] }],
