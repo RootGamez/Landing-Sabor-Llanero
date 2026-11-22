@@ -38,7 +38,11 @@ El CMS actual pasa a ser el módulo **Tienda online**.
 
 ## F0 — Datos reales (✅ inspeccionados 2026-11-22)
 
-**Aronium** (`pos.db`, SQLite; copia en `OneDrive/Documentos/pos.db`, NO versionar):
+> ⚠️ El `pos.db` inspeccionado **NO es el backup real/actualizado**: sirve solo para diseñar
+> esquema y mapeo. **Antes de ejecutar F8, pedirle al dueño el backup actualizado de Aronium**
+> y volver a correr la inspección (conteos/rango de fechas) sobre ese archivo.
+
+**Aronium** (`pos.db`, SQLite; copia de diseño en `OneDrive/Documentos/pos.db`, NO versionar):
 - `Document` 2 392 filas, **todas `DocumentTypeId=2` (Sales)**, total S/ 103 853,50.
   `Date` es solo fecha; `DateCreated` trae hora local (`2025-04-22 22:32:10.2184`).
 - `DocumentItem` 3 278 filas: `ProductId, Quantity, Price, Total`; 0 descuentos.
@@ -134,7 +138,7 @@ loguear aterriza en `/ventas/pos`.
 | F5 | Cierre de caja: conteo efectivo, esperado vs contado, desglose por método, top productos, gastos de caja; PNG en cliente (`html-to-image`) + Web Share API (WhatsApp) / descarga; historial de cierres con regenerar imagen | `ui-ux-pro-max`, `dataviz` → `ecc:react-reviewer` | ⬜ |
 | F6 | Gastos: API CRUD (+categorías) y UI de registro rápido (monto, categoría, nota, método, "de caja") + lista filtrable | `tdd-workflow`, `ui-ux-pro-max` → `ecc:react-reviewer` | ⬜ |
 | F7 | Importador HomeBank `.xhb`/`.csv`: parser puro en `shared` con tests (fixtures sintéticos, no datos reales), preview + mapeo de categorías en UI, endpoint `/api/imports/homebank` (dry-run + commit, lotes) | `tdd-workflow`, `ecc:security-reviewer` | ⬜ |
-| F8 | Migración Aronium: `apps/api/scripts/import-aronium.ts` (lee pos.db read-only) → reporte de cuadre + `legacy_product_map.csv` editable → SQL en lotes → aplicar `--local` y validar totales al céntimo. Remoto **solo con OK del dueño** | `ecc:database-migrations`, `ecc:verification-loop` | ⬜ |
+| F8 | **⛔ Bloqueante: pedir al dueño el backup actualizado de Aronium antes de importar.** Migración Aronium: `apps/api/scripts/import-aronium.ts` (lee pos.db read-only) → reporte de cuadre + `legacy_product_map.csv` editable → SQL en lotes → aplicar `--local` y validar totales al céntimo. Remoto **solo con OK del dueño** | `ecc:database-migrations`, `ecc:verification-loop` | ⬜ |
 | F9 | Dashboard: `/api/reports/summary` (ingresos, egresos, utilidad, ticket promedio, # ventas, vs período anterior), `/top-products`, `/sales-by-hour`, `/sales-by-weekday`, `/expenses-by-category`, `/sales-by-payment`; rangos hoy/semana/mes/custom en hora Lima | `ecc:dashboard-builder`, `dataviz`, `ui-ux-pro-max` → `ecc:react-reviewer` | ⬜ |
 | F10 | E2E Playwright (caja→venta→anular→gasto→cierre→imagen; import HomeBank), revisión de seguridad y código final, docs | `ecc:e2e-testing`, `ecc:code-reviewer`, `ecc:security-reviewer` | ⬜ |
 

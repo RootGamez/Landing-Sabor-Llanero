@@ -59,7 +59,7 @@ export function MenuItemsPage() {
           <p className="text-sm text-text-muted">Pizzas, entradas, bebidas y promos del catálogo.</p>
         </div>
         <Button asChild variant="accent">
-          <Link to="/menu/nuevo">
+          <Link to="/tienda/menu/nuevo">
             <Plus className="size-4" />
             Nuevo ítem
           </Link>

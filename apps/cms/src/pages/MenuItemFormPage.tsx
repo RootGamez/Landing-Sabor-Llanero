@@ -106,7 +106,7 @@ export function MenuItemFormPage() {
     if (result !== undefined) {
       toastSuccess(isEditing ? 'Ítem actualizado' : 'Ítem creado');
       if (!isEditing) {
-        navigate(`/menu/${result.id}`, { replace: true });
+        navigate(`/tienda/menu/${result.id}`, { replace: true });
       } else {
         refetch();
       }
@@ -124,7 +124,7 @@ export function MenuItemFormPage() {
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-2">
         <Link
-          to="/menu"
+          to="/tienda/menu"
           className="inline-flex w-fit items-center gap-1 text-sm text-text-muted transition-colors hover:text-primary"
         >
           <ArrowLeft className="size-4" />

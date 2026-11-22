@@ -72,7 +72,7 @@ export function MenuItemAdminCard({
 
         <div className="mt-2 flex items-center gap-2">
           <Button asChild variant="secondary" size="sm" className="flex-1">
-            <Link to={`/menu/${item.id}`}>
+            <Link to={`/tienda/menu/${item.id}`}>
               <Pencil className="size-4" />
               Editar
             </Link>

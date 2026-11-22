@@ -78,7 +78,7 @@ export function DashboardPage() {
       <div>
         <div className="mb-3 flex items-center justify-between gap-4">
           <h2 className="font-display text-lg font-bold text-text">Pedidos por aceptar</h2>
-          <Link to="/pedidos" className="shrink-0 text-sm font-semibold text-primary hover:underline">
+          <Link to="/tienda/pedidos" className="shrink-0 text-sm font-semibold text-primary hover:underline">
             Ver todos los pedidos
           </Link>
         </div>
@@ -109,7 +109,7 @@ export function DashboardPage() {
             {hiddenPendingCount > 0 && (
               <p className="mt-4 text-center text-sm text-text-muted">
                 Mostrando {pendingOrders.length} de {pending.data!.total} pendientes.{' '}
-                <Link to="/pedidos" className="font-semibold text-primary hover:underline">
+                <Link to="/tienda/pedidos" className="font-semibold text-primary hover:underline">
                   Ver el resto
                 </Link>
               </p>

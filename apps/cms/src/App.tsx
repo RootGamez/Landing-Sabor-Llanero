@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import type { Role } from '@sabor/shared';
 import { LoginPage } from './pages/LoginPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
@@ -15,19 +16,23 @@ import { WhatsappConfigPage } from './pages/WhatsappConfigPage';
 import { UsersPage } from './pages/UsersPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ReportsPage } from './pages/ReportsPage';
+import { PosPage } from './pages/PosPage';
+import { CashClosuresPage } from './pages/CashClosuresPage';
+import { SalesHistoryPage } from './pages/SalesHistoryPage';
+import { ExpensesPage } from './pages/ExpensesPage';
+import { ExpenseImportPage } from './pages/ExpenseImportPage';
+import { ExpenseCategoriesPage } from './pages/ExpenseCategoriesPage';
 import { NotFoundPage } from './pages/NotFoundPage';
-import { RequireAuth } from './components/auth/RequireAuth';
-import { RequireRole } from './components/auth/RequireRole';
-import { AppShell } from './components/layout/AppShell';
+import { PosLayout, RoleLayout, ShellLayout } from './components/layout/RouteLayouts';
+import {
+  LEGACY_REDIRECTS,
+  LegacyMenuItemRedirect,
+  LegacyRedirect,
+} from './components/routing/LegacyRedirect';
 import { ToastContainer } from './components/ui/ToastContainer';
 
-function Protected({ children }: { children: React.ReactNode }) {
-  return (
-    <RequireAuth>
-      <AppShell>{children}</AppShell>
-    </RequireAuth>
-  );
-}
+const BACKOFFICE_ROLES: readonly Role[] = ['owner', 'admin'];
+const OWNER_ONLY: readonly Role[] = ['owner'];
 
 export default function App() {
   return (
@@ -36,114 +41,47 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route
-          path="/"
-          element={
-            <Protected>
-              <DashboardPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/menu"
-          element={
-            <Protected>
-              <MenuItemsPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/menu/:id"
-          element={
-            <Protected>
-              <MenuItemFormPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/pedidos"
-          element={
-            <Protected>
-              <PedidosPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/premios"
-          element={
-            <Protected>
-              <PremiosPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/sorteo"
-          element={
-            <Protected>
-              <SorteoPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/config-puntos"
-          element={
-            <Protected>
-              <LoyaltyConfigPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/categorias"
-          element={
-            <Protected>
-              <CategoriesPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/merchandising"
-          element={
-            <Protected>
-              <MerchandisingPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/whatsapp"
-          element={
-            <Protected>
-              <WhatsappConfigPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/reportes"
-          element={
-            <Protected>
-              <ReportsPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/perfil"
-          element={
-            <Protected>
-              <ProfilePage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/usuarios"
-          element={
-            <Protected>
-              {/* eslint-disable-next-line jsx-a11y/aria-role -- `role` es una prop propia de
-                  RequireRole (control de acceso), no un atributo ARIA de un elemento DOM. */}
-              <RequireRole role="owner">
-                <UsersPage />
-              </RequireRole>
-            </Protected>
-          }
-        />
+
+        {/* POS a pantalla completa (D14): sin sidebar. */}
+        <Route element={<PosLayout />}>
+          <Route path="/ventas/pos" element={<PosPage />} />
+        </Route>
+
+        <Route element={<ShellLayout />}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/reportes" element={<ReportsPage />} />
+          <Route path="/ventas/cierres" element={<CashClosuresPage />} />
+          <Route path="/ventas/historial" element={<SalesHistoryPage />} />
+          <Route path="/ajustes/perfil" element={<ProfilePage />} />
+
+          {/* TODO(F3): sumar el rol `cashier` a las rutas que le correspondan. */}
+          <Route element={<RoleLayout roles={OWNER_ONLY} />}>
+            <Route path="/ajustes/usuarios" element={<UsersPage />} />
+          </Route>
+
+          <Route element={<RoleLayout roles={BACKOFFICE_ROLES} />}>
+            <Route path="/gastos" element={<ExpensesPage />} />
+            <Route path="/gastos/importar" element={<ExpenseImportPage />} />
+            <Route path="/gastos/categorias" element={<ExpenseCategoriesPage />} />
+
+            <Route path="/tienda/pedidos" element={<PedidosPage />} />
+            <Route path="/tienda/menu" element={<MenuItemsPage />} />
+            <Route path="/tienda/menu/:id" element={<MenuItemFormPage />} />
+            <Route path="/tienda/categorias" element={<CategoriesPage />} />
+            <Route path="/tienda/destacados" element={<MerchandisingPage />} />
+            <Route path="/tienda/premios" element={<PremiosPage />} />
+            <Route path="/tienda/sorteo" element={<SorteoPage />} />
+            <Route path="/tienda/puntos" element={<LoyaltyConfigPage />} />
+            <Route path="/tienda/whatsapp" element={<WhatsappConfigPage />} />
+          </Route>
+        </Route>
+
+        {/* Rutas antiguas -> módulos nuevos. */}
+        {LEGACY_REDIRECTS.map(([from, to]) => (
+          <Route key={from} path={from} element={<LegacyRedirect to={to} />} />
+        ))}
+        <Route path="/menu/:id" element={<LegacyMenuItemRedirect />} />
+
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       {/* Toast global también visible en /login (fuera del AppShell) */}

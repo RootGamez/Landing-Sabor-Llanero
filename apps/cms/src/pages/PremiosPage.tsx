@@ -10,7 +10,7 @@ import { toastError, toastSuccess } from '../store/toastStore';
 import { TextField, TextAreaField } from '../components/ui/FormField';
 import { NumberField } from '../components/ui/NumberField';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';

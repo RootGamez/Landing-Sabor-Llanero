@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { SidebarBody } from './Sidebar';
-import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { cn } from '../../lib/utils';
 
 const COLLAPSE_KEY = 'cms:sidebar-collapsed';
@@ -56,6 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               side="left"
               className="border-forest-line bg-surface-dark text-text-inverse"
             >
+              <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
               <SidebarBody onNavigate={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>
