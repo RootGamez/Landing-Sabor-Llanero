@@ -32,6 +32,7 @@ import { authenticate, requireAuth, requireRole } from '../middleware/auth';
 import { badRequest, conflict, notFound } from '../lib/http-error';
 import { parseBody } from '../lib/validate';
 import { parsePositiveInt, requireIdParam } from '../lib/params';
+import { WEB_CHANNELS, channelCondition, requestedChannels } from '../lib/menu-channel';
 import { allSizes, assertKnownSizeIds } from './categories';
 
 export const menuItemRoutes = new Hono<AppEnv>();
@@ -46,8 +47,9 @@ menuItemRoutes.get('/', async (c) => {
   const page = Math.max(1, parsePositiveInt(c.req.query('page'), 1));
   const pageSize = Math.min(100, Math.max(1, parsePositiveInt(c.req.query('pageSize'), PAGE_SIZE_DEFAULT)));
 
-  const conditions = ['is_active = 1'];
-  const params: unknown[] = [];
+  const channel = channelCondition(await requestedChannels(c));
+  const conditions = ['is_active = 1', channel.sql];
+  const params: unknown[] = [...channel.params];
   if (categoryId !== undefined) {
     const parsedCategoryId = Number(categoryId);
     if (!Number.isInteger(parsedCategoryId) || parsedCategoryId <= 0) {
@@ -104,6 +106,7 @@ menuItemRoutes.get('/sections', async (c) => {
     SECTION_ITEMS_MAX,
     Math.max(1, parsePositiveInt(c.req.query('limit'), SECTION_ITEMS_DEFAULT)),
   );
+  const channel = channelCondition(await requestedChannels(c), 'mi.channel');
 
   const [{ results: categories }, { results: items }, sizeRows] = await Promise.all([
     c.env.DB.prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order ASC, name_es ASC').all<CategoryRow>(),
@@ -113,10 +116,10 @@ menuItemRoutes.get('/sections', async (c) => {
            PARTITION BY mi.category_id ORDER BY mi.display_order ASC, mi.id ASC
          ) AS rn
          FROM menu_items mi
-         WHERE mi.is_active = 1
+         WHERE mi.is_active = 1 AND ${channel.sql}
        ) WHERE rn <= ?`,
     )
-      .bind(limit)
+      .bind(...channel.params, limit)
       .all<MenuItemRow & { rn: number }>(),
     c.env.DB.prepare('SELECT * FROM sizes ORDER BY display_order ASC').all<SizeRow>(),
   ]);
@@ -189,8 +192,11 @@ menuItemRoutes.get('/:slug', async (c) => {
       .first<MenuItemRow>();
   } else {
     // Acceso público por slug: solo ítems activos, para no filtrar borradores.
-    item = await c.env.DB.prepare('SELECT * FROM menu_items WHERE slug = ? AND is_active = 1')
-      .bind(slug)
+    const channel = channelCondition(WEB_CHANNELS);
+    item = await c.env.DB.prepare(
+      `SELECT * FROM menu_items WHERE slug = ? AND is_active = 1 AND ${channel.sql}`,
+    )
+      .bind(slug, ...channel.params)
       .first<MenuItemRow>();
   }
   if (!item) throw notFound('Ítem no encontrado');
@@ -271,8 +277,8 @@ menuItemRoutes.post('/', requireAuth, requireRole('owner', 'admin'), async (c) =
 
   const result = await c.env.DB.prepare(
     `INSERT INTO menu_items
-      (category_id, slug, name_es, name_en, description_es, description_en, price, is_featured, is_active)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (category_id, slug, name_es, name_en, description_es, description_en, price, channel, is_featured, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
   )
     .bind(
@@ -283,6 +289,7 @@ menuItemRoutes.post('/', requireAuth, requireRole('owner', 'admin'), async (c) =
       body.descriptionEs ?? '',
       body.descriptionEn ?? '',
       price,
+      body.channel ?? 'both',
       body.isFeatured ?? false ? 1 : 0,
       body.isActive ?? true ? 1 : 0,
     )
@@ -339,7 +346,7 @@ menuItemRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (
   const updated = await c.env.DB.prepare(
     `UPDATE menu_items SET
       category_id = ?, slug = ?, name_es = ?, name_en = ?, description_es = ?, description_en = ?,
-      price = ?, is_featured = ?, is_active = ?, display_order = ?, updated_at = datetime('now')
+      price = ?, channel = ?, is_featured = ?, is_active = ?, display_order = ?, updated_at = datetime('now')
      WHERE id = ? RETURNING *`,
   )
     .bind(
@@ -350,6 +357,7 @@ menuItemRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (
       body.descriptionEs ?? current.description_es,
       body.descriptionEn ?? current.description_en,
       price,
+      body.channel ?? current.channel,
       body.isFeatured !== undefined ? (body.isFeatured ? 1 : 0) : current.is_featured,
       body.isActive !== undefined ? (body.isActive ? 1 : 0) : current.is_active,
       body.displayOrder ?? current.display_order,

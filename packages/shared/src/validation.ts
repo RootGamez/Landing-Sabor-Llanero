@@ -151,6 +151,8 @@ const menuItemBaseSchema = z.object({
   descriptionEn: z.string().default(''),
   price: z.number().positive('price debe ser mayor a 0').nullable().optional(),
   priceOverrides: z.array(sizePriceInputSchema).optional(),
+  /** Dónde se vende (D6): 'both' (default), solo tienda online ('web') o solo mostrador ('pos'). */
+  channel: z.enum(['both', 'web', 'pos']).optional(),
   isFeatured: z.boolean().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().int().min(0).optional(),

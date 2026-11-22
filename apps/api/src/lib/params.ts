@@ -28,3 +28,13 @@ export function requireIdParam(c: Context<AppEnv>, name = 'id'): number {
   }
   return parsed;
 }
+
+const PAGE_SIZE_MAX = 100;
+
+/** `?page` y `?pageSize` saneados (página ≥ 1, tamaño entre 1 y 100). */
+export function parsePagination(c: Context<AppEnv>, defaultPageSize = 24): { page: number; pageSize: number } {
+  return {
+    page: Math.max(1, parsePositiveInt(c.req.query('page'), 1)),
+    pageSize: Math.min(PAGE_SIZE_MAX, Math.max(1, parsePositiveInt(c.req.query('pageSize'), defaultPageSize))),
+  };
+}

@@ -102,6 +102,16 @@ describe('createSaleSchema', () => {
     expect(parsed).not.toHaveProperty('totalCents');
     expect(parsed).not.toHaveProperty('unitPriceCents');
   });
+
+  it('acepta cobrar un pedido web sin items (las líneas salen del pedido)', () => {
+    const { items: _items, ...withoutItems } = validSale;
+    expect(createSaleSchema.safeParse({ ...withoutItems, orderId: 5 }).success).toBe(true);
+  });
+
+  it('rechaza una venta sin items ni orderId', () => {
+    const { items: _items, ...withoutItems } = validSale;
+    expect(createSaleSchema.safeParse(withoutItems).success).toBe(false);
+  });
 });
 
 describe('voidSaleSchema', () => {

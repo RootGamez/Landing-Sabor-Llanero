@@ -19,6 +19,9 @@ import { itemMediaRoutes, mediaRoutes } from './routes/media';
 import { whatsappRoutes } from './routes/whatsapp';
 import { eventRoutes } from './routes/events';
 import { reportRoutes } from './routes/reports';
+import { cashSessionRoutes } from './routes/cash-sessions';
+import { saleRoutes } from './routes/sales';
+import { paymentMethodRoutes } from './routes/payment-methods';
 
 const app = new Hono<AppEnv>().basePath('/api');
 
@@ -113,6 +116,9 @@ app.route('/media', mediaRoutes);
 app.route('/whatsapp', whatsappRoutes);
 app.route('/events', eventRoutes);
 app.route('/reports', reportRoutes);
+app.route('/cash-sessions', cashSessionRoutes);
+app.route('/sales', saleRoutes);
+app.route('/payment-methods', paymentMethodRoutes);
 
 app.notFound((c) => c.json({ error: 'Ruta no encontrada' }, 404));
 

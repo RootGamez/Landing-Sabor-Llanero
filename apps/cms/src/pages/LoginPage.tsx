@@ -1,15 +1,17 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import type { LoginResponse } from '@sabor/shared';
+import type { LoginResponse, Role } from '@sabor/shared';
 import { BRAND } from '@sabor/shared';
 import { api, ApiError } from '../lib/api';
 import { API_BASE_URL } from '../lib/env';
+import { homePathForRole } from '../lib/homePath';
 import { useSessionStore } from '../store/sessionStore';
 import { TextField } from '../components/ui/FormField';
 import { Button } from '../components/ui/Button';
 
 export function LoginPage() {
   const token = useSessionStore((s) => s.token);
+  const role = useSessionStore((s) => s.user?.role);
   const setSession = useSessionStore((s) => s.setSession);
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,7 +21,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (token) return <Navigate to="/" replace />;
+  if (token) return <Navigate to={homePathForRole(role)} replace />;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -35,10 +37,10 @@ export function LoginPage() {
         headers: { Authorization: `Bearer ${newToken}` },
       });
       if (!meRes.ok) throw new ApiError(meRes.status, 'No se pudo obtener el usuario');
-      const me = (await meRes.json()) as { id: number; email: string; name: string; role: 'owner' | 'admin' };
+      const me = (await meRes.json()) as { id: number; email: string; name: string; role: Role };
 
       setSession(newToken, me);
-      const from = (location.state as { from?: string } | null)?.from ?? '/';
+      const from = (location.state as { from?: string } | null)?.from ?? homePathForRole(me.role);
       navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo iniciar sesión');

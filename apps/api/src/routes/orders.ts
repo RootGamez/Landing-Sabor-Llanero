@@ -8,6 +8,7 @@ import {
   type OrderDto,
   type OrderItem,
   type OrderItemInput,
+  type MenuChannel,
   type OrderStatus,
   type PaginatedResult,
 } from '@sabor/shared';
@@ -33,6 +34,7 @@ import {
   mapSize,
 } from '../db/rows';
 import { generateOrderCode } from '../lib/order-code';
+import { WEB_CHANNELS } from '../lib/menu-channel';
 import { currentPeriod } from '../lib/period';
 import { badRequest, conflict, notFound } from '../lib/http-error';
 import { parseBody } from '../lib/validate';
@@ -45,7 +47,7 @@ export const ordersRoutes = new Hono<AppEnv>();
 const PAGE_SIZE_DEFAULT = 24;
 const ORDER_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'cancelled'];
 
-interface OrderLine {
+export interface OrderLine {
   itemId: number;
   nameEs: string;
   nameEn: string;
@@ -54,7 +56,7 @@ interface OrderLine {
   quantity: number;
 }
 
-interface PricingContext {
+export interface PricingContext {
   itemById: Map<number, MenuItemRow>;
   categoryById: Map<number, CategoryRow>;
   categoryPriceRows: CategoryPriceRow[];
@@ -62,12 +64,23 @@ interface PricingContext {
   sizeById: Map<number, SizeRow>;
 }
 
-/** Carga en bulk (sin N+1) todo lo que hace falta para tasar un carrito. */
-async function loadPricingContext(db: D1Database, inputs: OrderItemInput[]): Promise<PricingContext> {
+/**
+ * Carga en bulk (sin N+1) todo lo que hace falta para tasar un carrito. Solo
+ * considera ítems activos cuyo `channel` esté en `channels` (web por defecto;
+ * el POS pasa `['both', 'pos']`).
+ */
+export async function loadPricingContext(
+  db: D1Database,
+  inputs: OrderItemInput[],
+  channels: readonly MenuChannel[] = WEB_CHANNELS,
+): Promise<PricingContext> {
   const itemIds = [...new Set(inputs.map((i) => i.itemId))];
   const { results: itemRows } = await db
-    .prepare(`SELECT * FROM menu_items WHERE id IN (${itemIds.map(() => '?').join(',')}) AND is_active = 1`)
-    .bind(...itemIds)
+    .prepare(
+      `SELECT * FROM menu_items WHERE id IN (${itemIds.map(() => '?').join(',')}) AND is_active = 1
+         AND channel IN (${channels.map(() => '?').join(',')})`,
+    )
+    .bind(...itemIds, ...channels)
     .all<MenuItemRow>();
 
   const categoryIds = [...new Set(itemRows.map((r) => r.category_id))];
@@ -98,9 +111,9 @@ async function loadPricingContext(db: D1Database, inputs: OrderItemInput[]): Pro
  * (packages/shared/pricing.ts, puras, sin reimplementar la lógica acá). El
  * precio que manda el cliente en el body NO se lee acá — solo itemId/sizeId/quantity.
  */
-function buildOrderLine(input: OrderItemInput, ctx: PricingContext): OrderLine {
+export function buildOrderLine(input: OrderItemInput, ctx: PricingContext): OrderLine {
   const itemRow = ctx.itemById.get(input.itemId);
-  if (!itemRow) throw badRequest(`itemId ${input.itemId} no existe o no está activo`);
+  if (!itemRow) throw badRequest(`itemId ${input.itemId} no existe, no está activo o no se vende en este canal`);
   const categoryRow = ctx.categoryById.get(itemRow.category_id);
   if (!categoryRow) throw notFound('Categoría del ítem no encontrada');
   const category = mapCategory(categoryRow);
@@ -148,7 +161,7 @@ async function resolveOrderLines(
 }
 
 /** Anti-N+1: todos los `order_items` de varios pedidos en una sola query, agrupados por order_id. */
-async function orderItemsByOrder(db: D1Database, orderIds: number[]): Promise<Map<number, OrderItem[]>> {
+export async function orderItemsByOrder(db: D1Database, orderIds: number[]): Promise<Map<number, OrderItem[]>> {
   const map = new Map<number, OrderItem[]>();
   if (orderIds.length === 0) return map;
   const { results } = await db

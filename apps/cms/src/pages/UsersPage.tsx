@@ -29,6 +29,8 @@ import { TableSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog';
 
+const ROLE_LABELS: Record<Role, string> = { owner: 'Owner', admin: 'Admin', cashier: 'Cajero' };
+
 /** Solo owner (BLUEPRINT §1.6): gestión de cuentas del panel. */
 export function UsersPage() {
   const { data: users, loading, error, refetch } = useUsers();
@@ -105,7 +107,7 @@ export function UsersPage() {
                     </p>
                     <div className="flex items-center gap-2">
                       <Badge variant={user.role === 'owner' ? 'primary' : 'outline'} className="w-fit">
-                        {user.role}
+                        {ROLE_LABELS[user.role]}
                       </Badge>
                       <span className="text-xs text-text-muted">
                         {user.lastLoginAt
@@ -200,6 +202,7 @@ export function UsersPage() {
             />
             <SelectField label="Rol" value={role} onChange={(e) => setRole(e.target.value as Role)}>
               <option value="admin">Admin</option>
+              <option value="cashier">Cajero</option>
               <option value="owner">Owner</option>
             </SelectField>
             <Button type="submit" loading={creating} className="self-start">
@@ -300,6 +303,7 @@ function EditUserForm({ user, onClose, onSaved }: EditUserFormProps) {
         onChange={(e) => setRole(e.target.value as Role)}
       >
         <option value="admin">Admin</option>
+        <option value="cashier">Cajero</option>
         <option value="owner">Owner</option>
       </SelectField>
       <PasswordField

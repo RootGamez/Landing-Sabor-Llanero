@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import { isValidLocalDate } from './localDate';
 import { MAX_CENTS } from './money';
+import type { OrderDto } from './dto';
 import { ORDER_ITEMS_MAX, UNSAFE_TEXT } from './validation';
 
 // ── Primitivas ──────────────────────────────────────────────────────────────
@@ -89,17 +90,24 @@ const saleItemsSchema = z
     });
   });
 
-export const createSaleSchema = z.object({
-  /** UUID generado en el cliente: idempotencia ante reintentos (UNIQUE en DB) y base del modo offline (D13). */
-  clientUuid: z.uuid('clientUuid inválido'),
-  items: saleItemsSchema,
-  paymentMethod: paymentMethodKeySchema,
-  discountCents: centsSchema.default(0),
-  /** Solo efectivo: lo que entregó el cliente, para calcular el vuelto. */
-  cashReceivedCents: centsSchema.optional(),
-  /** "Cobrar pedido web" (D7): enlaza la venta con el pedido confirmado. */
-  orderId: z.number().int().positive('orderId inválido').optional(),
-});
+export const createSaleSchema = z
+  .object({
+    /** UUID generado en el cliente: idempotencia ante reintentos (UNIQUE en DB) y base del modo offline (D13). */
+    clientUuid: z.uuid('clientUuid inválido'),
+    /** Opcional solo al cobrar un pedido web (`orderId`): entonces las líneas salen del pedido y se ignora esta lista. */
+    items: saleItemsSchema.optional(),
+    paymentMethod: paymentMethodKeySchema,
+    discountCents: centsSchema.default(0),
+    /** Solo efectivo: lo que entregó el cliente, para calcular el vuelto. */
+    cashReceivedCents: centsSchema.optional(),
+    /** "Cobrar pedido web" (D7): enlaza la venta con el pedido confirmado. */
+    orderId: z.number().int().positive('orderId inválido').optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.items === undefined && data.orderId === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['items'], message: 'la venta necesita al menos un ítem' });
+    }
+  });
 
 export const voidSaleSchema = z.object({
   reason: requiredSafeText(REASON_MAX, 'reason'),
@@ -233,20 +241,37 @@ export interface CashCloseTopProduct {
   totalCents: number;
 }
 
-/** Foto inmutable del cierre de caja: de acá se regenera la imagen PNG sin recalcular (F5). */
-export interface CashCloseSnapshot {
+/** Resumen de una sesión (en vivo mientras está abierta; base del snapshot al cerrar). */
+export interface CashSessionSummary {
   sessionId: number;
   openedAt: string;
-  closedAt: string;
   openingCashCents: number;
+  /** Ventas no anuladas. */
   salesCount: number;
   voidedCount: number;
   totalSalesCents: number;
   byMethod: CashCloseMethodTotal[];
+  /** Gastos pagados de caja (`paid_from_register`) de la sesión. */
   cashExpensesCents: number;
+  /** apertura + ventas en efectivo − gastos de caja (nunca negativo). */
   expectedCashCents: number;
+  topProducts: CashCloseTopProduct[];
+}
+
+/** Foto inmutable del cierre de caja: de acá se regenera la imagen PNG sin recalcular (F5). */
+export interface CashCloseSnapshot extends CashSessionSummary {
+  closedAt: string;
   countedCashCents: number;
   /** contado − esperado: negativo = faltante, positivo = sobrante. */
   differenceCents: number;
-  topProducts: CashCloseTopProduct[];
+}
+
+/** Sesión + su resumen (snapshot congelado si está cerrada, en vivo si está abierta). */
+export interface CashSessionDetail extends CashSession {
+  summary: CashSessionSummary;
+}
+
+/** Pedido web confirmado y aún sin cobrar en caja ("Cobrar pedido web"), con el total ya en céntimos. */
+export interface PendingWebOrder extends OrderDto {
+  totalCents: number;
 }

@@ -41,14 +41,15 @@ export interface NavGroup {
   items: readonly NavItem[];
 }
 
-// TODO(F3): cuando exista el rol `cashier`, el cajero solo verá el ítem del POS;
-// el resto de ítems quedan restringidos a ['owner', 'admin'] con `roles`.
+/** Roles con acceso al back-office completo; el cajero (D9) solo ve el POS y su perfil. */
+const BACKOFFICE: readonly Role[] = ['owner', 'admin'];
+
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
     id: 'inicio',
     label: 'Inicio',
     collapsible: false,
-    items: [{ to: '/', label: 'Inicio', icon: LayoutDashboard, end: true }],
+    items: [{ to: '/', label: 'Inicio', icon: LayoutDashboard, end: true, roles: BACKOFFICE }],
   },
   {
     id: 'ventas',
@@ -56,8 +57,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     collapsible: true,
     items: [
       { to: '/ventas/pos', label: 'Punto de venta', icon: ShoppingCart },
-      { to: '/ventas/cierres', label: 'Cierres de caja', icon: Calculator },
-      { to: '/ventas/historial', label: 'Historial de ventas', icon: History },
+      { to: '/ventas/cierres', label: 'Cierres de caja', icon: Calculator, roles: BACKOFFICE },
+      { to: '/ventas/historial', label: 'Historial de ventas', icon: History, roles: BACKOFFICE },
     ],
   },
   {
@@ -65,9 +66,9 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     label: 'Gastos',
     collapsible: true,
     items: [
-      { to: '/gastos', label: 'Registrar gastos', icon: Receipt, end: true },
-      { to: '/gastos/importar', label: 'Importar', icon: Upload },
-      { to: '/gastos/categorias', label: 'Categorías de gastos', icon: Tags },
+      { to: '/gastos', label: 'Registrar gastos', icon: Receipt, end: true, roles: BACKOFFICE },
+      { to: '/gastos/importar', label: 'Importar', icon: Upload, roles: BACKOFFICE },
+      { to: '/gastos/categorias', label: 'Categorías de gastos', icon: Tags, roles: BACKOFFICE },
     ],
   },
   {
@@ -75,21 +76,21 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     label: 'Tienda online',
     collapsible: true,
     items: [
-      { to: '/tienda/pedidos', label: 'Pedidos', icon: ClipboardList },
-      { to: '/tienda/menu', label: 'Menú', icon: Pizza },
-      { to: '/tienda/categorias', label: 'Categorías del menú', icon: Tags },
-      { to: '/tienda/destacados', label: 'Destacados', icon: Sparkles },
-      { to: '/tienda/premios', label: 'Premios', icon: Gift },
-      { to: '/tienda/sorteo', label: 'Sorteo', icon: Dices },
-      { to: '/tienda/puntos', label: 'Puntos', icon: Star },
-      { to: '/tienda/whatsapp', label: 'WhatsApp', icon: MessageCircle },
+      { to: '/tienda/pedidos', label: 'Pedidos', icon: ClipboardList, roles: BACKOFFICE },
+      { to: '/tienda/menu', label: 'Menú', icon: Pizza, roles: BACKOFFICE },
+      { to: '/tienda/categorias', label: 'Categorías del menú', icon: Tags, roles: BACKOFFICE },
+      { to: '/tienda/destacados', label: 'Destacados', icon: Sparkles, roles: BACKOFFICE },
+      { to: '/tienda/premios', label: 'Premios', icon: Gift, roles: BACKOFFICE },
+      { to: '/tienda/sorteo', label: 'Sorteo', icon: Dices, roles: BACKOFFICE },
+      { to: '/tienda/puntos', label: 'Puntos', icon: Star, roles: BACKOFFICE },
+      { to: '/tienda/whatsapp', label: 'WhatsApp', icon: MessageCircle, roles: BACKOFFICE },
     ],
   },
   {
     id: 'reportes',
     label: 'Reportes',
     collapsible: false,
-    items: [{ to: '/reportes', label: 'Reportes', icon: BarChart3 }],
+    items: [{ to: '/reportes', label: 'Reportes', icon: BarChart3, roles: BACKOFFICE }],
   },
   {
     id: 'ajustes',

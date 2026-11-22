@@ -48,18 +48,18 @@ export default function App() {
         </Route>
 
         <Route element={<ShellLayout />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/reportes" element={<ReportsPage />} />
-          <Route path="/ventas/cierres" element={<CashClosuresPage />} />
-          <Route path="/ventas/historial" element={<SalesHistoryPage />} />
+          {/* Única ruta del shell abierta al cajero (D9), junto con el POS. */}
           <Route path="/ajustes/perfil" element={<ProfilePage />} />
 
-          {/* TODO(F3): sumar el rol `cashier` a las rutas que le correspondan. */}
           <Route element={<RoleLayout roles={OWNER_ONLY} />}>
             <Route path="/ajustes/usuarios" element={<UsersPage />} />
           </Route>
 
           <Route element={<RoleLayout roles={BACKOFFICE_ROLES} />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/reportes" element={<ReportsPage />} />
+            <Route path="/ventas/cierres" element={<CashClosuresPage />} />
+            <Route path="/ventas/historial" element={<SalesHistoryPage />} />
             <Route path="/gastos" element={<ExpensesPage />} />
             <Route path="/gastos/importar" element={<ExpenseImportPage />} />
             <Route path="/gastos/categorias" element={<ExpenseCategoriesPage />} />

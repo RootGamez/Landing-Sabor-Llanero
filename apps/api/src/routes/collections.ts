@@ -21,6 +21,7 @@ import { coverKeysByItem } from '../db/covers';
 import { requireAuth, requireRole } from '../middleware/auth';
 import { badRequest, notFound } from '../lib/http-error';
 import { parseBody } from '../lib/validate';
+import { WEB_CHANNELS, channelCondition } from '../lib/menu-channel';
 
 export const collectionRoutes = new Hono<AppEnv>();
 
@@ -72,7 +73,9 @@ async function loadCollections(
   if (collectionIds.length === 0) return collectionRows.map((r) => ({ ...mapCollection(r), items: [] }));
 
   const collectionPlaceholders = collectionIds.map(() => '?').join(',');
-  const itemFilter = opts.includeInactiveItems ? '' : 'AND mi.is_active = 1';
+  // Público: solo activos y vendibles en la web (D6); el CMS (includeInactiveItems) ve todo.
+  const webChannel = channelCondition(WEB_CHANNELS, 'mi.channel');
+  const itemFilter = opts.includeInactiveItems ? '' : `AND mi.is_active = 1 AND ${webChannel.sql}`;
   const { results: itemRows } = await db
     .prepare(
       `SELECT ci.collection_id AS collection_id, ci.display_order AS collection_item_order, mi.*
@@ -81,7 +84,7 @@ async function loadCollections(
         WHERE ci.collection_id IN (${collectionPlaceholders}) ${itemFilter}
         ORDER BY ci.collection_id ASC, ci.display_order ASC, ci.id ASC`,
     )
-    .bind(...collectionIds)
+    .bind(...collectionIds, ...(opts.includeInactiveItems ? [] : webChannel.params))
     .all<MenuItemRow & { collection_id: number; collection_item_order: number }>();
 
   const categoryIds = [...new Set(itemRows.map((r) => r.category_id))];
