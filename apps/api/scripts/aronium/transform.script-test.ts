@@ -26,6 +26,27 @@ describe('limaToUtc', () => {
     expect(limaToUtc('2024-12-31 20:00:00')).toBe('2025-01-01 01:00:00');
   });
 
+  it('cerca de medianoche Lima: 23:59:59 cae al día UTC siguiente, 00:00:00 y 04:59:59 no', () => {
+    expect(limaToUtc('2026-02-14 23:59:59.9')).toBe('2026-02-15 04:59:59');
+    expect(limaToUtc('2026-02-14 00:00:00')).toBe('2026-02-14 05:00:00');
+    expect(limaToUtc('2026-02-14 04:59:59')).toBe('2026-02-14 09:59:59');
+    expect(limaToUtc('2026-12-31 23:40:23.7449113')).toBe('2027-01-01 04:40:23');
+  });
+
+  it('el día local de una venta nocturna sigue siendo el de Lima, no el UTC', () => {
+    const doc = { id: 1, dateCreated: '2026-02-14 23:40:09.7', total: 10, discount: 0 };
+    const data = {
+      products: [{ id: 1, name: 'X', groupName: '' }],
+      documents: [doc],
+      items: [{ documentId: 1, productId: 1, quantity: 1, price: 10, total: 10 }],
+      payments: [],
+      zReports: [],
+    };
+    const [session] = buildPlan(data, [], { from: '2026-02-14' }).sessions;
+    expect(session?.legacyRef).toBe('aronium:day:2026-02-14');
+    expect(session?.sales[0]?.createdAtUtc).toBe('2026-02-15 04:40:09');
+  });
+
   it('falla con formatos inesperados', () => {
     expect(() => limaToUtc('ayer')).toThrow();
   });
@@ -69,8 +90,8 @@ function raw(overrides: Partial<RawData> = {}): RawData {
 }
 
 const MAP: MapRow[] = [
-  { legacyId: 1, legacyName: 'Americana', legacyGroup: 'Pizzas Grandes', itemId: 13, sizeKey: 'grande', status: 'auto' },
-  { legacyId: 2, legacyName: 'Tequeños', legacyGroup: 'Entradas', itemId: null, sizeKey: null, status: 'unmatched' },
+  { legacyId: 1, legacyName: 'Americana', legacyGroup: 'Pizzas Grandes', itemId: 13, itemSlug: null, sizeKey: 'grande', status: 'auto' },
+  { legacyId: 2, legacyName: 'Tequeños', legacyGroup: 'Entradas', itemId: null, itemSlug: null, sizeKey: null, status: 'unmatched' },
 ];
 
 describe('buildPlan', () => {
@@ -106,7 +127,7 @@ describe('buildPlan', () => {
   it('usa el mapa para item y tamaño, y guarda el snapshot del nombre', () => {
     const [item] = buildPlan(raw(), MAP, {}).sessions[0].sales[0].items;
     expect(item).toEqual(
-      expect.objectContaining({ itemId: 13, sizeKey: 'grande', sizeLabel: 'Grande', name: 'Americana', unitPriceCents: 3500 }),
+      expect.objectContaining({ itemId: 13, itemSlug: null, sizeKey: 'grande', sizeLabel: 'Grande', name: 'Americana', unitPriceCents: 3500 }),
     );
   });
 

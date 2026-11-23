@@ -50,6 +50,8 @@ export interface MenuEntry {
   id: number;
   nameEs: string;
   categorySlug: string;
+  /** Clave estable entre bases (los ids pueden diferir entre local y producción). */
+  slug?: string;
 }
 
 export type MapStatus = 'auto' | 'unmatched';
@@ -60,6 +62,8 @@ export interface MapRow {
   legacyName: string;
   legacyGroup: string;
   itemId: number | null;
+  /** Si está, manda sobre itemId: el SQL resuelve `menu_items.slug`. */
+  itemSlug: string | null;
   sizeKey: SizeKey | null;
   status: MapStatus;
 }
@@ -67,8 +71,13 @@ export interface MapRow {
 export interface SaleItemRecord {
   legacyProductId: number;
   itemId: number | null;
+  itemSlug: string | null;
   sizeKey: SizeKey | null;
+  /** Nombre legacy limpio + sufijo; es el respaldo cuando el ítem no está en el menú destino. */
   name: string;
+  baseName: string;
+  /** ' (×0,5)' en líneas fraccionarias, '' en el resto. */
+  nameSuffix: string;
   sizeLabel: string | null;
   unitPriceCents: number;
   quantity: number;

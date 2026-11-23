@@ -21,7 +21,7 @@ export function sizeFromGroup(groupName: string): SizeKey | null {
   return SIZE_BY_GROUP[normalizeName(groupName)] ?? null;
 }
 
-export type MatchResult = { status: 'auto'; itemId: number } | { status: 'unmatched' };
+export type MatchResult = { status: 'auto'; itemId: number; itemSlug: string | null } | { status: 'unmatched' };
 
 const NON_ASCII_RUN = /[^\x00-\x7f]+/;
 // Un carácter acentuado roto puede haber quedado como 0-3 caracteres basura.
@@ -32,7 +32,9 @@ function escapeRegex(text: string): string {
 }
 
 function pickUnique(candidates: readonly MenuEntry[]): MatchResult {
-  return candidates.length === 1 && candidates[0] ? { status: 'auto', itemId: candidates[0].id } : { status: 'unmatched' };
+  const [only] = candidates;
+  if (candidates.length !== 1 || !only) return { status: 'unmatched' };
+  return { status: 'auto', itemId: only.id, itemSlug: only.slug ?? null };
 }
 
 function looseMatch(key: string, menu: readonly MenuEntry[]): readonly MenuEntry[] {
@@ -61,8 +63,26 @@ export function buildMapRows(products: readonly RawProduct[], menu: readonly Men
       legacyName: product.name,
       legacyGroup: product.groupName,
       itemId: match.status === 'auto' ? match.itemId : null,
+      itemSlug: match.status === 'auto' ? match.itemSlug : null,
       sizeKey: sizeFromGroup(product.groupName),
       status: match.status,
     };
   });
+}
+
+/** Completa item_slug en filas que solo traen item_id (p. ej. editadas a mano en el CSV). */
+export function fillSlugs(rows: readonly MapRow[], menu: readonly MenuEntry[]): MapRow[] {
+  const slugById = new Map(menu.map((entry) => [entry.id, entry.slug ?? null]));
+  return rows.map((row) => {
+    if (row.itemSlug !== null || row.itemId === null) return row;
+    if (!slugById.has(row.itemId)) throw new Error(`legacy_id ${row.legacyId}: el item_id ${row.itemId} no está en el menú`);
+    return { ...row, itemSlug: slugById.get(row.itemId) ?? null };
+  });
+}
+
+/** Slugs del CSV que no existen en el menú del destino (esas líneas quedarían sin ítem). */
+export function missingSlugs(rows: readonly MapRow[], menu: readonly MenuEntry[]): string[] {
+  const known = new Set(menu.map((entry) => entry.slug).filter((slug): slug is string => slug !== undefined));
+  const slugs = rows.map((row) => row.itemSlug).filter((slug): slug is string => slug !== null);
+  return [...new Set(slugs.filter((slug) => !known.has(slug)))];
 }

@@ -1,3 +1,6 @@
+import { cleanLegacyName } from './name-clean';
+import { sizeFromGroup } from './product-map';
+import { SIZE_LABELS } from './transform';
 import type { ImportPlan, MapRow, SaleItemRecord, SaleRecord, SessionRecord, SizeKey } from './types';
 
 export interface BatchLimits {
@@ -22,16 +25,38 @@ function sizeIdExpr(sizeKey: SizeKey | null): string {
   return sizeKey === null ? 'NULL' : `(SELECT id FROM sizes WHERE key = ${sqlString(sizeKey)})`;
 }
 
-// Si el ítem ya no existe en el menú el subselect da NULL y no rompe la FK.
-function itemIdExpr(itemId: number | null): string {
+// Prefiere el slug: los ids de menu_items pueden diferir entre bases (local vs producción).
+// Si el ítem no existe en el destino el subselect da NULL y no rompe la FK.
+function itemIdExpr(itemId: number | null, itemSlug: string | null): string {
+  if (itemSlug !== null) return `(SELECT id FROM menu_items WHERE slug = ${sqlString(itemSlug)})`;
   return itemId === null ? 'NULL' : `(SELECT id FROM menu_items WHERE id = ${Math.trunc(itemId)})`;
+}
+
+function itemWhere(itemId: number | null, itemSlug: string | null): string {
+  return itemSlug !== null ? `slug = ${sqlString(itemSlug)}` : `id = ${Math.trunc(itemId ?? 0)}`;
+}
+
+const SIZE_SUFFIX_EXPR = "CASE WHEN instr(name, ' (×') > 0 THEN substr(name, instr(name, ' (×')) ELSE '' END";
+
+/**
+ * Nombre unificado: el name_es actual del ítem del menú (sin tamaño); si el ítem
+ * no existe en el destino, el nombre legacy limpio. El sufijo (×0,5) va después.
+ */
+function itemNameBase(itemId: number | null, itemSlug: string | null, fallback: string): string {
+  if (itemId === null && itemSlug === null) return sqlString(fallback);
+  return `COALESCE((SELECT name_es FROM menu_items WHERE ${itemWhere(itemId, itemSlug)}), ${sqlString(fallback)})`;
+}
+
+function itemNameExpr(item: SaleItemRecord): string {
+  const base = itemNameBase(item.itemId, item.itemSlug, item.baseName);
+  return item.nameSuffix === '' ? base : `(${base} || ${sqlString(item.nameSuffix)})`;
 }
 
 function renderMapRow(row: MapRow): string {
   return (
     'INSERT OR IGNORE INTO legacy_product_map (source, legacy_id, legacy_name, legacy_group, item_id, size_id) VALUES ' +
     `('aronium', ${row.legacyId}, ${sqlString(row.legacyName)}, ${sqlString(row.legacyGroup)}, ` +
-    `${itemIdExpr(row.itemId)}, ${sizeIdExpr(row.sizeKey)});`
+    `${itemIdExpr(row.itemId, row.itemSlug)}, ${sizeIdExpr(row.sizeKey)});`
   );
 }
 
@@ -56,7 +81,7 @@ function renderSale(session: SessionRecord, sale: SaleRecord): string {
 
 function renderItemValues(item: SaleItemRecord): string {
   return (
-    `(${itemIdExpr(item.itemId)}, ${sizeIdExpr(item.sizeKey)}, ${sqlString(item.name)}, ` +
+    `(${itemIdExpr(item.itemId, item.itemSlug)}, ${sizeIdExpr(item.sizeKey)}, ${itemNameExpr(item)}, ` +
     `${sqlNullableString(item.sizeLabel)}, ${item.unitPriceCents}, ${item.quantity}, ${item.lineTotalCents})`
   );
 }
@@ -104,6 +129,66 @@ export function batchStatements(statements: readonly string[], limits: BatchLimi
   return batches;
 }
 
+function sizeLabelOf(sizeKey: SizeKey | null): string | null {
+  return sizeKey === null ? null : SIZE_LABELS[sizeKey];
+}
+
+function labelCondition(label: string | null): string {
+  return label === null ? 'size_label IS NULL' : `size_label = ${sqlString(label)}`;
+}
+
+function nameMatch(names: readonly string[]): string {
+  const conditions = names.map(
+    (name) => `name = ${sqlString(name)} OR substr(name, 1, ${name.length + 3}) = ${sqlString(`${name} (×`)}`,
+  );
+  return conditions.join(' OR ');
+}
+
+// Reconoce las líneas del producto por nombre (legacy crudo o limpio, con o sin
+// sufijo) y, si ya está vinculado, por item_id; así repetirlo no cambia nada.
+function renderRelinkLines(row: MapRow): string {
+  const groupLabel = sizeLabelOf(sizeFromGroup(row.legacyGroup));
+  const csvLabel = sizeLabelOf(row.sizeKey);
+  const hasItem = row.itemId !== null || row.itemSlug !== null;
+  const clean = cleanLegacyName(row.legacyName);
+  const matches = [nameMatch([...new Set([row.legacyName, clean])])];
+  if (hasItem) matches.push(`item_id = ${itemIdExpr(row.itemId, row.itemSlug)}`);
+  const labels = [...new Set([groupLabel, csvLabel])].map(labelCondition).join(' OR ');
+  const nameSet = `name = ${itemNameBase(row.itemId, row.itemSlug, clean)} || ${SIZE_SUFFIX_EXPR}`;
+  const itemSet = hasItem
+    ? `item_id = ${itemIdExpr(row.itemId, row.itemSlug)}, size_id = ${sizeIdExpr(row.sizeKey)}, size_label = ${sqlNullableString(csvLabel)}, `
+    : '';
+  return (
+    `UPDATE sale_items SET ${itemSet}${nameSet} ` +
+    "WHERE sale_id IN (SELECT id FROM sales WHERE source = 'aronium') " +
+    `AND (${matches.join(' OR ')}) AND (${labels});`
+  );
+}
+
+function renderRelinkMap(row: MapRow): string {
+  return (
+    `UPDATE legacy_product_map SET item_id = ${itemIdExpr(row.itemId, row.itemSlug)}, size_id = ${sizeIdExpr(row.sizeKey)} ` +
+    `WHERE source = 'aronium' AND legacy_id = ${row.legacyId};`
+  );
+}
+
+/**
+ * Corrige ítem, tamaño y nombre de lo YA importado (INSERT OR IGNORE no actualiza).
+ * Identifica la línea por el nombre guardado (crudo o limpio), el ítem ya vinculado
+ * y el tamaño del grupo de Aronium. Idempotente; no toca importes.
+ */
+export function renderRelinkSql(rows: readonly MapRow[]): string {
+  const body = rows.flatMap((row) => {
+    const hasItem = row.itemId !== null || row.itemSlug !== null;
+    return hasItem ? [renderRelinkLines(row), renderRelinkMap(row)] : [renderRelinkLines(row)];
+  });
+  return [
+    '-- Re-vincula líneas ya importadas (item, tamaño y nombre unificado) según el CSV. Seguro de repetir.',
+    ...body,
+    '',
+  ].join('\n');
+}
+
 export interface VerifyTotals {
   salesCount: number;
   itemsCount: number;
@@ -135,6 +220,20 @@ export function renderVerifySql(expected: VerifyTotals): string {
     '',
     '-- informativo: ventas y total por método de pago',
     "SELECT payment_method, COUNT(*) AS ventas, SUM(total_cents) AS total_cents FROM sales WHERE source = 'aronium' GROUP BY payment_method;",
+    '',
+  ].join('\n');
+}
+
+/**
+ * Deshace la importación de Aronium (solo filas con source='aronium'). Orden por
+ * las FK: ventas (sus líneas caen por CASCADE), luego sesiones y el mapa.
+ */
+export function renderRollbackSql(): string {
+  return [
+    '-- Deshace la importación de Aronium. No toca ventas/sesiones del POS ni de HomeBank.',
+    "DELETE FROM sales WHERE source = 'aronium';",
+    "DELETE FROM cash_sessions WHERE source = 'aronium';",
+    "DELETE FROM legacy_product_map WHERE source = 'aronium';",
     '',
   ].join('\n');
 }

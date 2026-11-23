@@ -1,7 +1,9 @@
 import { SIZE_KEYS, type MapRow, type MapStatus, type SizeKey } from './types';
 
-const HEADER = ['legacy_id', 'legacy_name', 'legacy_group', 'item_id', 'size_key', 'status'] as const;
+const HEADER = ['legacy_id', 'legacy_name', 'legacy_group', 'item_id', 'item_slug', 'size_key', 'status'] as const;
+const REQUIRED_COLUMNS = ['legacy_id', 'legacy_name'] as const;
 const BOM = '﻿';
+const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
 function quoteField(value: string): string {
   return /[",;\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
@@ -10,7 +12,7 @@ function quoteField(value: string): string {
 /** CSV con BOM para que Excel (es-PE) respete la ñ y los acentos. */
 export function serializeMapCsv(rows: readonly MapRow[]): string {
   const lines = rows.map((row) =>
-    [row.legacyId, row.legacyName, row.legacyGroup, row.itemId ?? '', row.sizeKey ?? '', row.status]
+    [row.legacyId, row.legacyName, row.legacyGroup, row.itemId ?? '', row.itemSlug ?? '', row.sizeKey ?? '', row.status]
       .map((field) => quoteField(String(field)))
       .join(','),
   );
@@ -52,35 +54,56 @@ function detectDelimiter(text: string): string {
   return firstLine.includes(';') && !firstLine.includes(',') ? ';' : ',';
 }
 
-function parseRow(fields: readonly string[], line: number): MapRow {
-  const [id, name = '', group = '', item = '', size = '', status = ''] = fields.map((f) => f.trim());
+/** Posición de cada columna por nombre: el orden no importa y item_slug es opcional (CSV viejo). */
+function indexColumns(header: readonly string[]): Map<string, number> {
+  const columns = new Map(header.map((name, index) => [name.trim().toLowerCase(), index]));
+  for (const required of REQUIRED_COLUMNS) {
+    if (!columns.has(required)) throw new Error(`línea 1: falta la columna ${required}`);
+  }
+  return columns;
+}
+
+function parseRow(get: (column: string) => string, line: number): MapRow {
+  const id = get('legacy_id');
   const legacyId = Number(id);
   if (!Number.isInteger(legacyId) || legacyId <= 0) throw new Error(`línea ${line}: legacy_id inválido ("${id}")`);
+  const item = get('item_id');
   const itemId = item === '' ? null : Number(item);
   if (itemId !== null && (!Number.isInteger(itemId) || itemId <= 0)) {
     throw new Error(`línea ${line}: item_id debe ser un entero positivo o quedar vacío ("${item}")`);
   }
+  const slug = get('item_slug');
+  if (slug !== '' && !SLUG_PATTERN.test(slug)) {
+    throw new Error(`línea ${line}: item_slug solo admite minúsculas, números y guiones ("${slug}")`);
+  }
+  const size = get('size_key');
   if (size !== '' && !(SIZE_KEYS as readonly string[]).includes(size)) {
     throw new Error(`línea ${line}: size_key debe ser ${SIZE_KEYS.join('|')} o quedar vacío ("${size}")`);
   }
-  const mapStatus: MapStatus = status === 'auto' ? 'auto' : 'unmatched';
+  const status: MapStatus = get('status') === 'auto' ? 'auto' : 'unmatched';
   return {
     legacyId,
-    legacyName: name,
-    legacyGroup: group,
+    legacyName: get('legacy_name'),
+    legacyGroup: get('legacy_group'),
     itemId,
+    itemSlug: slug === '' ? null : slug,
     sizeKey: size === '' ? null : (size as SizeKey),
-    status: mapStatus,
+    status,
   };
 }
 
 export function parseMapCsv(csv: string): MapRow[] {
   const text = csv.startsWith(BOM) ? csv.slice(1) : csv;
-  const records = splitRecords(text, detectDelimiter(text));
+  const [header, ...records] = splitRecords(text, detectDelimiter(text));
+  const columns = indexColumns(header ?? []);
   const rows: MapRow[] = [];
   records.forEach((fields, index) => {
-    if (index === 0 || fields.every((f) => f.trim() === '')) return;
-    rows.push(parseRow(fields, index + 1));
+    if (fields.every((f) => f.trim() === '')) return;
+    const get = (column: string): string => {
+      const position = columns.get(column);
+      return position === undefined ? '' : (fields[position] ?? '').trim();
+    };
+    rows.push(parseRow(get, index + 2));
   });
   return rows;
 }

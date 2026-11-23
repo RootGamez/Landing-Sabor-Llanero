@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { batchStatements, renderPlan, renderVerifySql, sqlString } from './sql';
+import { batchStatements, renderPlan, renderRelinkSql, renderVerifySql, sqlString } from './sql';
 import { buildPlan } from './transform';
 import type { MapRow, RawData } from './types';
 
@@ -45,7 +45,7 @@ const RAW: RawData = {
   zReports: [{ id: 3, number: 1, fromDocumentId: 10, toDocumentId: 10 }],
 };
 const MAP: MapRow[] = [
-  { legacyId: 1, legacyName: "Pan d'ajo", legacyGroup: 'Entradas', itemId: 7, sizeKey: null, status: 'auto' },
+  { legacyId: 1, legacyName: "Pan d'ajo", legacyGroup: 'Entradas', itemId: 7, itemSlug: null, sizeKey: null, status: 'auto' },
 ];
 
 describe('renderPlan', () => {
@@ -81,5 +81,33 @@ describe('renderVerifySql', () => {
     expect(sql).toContain('2392');
     expect(sql).toContain('10385350');
     expect(sql).toContain("FROM sales WHERE source = 'aronium'");
+  });
+});
+
+describe('renderRelinkSql', () => {
+  const rows: MapRow[] = [
+    { legacyId: 1, legacyName: "Pan d'ajo", legacyGroup: 'Entradas', itemId: 7, itemSlug: null, sizeKey: null, status: 'auto' },
+    { legacyId: 2, legacyName: 'Americana', legacyGroup: 'Pizzas Grandes', itemId: 13, itemSlug: null, sizeKey: 'grande', status: 'auto' },
+    { legacyId: 3, legacyName: 'Chicha', legacyGroup: 'Bebidas', itemId: null, itemSlug: null, sizeKey: null, status: 'unmatched' },
+  ];
+  const sql = renderRelinkSql(rows);
+
+  it('actualiza por nombre y tamaño del grupo, también el nombre de los no emparejados', () => {
+    expect(sql).toContain('UPDATE sale_items');
+    expect(sql).toContain("'Pan d''ajo'");
+    expect(sql).toContain("'Chicha'");
+    expect(sql).not.toMatch(/item_id = .*'Chicha'/);
+    expect(sql).toContain("source = 'aronium'");
+  });
+
+  it('también corrige legacy_product_map', () => {
+    expect(sql).toContain("UPDATE legacy_product_map SET item_id");
+    expect(sql).toContain('legacy_id = 2');
+  });
+
+  it('cada sentencia termina en punto y coma', () => {
+    const updates = sql.split(/\r?\n/).filter((line) => line.startsWith('UPDATE'));
+    expect(updates.length).toBeGreaterThan(0);
+    for (const stmt of updates) expect(stmt.endsWith(';')).toBe(true);
   });
 });

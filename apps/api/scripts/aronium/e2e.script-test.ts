@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
-import { batchStatements, renderPlan } from './sql';
+import { batchStatements, renderPlan, renderRelinkSql } from './sql';
 import { buildPlan } from './transform';
 import type { MapRow, RawData } from './types';
 
@@ -47,8 +47,8 @@ function mapFor(db: DatabaseSync): MapRow[] {
       .lastInsertRowid,
   );
   return [
-    { legacyId: 1, legacyName: 'Americana', legacyGroup: 'Pizzas Grandes', itemId: item, sizeKey: 'grande', status: 'auto' },
-    { legacyId: 2, legacyName: "Pan d'ajo", legacyGroup: 'Entradas', itemId: null, sizeKey: null, status: 'unmatched' },
+    { legacyId: 1, legacyName: 'Americana', legacyGroup: 'Pizzas Grandes', itemId: item, itemSlug: null, sizeKey: 'grande', status: 'auto' },
+    { legacyId: 2, legacyName: "Pan d'ajo", legacyGroup: 'Entradas', itemId: null, itemSlug: null, sizeKey: null, status: 'unmatched' },
   ];
 }
 
@@ -99,5 +99,18 @@ describe('aplicar el SQL generado contra el esquema real (0001..0009)', () => {
     apply(db, mapFor(db));
     const sql = "SELECT closed_at IS NOT NULL closed, expected_cash_cents e, counted_cash_cents c FROM cash_sessions WHERE legacy_ref = 'aronium:z:9'";
     expect(one(db, sql)).toEqual({ closed: 1, e: 3500, c: 3500 });
+  });
+
+  it('relink-items.sql asigna item_id a lo ya importado sin duplicar ni tocar totales', () => {
+    const db = freshDb();
+    const corrected = mapFor(db);
+    const unmatched = corrected.map((r) => ({ ...r, itemId: null, status: 'unmatched' as const }));
+    apply(db, unmatched);
+    expect(one(db, 'SELECT COUNT(*) c FROM sale_items WHERE item_id IS NULL')).toEqual({ c: 3 });
+    db.exec(renderRelinkSql(corrected));
+    db.exec(renderRelinkSql(corrected));
+    expect(one(db, 'SELECT COUNT(*) c FROM sale_items WHERE item_id IS NOT NULL')).toEqual({ c: 2 });
+    expect(one(db, 'SELECT COUNT(*) c, SUM(line_total_cents) t FROM sale_items')).toEqual({ c: 3, t: 7650 });
+    expect(one(db, "SELECT item_id IS NOT NULL i, size_id IS NOT NULL s FROM legacy_product_map WHERE legacy_id = 1")).toEqual({ i: 1, s: 1 });
   });
 });

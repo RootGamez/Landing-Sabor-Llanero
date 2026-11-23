@@ -2,7 +2,7 @@
  * Importador de Aronium (F8). Uso (desde apps/api):
  *   pnpm import-aronium inspect <pos.db>
  *   pnpm import-aronium map <pos.db> --menu <menu.json> [--out <dir>]
- *   pnpm import-aronium build <pos.db> --map <product-map.csv> [--from YYYY-MM-DD] [--out <dir>]
+ *   pnpm import-aronium build <pos.db> --map <product-map.csv> [--menu <menu.json>] [--from YYYY-MM-DD] [--out <dir>]
  * Salida por defecto: <repo>/legacy-import/ (ignorada por git). Ver README.md.
  */
 import fs from 'node:fs';
@@ -10,21 +10,23 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import { parseMapCsv, serializeMapCsv } from './map-csv';
-import { buildMapRows } from './product-map';
+import { buildMapRows, fillSlugs, missingSlugs } from './product-map';
 import { formatBuildSummary, formatInspectReport } from './report';
-import { batchStatements, renderPlan, renderVerifySql } from './sql';
+import { batchStatements, renderPlan, renderRelinkSql, renderRollbackSql, renderVerifySql } from './sql';
 import { collectInspectStats, openPosDb, readRawData } from './source';
 import { buildPlan } from './transform';
 import type { MenuEntry } from './types';
 
 const DEFAULT_OUT_DIR = path.resolve(import.meta.dirname, '../../../../legacy-import');
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
-const menuSchema = z.array(z.object({ id: z.number().int().positive(), nameEs: z.string(), categorySlug: z.string() }));
+const menuSchema = z.array(
+  z.object({ id: z.number().int().positive(), nameEs: z.string(), categorySlug: z.string(), slug: z.string().optional() }),
+);
 
 const USAGE = `Uso:
   import-aronium inspect <pos.db>
   import-aronium map <pos.db> --menu <menu.json> [--out <dir>]
-  import-aronium build <pos.db> --map <product-map.csv> [--from YYYY-MM-DD] [--out <dir>]
+  import-aronium build <pos.db> --map <product-map.csv> [--menu <menu.json>] [--from YYYY-MM-DD] [--out <dir>]
 `;
 
 const out = (text: string): void => {
@@ -50,12 +52,23 @@ function runMap(dbPath: string, menuFile: string, outDir: string): void {
   const rows = buildMapRows(readRawData(openPosDb(dbPath)).products, readMenu(menuFile));
   const target = writeFile(outDir, 'product-map.csv', serializeMapCsv(rows));
   const auto = rows.filter((r) => r.status === 'auto').length;
-  out(`${target}\n  ${auto} emparejados, ${rows.length - auto} sin emparejar (edita item_id a mano).\n`);
+  out(`${target}\n  ${auto} emparejados, ${rows.length - auto} sin emparejar (completa item_slug a mano; item_id es opcional).\n`);
 }
 
-function runBuild(dbPath: string, mapFile: string, outDir: string, from: string | undefined): void {
+interface BuildArgs {
+  dbPath: string;
+  mapFile: string;
+  menuFile: string | undefined;
+  outDir: string;
+  from: string | undefined;
+}
+
+function runBuild({ dbPath, mapFile, menuFile, outDir, from }: BuildArgs): void {
   if (from !== undefined && !ISO_DAY.test(from)) throw new Error(`--from debe ser YYYY-MM-DD (recibido "${from}")`);
-  const map = parseMapCsv(fs.readFileSync(mapFile, 'utf8'));
+  const parsed = parseMapCsv(fs.readFileSync(mapFile, 'utf8'));
+  const menu = menuFile ? readMenu(menuFile) : null;
+  const map = menu ? fillSlugs(parsed, menu) : parsed;
+  const absent = menu ? missingSlugs(map, menu) : [];
   const plan = buildPlan(readRawData(openPosDb(dbPath)), map, { from });
   const batches = batchStatements(renderPlan(plan));
   const files = batches.map((batch, index) => {
@@ -63,9 +76,13 @@ function runBuild(dbPath: string, mapFile: string, outDir: string, from: string 
     return writeFile(outDir, name, `-- Aronium ${index + 1}/${batches.length}\n${batch.join('\n')}\n`);
   });
   const verify = renderVerifySql({ ...plan, sessionsCount: plan.sessions.length });
-  files.push(writeFile(outDir, 'verify.sql', verify));
-  out(formatBuildSummary(plan, files.slice(0, -1)));
-  out(`Verificación: ${files[files.length - 1]}\n`);
+  const verifyFile = writeFile(outDir, 'verify.sql', verify);
+  const relinkFile = writeFile(outDir, 'relink-items.sql', renderRelinkSql(plan.mapRows));
+  writeFile(outDir, 'rollback-aronium.sql', renderRollbackSql());
+  if (absent.length > 0) out(`Aviso: ${absent.length} slug(s) del CSV no existen en el menú: ${absent.join(', ')}
+`);
+  out(formatBuildSummary(plan, files));
+  out(`Verificación: ${verifyFile}\nRe-vincular ítems (tras corregir el CSV): ${relinkFile}\n`);
 }
 
 function requireValue(value: string | undefined, label: string): string {
@@ -89,7 +106,10 @@ function main(argv: string[]): void {
   const db = requireValue(dbPath, '<pos.db>');
   if (command === 'inspect') return runInspect(db);
   if (command === 'map') return runMap(db, requireValue(values.menu, '--menu <menu.json>'), outDir);
-  if (command === 'build') return runBuild(db, requireValue(values.map, '--map <product-map.csv>'), outDir, values.from);
+  if (command === 'build') {
+    const mapFile = requireValue(values.map, '--map <product-map.csv>');
+    return runBuild({ dbPath: db, mapFile, menuFile: values.menu, outDir, from: values.from });
+  }
   throw new Error(`Subcomando desconocido "${command ?? ''}"\n${USAGE}`);
 }
 

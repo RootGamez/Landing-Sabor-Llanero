@@ -1,3 +1,4 @@
+import { cleanLegacyName } from './name-clean';
 import { sizeFromGroup } from './product-map';
 import type {
   ImportPlan,
@@ -17,7 +18,7 @@ const LIMA_TO_UTC_HOURS = 5;
 const MS_PER_HOUR = 3_600_000;
 const LOCAL_DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/;
 
-const SIZE_LABELS: Readonly<Record<SizeKey, string>> = {
+export const SIZE_LABELS: Readonly<Record<SizeKey, string>> = {
   mediana: 'Mediana',
   grande: 'Grande',
   familiar: 'Familiar',
@@ -72,6 +73,7 @@ interface LineContext {
   name: string;
   sizeKey: SizeKey | null;
   itemId: number | null;
+  itemSlug: string | null;
 }
 
 /**
@@ -86,11 +88,16 @@ function buildLine(item: RawItem, ctx: LineContext): SaleItemRecord | null {
   const exactWhole = Number.isInteger(item.quantity) && item.quantity > 0 && unit * item.quantity === lineTotalCents;
   const single = item.quantity === 1;
   const annotated = !exactWhole && !single;
+  const baseName = cleanLegacyName(ctx.name);
+  const nameSuffix = annotated ? ` (×${formatQuantity(item.quantity)})` : '';
   return {
     legacyProductId: item.productId,
     itemId: ctx.itemId,
+    itemSlug: ctx.itemSlug,
     sizeKey: ctx.sizeKey,
-    name: annotated ? `${ctx.name} (×${formatQuantity(item.quantity)})` : ctx.name,
+    name: `${baseName}${nameSuffix}`,
+    baseName,
+    nameSuffix,
     sizeLabel: ctx.sizeKey ? SIZE_LABELS[ctx.sizeKey] : null,
     unitPriceCents: exactWhole ? unit : lineTotalCents,
     quantity: exactWhole ? item.quantity : 1,
@@ -122,6 +129,7 @@ function buildLookups(raw: RawData, map: readonly MapRow[], warnings: string[]):
     context.set(product.id, {
       name: product.name,
       itemId: row?.itemId ?? null,
+      itemSlug: row?.itemSlug ?? null,
       sizeKey: row ? row.sizeKey : sizeFromGroup(product.groupName),
     });
   }
@@ -138,7 +146,7 @@ function buildLookups(raw: RawData, map: readonly MapRow[], warnings: string[]):
 function buildSale(doc: RawDocument, number: number, lookups: Lookups, warnings: string[]): SaleRecord | null {
   const items: SaleItemRecord[] = [];
   for (const raw of lookups.itemsByDoc.get(doc.id) ?? []) {
-    const ctx = lookups.context.get(raw.productId) ?? { name: `Producto ${raw.productId}`, itemId: null, sizeKey: null };
+    const ctx = lookups.context.get(raw.productId) ?? { name: `Producto ${raw.productId}`, itemId: null, itemSlug: null, sizeKey: null };
     const line = buildLine(raw, ctx);
     if (line) items.push(line);
     else warnings.push(`doc ${doc.id}: línea de S/ 0 descartada (${ctx.name})`);
@@ -183,6 +191,13 @@ function closeSession(key: SessionKey, sales: SaleRecord[]): SessionRecord {
   return { ...key, openedAtUtc, closedAtUtc, cashCents, sales };
 }
 
+/** Un item_id sin slug solo es seguro si el destino comparte ids con el menú del CSV. */
+function idOnlyWarnings(map: readonly MapRow[]): string[] {
+  return map
+    .filter((row) => row.itemId !== null && row.itemSlug === null)
+    .map((row) => `legacy_id ${row.legacyId} (${row.legacyName}): item_id sin item_slug, se enlaza por id (solo seguro si el destino usa los mismos ids)`);
+}
+
 /** Una fila de legacy_product_map por producto de Aronium; los que faltan en el CSV quedan sin emparejar. */
 function completeMapRows(raw: RawData, map: readonly MapRow[]): MapRow[] {
   const mapById = new Map(map.map((row) => [row.legacyId, row]));
@@ -193,6 +208,7 @@ function completeMapRows(raw: RawData, map: readonly MapRow[]): MapRow[] {
         legacyName: product.name,
         legacyGroup: product.groupName,
         itemId: null,
+        itemSlug: null,
         sizeKey: sizeFromGroup(product.groupName),
         status: 'unmatched' as const,
       },
@@ -207,6 +223,7 @@ export interface PlanOptions {
 /** Pura: de los datos crudos de Aronium al plan de importación, sin tocar disco ni DB. */
 export function buildPlan(raw: RawData, map: readonly MapRow[], options: PlanOptions): ImportPlan {
   const warnings: string[] = [];
+  warnings.push(...idOnlyWarnings(map));
   const lookups = buildLookups(raw, map, warnings);
   const counters = new Map<string, number>();
   const grouped = new Map<string, { key: SessionKey; sales: SaleRecord[] }>();
