@@ -6,6 +6,7 @@ import {
   fetchSalesByWeekday,
   fetchSummary,
   fetchTimeseries,
+  fetchTopCategories,
   fetchTopProducts,
 } from '../lib/reportsApi';
 import { useAsync } from './useAsync';
@@ -34,3 +35,6 @@ export const useReportExpensesByCategory = ({ from, to }: ReportRange) =>
 
 export const useReportSalesByPayment = ({ from, to }: ReportRange) =>
   useAsync(() => fetchSalesByPayment({ from, to }), [from, to]);
+
+export const useReportTopCategories = ({ from, to }: ReportRange) =>
+  useAsync(() => fetchTopCategories({ from, to }), [from, to]);

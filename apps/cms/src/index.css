@@ -70,6 +70,8 @@
    */
   --chart-income: #2a4fc0;
   --chart-expense: #cf142b;
+  /* Ganancia neta: verde validado junto a ingresos/egresos (CVD ΔE ≥ 8, contraste ≥ 3:1). */
+  --chart-net: #0b8f5c;
   --chart-grid: #e7e0cf;
   --chart-axis: #5b5f6b;
 }
@@ -121,6 +123,7 @@
   --color-ring: var(--ring);
   --color-chart-income: var(--chart-income);
   --color-chart-expense: var(--chart-expense);
+  --color-chart-net: var(--chart-net);
   --color-chart-grid: var(--chart-grid);
   --color-chart-axis: var(--chart-axis);
 

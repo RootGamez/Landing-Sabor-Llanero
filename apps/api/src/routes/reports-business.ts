@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { comparisonRange } from '@sabor/shared';
 import type {
   ExpensesByCategoryReport,
   ReportSummary,
@@ -7,6 +8,8 @@ import type {
   SalesByWeekdayRow,
   SalesDistributionReport,
   TimeseriesReport,
+  TopCategoriesReport,
+  TopCategoryRow,
   TopProductRow,
   TopProductsReport,
 } from '@sabor/shared';
@@ -35,10 +38,11 @@ import {
   salesByPaymentStatement,
   salesTotalsStatement,
   summaryIncomeStatement,
+  topCategoriesStatement,
   topProductsStatement,
   WEEKDAY_KEY,
 } from '../lib/report-queries';
-import { parseGranularity, parseReportRange, previousRange } from '../lib/report-range';
+import { parseGranularity, parseReportRange } from '../lib/report-range';
 
 /** Reportes del dashboard general (Plan Parte 3, F9). Solo owner/admin; el cajero recibe 403. */
 export const businessReportRoutes = new Hono<AppEnv>();
@@ -64,7 +68,7 @@ const EMPTY_SALES: SalesTotalsRow = { incomeCents: 0, ticketIncomeCents: 0, tick
 
 businessReportRoutes.get('/summary', async (c) => {
   const range = parseReportRange(c);
-  const previous = previousRange(range);
+  const previous = comparisonRange(range);
   const db = c.env.DB;
   const [sales, expenses, prevSales, prevExpenses] = await db.batch([
     salesTotalsStatement(db, range),
@@ -112,6 +116,14 @@ businessReportRoutes.get('/top-products', async (c) => {
     byQuantity: rowsOf<TopProductRow>(byQuantity),
     byAmount: rowsOf<TopProductRow>(byAmount),
   };
+  return c.json(body);
+});
+
+businessReportRoutes.get('/top-categories', async (c) => {
+  const range = parseReportRange(c);
+  const limit = parseLimit(c.req.query('limit'));
+  const { results } = await topCategoriesStatement(c.env.DB, range, limit).all<TopCategoryRow>();
+  const body: TopCategoriesReport = { range, rows: results };
   return c.json(body);
 });
 

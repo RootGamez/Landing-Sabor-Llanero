@@ -1,9 +1,9 @@
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
-import { formatPEN, type PeriodTotals, type ReportSummary } from '@sabor/shared';
+import { formatPEN, marginPct, type PeriodTotals, type ReportSummary } from '@sabor/shared';
 import { Card, CardContent } from '../ui/card';
 import { Skeleton } from '../ui/Skeleton';
 import { cn } from '../../lib/utils';
-import { formatCount, formatDeltaPct, formatRangeLabel } from '../../lib/dashboardFormat';
+import { formatCount, formatDeltaPct, formatMargin, formatRangeLabel } from '../../lib/dashboardFormat';
 
 /** Por debajo de esto (0,05 %) el cambio se redondea a 0 y se muestra como "igual". */
 const MIN_VISIBLE_DELTA = 0.05;
@@ -58,11 +58,14 @@ interface TileProps {
   polarity: Polarity;
   loading: boolean;
   highlight?: boolean;
+  /** Dato extra bajo el valor (margen %). */
+  note?: string;
+  className?: string;
 }
 
-function KpiTile({ label, value, pct, polarity, loading, highlight }: TileProps) {
+function KpiTile({ label, value, pct, polarity, loading, highlight, note, className }: TileProps) {
   return (
-    <Card className={cn(highlight && 'border-primary/60')}>
+    <Card className={cn(highlight && 'border-primary/60', className)}>
       <CardContent className="gap-1 py-4">
         <span className="text-xs font-bold uppercase tracking-wide text-text-muted">{label}</span>
         {loading || value === undefined ? (
@@ -70,6 +73,7 @@ function KpiTile({ label, value, pct, polarity, loading, highlight }: TileProps)
         ) : (
           <span className="font-display text-xl font-bold tabular-nums text-text sm:text-2xl">{value}</span>
         )}
+        {note && !loading && <span className="text-xs font-semibold text-text">{note}</span>}
         {loading ? <Skeleton className="h-4 w-24" /> : <Delta pct={pct} polarity={polarity} />}
       </CardContent>
     </Card>
@@ -78,6 +82,12 @@ function KpiTile({ label, value, pct, polarity, loading, highlight }: TileProps)
 
 const tickets = (totals: PeriodTotals | undefined): string | undefined =>
   totals && (totals.averageTicketCents === null ? '—' : formatPEN(totals.averageTicketCents));
+
+/** "Margen 25,3 %" (sobre los ingresos); sin ingresos no hay margen que mostrar. */
+function marginNote(totals: PeriodTotals): string | undefined {
+  const pct = marginPct(totals.profitCents, totals.incomeCents);
+  return pct === null ? undefined : `Margen ${formatMargin(pct)}`;
+}
 
 interface KpiTilesProps {
   summary: ReportSummary | undefined;
@@ -88,22 +98,32 @@ export function KpiTiles({ summary, loading }: KpiTilesProps) {
   const current = summary?.current;
   const deltas = summary?.deltaPct;
   const isLoading = loading && !summary;
+  const margin = current ? marginNote(current) : undefined;
   return (
     <section
       aria-label="Indicadores del período"
       aria-busy={loading}
       className={cn('flex flex-col gap-2 transition-opacity', loading && summary && 'opacity-60')}
     >
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-5">
         <KpiTile label="Ingresos" value={current && formatPEN(current.incomeCents)} pct={deltas?.income} polarity="higher-better" loading={isLoading} />
         <KpiTile label="Egresos" value={current && formatPEN(current.expensesCents)} pct={deltas?.expenses} polarity="higher-worse" loading={isLoading} />
-        <KpiTile label="Utilidad" value={current && formatPEN(current.profitCents)} pct={deltas?.profit} polarity="higher-better" loading={isLoading} highlight />
-        <KpiTile label="Ticket promedio" value={tickets(current)} pct={deltas?.averageTicket} polarity="higher-better" loading={isLoading} />
+        <KpiTile
+          label="Ganancia neta"
+          value={current && formatPEN(current.profitCents)}
+          note={margin}
+          pct={deltas?.profit}
+          polarity="higher-better"
+          loading={isLoading}
+          highlight
+          className="col-span-2 sm:col-span-1"
+        />
         <KpiTile label="Ventas" value={current && formatCount(current.salesCount)} pct={deltas?.salesCount} polarity="higher-better" loading={isLoading} />
+        <KpiTile label="Ticket promedio" value={tickets(current)} pct={deltas?.averageTicket} polarity="higher-better" loading={isLoading} />
       </div>
       {summary && (
         <p className="text-xs text-text-muted">
-          Comparado con {formatRangeLabel(summary.previousRange)}.
+          Comparado con el período equivalente anterior: {formatRangeLabel(summary.previousRange)}.
           {summary.summaryIncomeCents > 0 &&
             ` Los ingresos incluyen ${formatPEN(summary.summaryIncomeCents)} de ventas importadas de HomeBank sin detalle de tickets: no cuentan en el ticket promedio ni en el número de ventas.`}
         </p>

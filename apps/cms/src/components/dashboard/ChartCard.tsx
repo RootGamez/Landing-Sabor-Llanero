@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Card } from '../ui/card';
 import { Skeleton } from '../ui/Skeleton';
 import { cn } from '../../lib/utils';
+import { ExportButton, ReportBrandLine, useReportExporter } from '../reports/ReportExport';
 
 /** Estado de carga de una tarjeta (lo que devuelve `useAsync`, más si hay algo que dibujar). */
 export interface CardStatus {
@@ -63,19 +64,27 @@ function CardBody({
 export function ChartCard({ title, description, actions, status, className, footnote, ...body }: ChartCardProps) {
   // Con datos previos y recarga en curso se atenúa en vez de reemplazar por un esqueleto (sin saltos).
   const isRefreshing = status.loading && status.hasData;
+  const exporter = useReportExporter();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const canExport = exporter !== null && status.hasData && !status.error && !status.isEmpty;
   return (
-    <Card className={cn('gap-3 p-5', className)} aria-busy={status.loading}>
+    <Card ref={cardRef} className={cn('gap-3 p-5', className)} aria-busy={status.loading}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
           <h2 className="font-display text-base font-bold leading-tight text-text">{title}</h2>
           {description && <p className="mt-0.5 text-xs text-text-muted">{description}</p>}
         </div>
-        {actions}
+        <div data-export-ignore="" className="flex items-center gap-2">
+          {actions}
+          {canExport && <ExportButton targetRef={cardRef} title={title} variant="icon" onCapturing={setIsCapturing} />}
+        </div>
       </div>
       <div className={cn('transition-opacity', isRefreshing && 'opacity-60')}>
         <CardBody {...body} status={status} />
       </div>
       {footnote && !status.error && <p className="text-xs text-text-muted">{footnote}</p>}
+      {isCapturing && exporter && <ReportBrandLine range={exporter.range} className="border-t border-border pt-2" />}
     </Card>
   );
 }

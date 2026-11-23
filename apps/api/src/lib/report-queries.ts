@@ -137,3 +137,25 @@ export function salesByPaymentStatement(db: D1Database, range: ReportRange): D1P
     )
     .bind(fromUtc, toUtc);
 }
+
+/** Nombre mostrado cuando el ítem vendido ya no existe en la carta (`item_id` quedó en NULL). */
+export const UNCATEGORIZED_LABEL = 'Sin categoría';
+
+/** Ventas reales agrupadas por categoría de la carta, de mayor a menor importe. */
+export function topCategoriesStatement(db: D1Database, range: ReportRange, limit: number): D1PreparedStatement {
+  const { fromUtc, toUtc } = utcWindow(range);
+  return db
+    .prepare(
+      `SELECT COALESCE(c.name_es, ?) AS name,
+              SUM(si.quantity) AS quantity, SUM(si.line_total_cents) AS totalCents
+         FROM sale_items si
+         JOIN sales s ON s.id = si.sale_id
+         LEFT JOIN menu_items mi ON mi.id = si.item_id
+         LEFT JOIN categories c ON c.id = mi.category_id
+        WHERE ${REAL_SALES}
+        GROUP BY COALESCE(c.id, 0), COALESCE(c.name_es, ?)
+        ORDER BY totalCents DESC, quantity DESC, name ASC
+        LIMIT ?`,
+    )
+    .bind(UNCATEGORIZED_LABEL, fromUtc, toUtc, UNCATEGORIZED_LABEL, limit);
+}

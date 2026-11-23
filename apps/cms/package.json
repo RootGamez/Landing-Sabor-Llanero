@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "tsx --test src/components/layout/navConfig.test.ts",
+    "test": "tsx --test src/components/layout/navConfig.test.ts src/lib/dashboardFormat.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p e2e/tsconfig.json",
     "test:e2e": "playwright test -c e2e/playwright.config.ts"
   },

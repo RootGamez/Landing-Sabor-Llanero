@@ -13,7 +13,9 @@ export type PeriodKey = QuickPeriod | 'personalizado';
 
 export const PERIOD_OPTIONS: ReadonlyArray<{ key: PeriodKey; label: string }> = [
   { key: 'hoy', label: 'Hoy' },
-  { key: '7d', label: '7 días' },
+  { key: 'ayer', label: 'Ayer' },
+  { key: '7d', label: 'Últimos 7 días' },
+  { key: '30d', label: 'Últimos 30 días' },
   { key: 'mes', label: 'Este mes' },
   { key: 'mes-pasado', label: 'Mes pasado' },
   { key: 'anio', label: 'Este año' },
@@ -96,6 +98,9 @@ export const formatCount = (n: number): string => countFormat.format(n);
 /** "+12,5 %" / "-3 %" / "0 %". */
 export const formatDeltaPct = (pct: number): string => `${percentFormat.format(pct)} %`;
 
+/** "25,3 %" (margen neto; negativo si hay pérdida). */
+export const formatMargin = (pct: number): string => `${new Intl.NumberFormat('es-PE', { maximumFractionDigits: 1 }).format(pct)} %`;
+
 /** Porción de un total como "35 %" (0 si el total es 0). */
 export const formatShare = (part: number, total: number): string =>
   `${shareFormat.format(total > 0 ? (part / total) * 100 : 0)} %`;
@@ -111,4 +116,17 @@ export function niceTicks(maxValue: number, count: number): number[] {
   const normalized = rawStep / magnitude;
   const step = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * magnitude;
   return Array.from({ length: Math.ceil(maxValue / step) + 1 }, (_, i) => i * step);
+}
+
+/** Como `niceTicks` pero admite valores negativos (ganancia neta en pérdida): marcas de `min` a `max` redondeadas al paso. */
+export function niceTicksRange(minValue: number, maxValue: number, count: number): number[] {
+  if (minValue >= 0) return niceTicks(maxValue, count);
+  const span = Math.max(maxValue, 0) - minValue;
+  const rawStep = span / count;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const normalized = rawStep / magnitude;
+  const step = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * magnitude;
+  const first = Math.floor(minValue / step);
+  const last = Math.max(Math.ceil(maxValue / step), 1);
+  return Array.from({ length: last - first + 1 }, (_, i) => (first + i) * step);
 }

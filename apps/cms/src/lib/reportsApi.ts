@@ -8,6 +8,7 @@ import type {
   SalesByWeekdayRow,
   SalesDistributionReport,
   TimeseriesReport,
+  TopCategoriesReport,
   TopProductsReport,
 } from '@sabor/shared';
 import { api } from './api';
@@ -38,3 +39,6 @@ export const fetchExpensesByCategory = (range: ReportRange) =>
 
 export const fetchSalesByPayment = (range: ReportRange) =>
   api.get<SalesDistributionReport<SalesByPaymentRow>>(`/reports/sales-by-payment?${query(range)}`);
+
+export const fetchTopCategories = (range: ReportRange) =>
+  api.get<TopCategoriesReport>(`/reports/top-categories?${query(range, { limit: String(TOP_PRODUCTS_LIMIT) })}`);

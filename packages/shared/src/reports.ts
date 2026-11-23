@@ -116,3 +116,15 @@ export interface SalesByPaymentRow {
   salesCount: number;
   totalCents: number;
 }
+
+export interface TopCategoryRow {
+  /** Nombre de la categoría del menú; 'Sin categoría' cuando el ítem ya no existe en la carta. */
+  name: string;
+  quantity: number;
+  totalCents: number;
+}
+
+export interface TopCategoriesReport {
+  range: ReportRange;
+  rows: TopCategoryRow[];
+}

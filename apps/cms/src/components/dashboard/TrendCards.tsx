@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   autoGranularity,
   formatPEN,
+  type ProjectedDay,
   type ReportGranularity,
   type ReportRange,
   type SalesByHourRow,
@@ -19,6 +20,13 @@ import { ChartCard, toCardStatus } from './ChartCard';
 import { ColumnChart, type ColumnDatum } from './ColumnChart';
 import { SegmentedControl } from './SegmentedControl';
 import { TimeseriesChart } from './TimeseriesChart';
+
+interface TimeseriesCardProps extends RangeProps {
+  /** Ganancia neta en columnas (página de reportes). */
+  showNet?: boolean;
+  /** Proyección de ingresos hasta fin de mes (solo mes en curso). */
+  projection?: readonly ProjectedDay[];
+}
 
 interface RangeProps {
   range: ReportRange;
@@ -38,7 +46,7 @@ const SUMMARY_NOTE = (cents: number): string | null =>
 const salesText = (count: number): string => `${formatCount(count)} ${count === 1 ? 'venta' : 'ventas'}`;
 
 /** Ingresos vs egresos en el tiempo. La granularidad se elige sola según el largo del rango y se puede cambiar. */
-export function TimeseriesCard({ range }: RangeProps) {
+export function TimeseriesCard({ range, showNet, projection }: TimeseriesCardProps) {
   const [override, setOverride] = useState<ReportGranularity | null>(null);
   const granularity = override ?? autoGranularity(range);
   const state = useReportTimeseries(range, granularity);
@@ -57,7 +65,12 @@ export function TimeseriesCard({ range }: RangeProps) {
         <SegmentedControl label="Agrupar por" options={GRANULARITY_OPTIONS} value={granularity} onChange={setOverride} />
       }
     >
-      <TimeseriesChart points={points} granularity={state.data?.granularity ?? granularity} />
+      <TimeseriesChart
+        points={points}
+        granularity={state.data?.granularity ?? granularity}
+        showNet={showNet}
+        projection={projection}
+      />
     </ChartCard>
   );
 }
