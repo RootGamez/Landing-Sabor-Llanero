@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Role } from '@sabor/shared';
+import { usePosCartStore } from './posCartStore';
 
 export interface SessionUser {
   id: number;
@@ -26,7 +27,11 @@ export const useSessionStore = create<SessionState>()(
       token: null,
       user: null,
       setSession: (token, user) => set({ token, user }),
-      logout: () => set({ token: null, user: null }),
+      // El ticket a medias es de quien lo armó: no debe heredarlo la próxima persona en la misma pestaña.
+      logout: () => {
+        usePosCartStore.getState().clear();
+        set({ token: null, user: null });
+      },
     }),
     { name: 'sabor-cms-session' },
   ),

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<homebank v="1.4" d="050200">
+<properties title="Demo E2E" curr="1" auto_smode="1"/>
+<account key="1" name="Caja demo"/>
+<pay key="1" name="Proveedor demo"/>
+<pay key="2" name="Cliente demo"/>
+<cat key="1" name="Compras demo"/>
+<cat key="2" parent="1" name="Insumos demo"/>
+<cat key="3" name="Ventas demo"/>
+<ope date="739396" amount="-125.5" account="1" payee="1" category="2" wording="Compra sintetica uno"/>
+<ope date="739397" amount="-40" account="1" payee="1" category="1" wording="Compra sintetica dos"/>
+<ope date="739398" amount="-18.25" account="1" payee="1" category="1" wording="Compra sintetica tres"/>
+<ope date="739396" amount="480" account="1" payee="2" category="3" wording="Venta diaria sintetica"/>
+<ope date="739397" amount="350.5" account="1" payee="2" category="3" wording="Venta diaria sintetica"/>
+</homebank>

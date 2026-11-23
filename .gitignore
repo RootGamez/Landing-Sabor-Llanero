@@ -51,3 +51,4 @@ legacy-import/
 apps/cms/e2e/.state/
 apps/cms/e2e/.results/
 apps/cms/e2e/.report/
+!apps/cms/e2e/fixtures/*.xhb
