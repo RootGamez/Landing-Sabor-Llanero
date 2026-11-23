@@ -39,6 +39,9 @@ export function MenuItemFormPage() {
   const [overrides, setOverrides] = useState<Map<number, number | null>>(new Map());
   const [isFeatured, setIsFeatured] = useState(false);
   const [isActive, setIsActive] = useState(true);
+  // Promo con pizzas a elegir en el POS (sabores + adicional por categoría). null = no aplica.
+  const [promoCount, setPromoCount] = useState<number | null>(null);
+  const [promoSizeId, setPromoSizeId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!existing) return;
@@ -50,6 +53,8 @@ export function MenuItemFormPage() {
     setPrice(existing.price);
     setIsFeatured(existing.isFeatured);
     setIsActive(existing.isActive);
+    setPromoCount(existing.promoPizzaCount ?? null);
+    setPromoSizeId(existing.promoPizzaSizeId ?? null);
     // Solo los precios con isOverride=true son overrides propios del ítem;
     // el resto son heredados de la categoría y no se envían.
     setOverrides(
@@ -84,6 +89,12 @@ export function MenuItemFormPage() {
       return;
     }
 
+    const promoPizzaCount = promoCount != null && promoCount > 0 ? Math.round(promoCount) : null;
+    if (!hasSizes && (promoPizzaCount === null) !== (promoSizeId === null)) {
+      toastError('Para la promo indica cuántas pizzas incluye y de qué tamaño (o deja ambos vacíos)');
+      return;
+    }
+
     const priceOverrides = hasSizes
       ? [...overrides.entries()]
           .filter((entry): entry is [number, number] => entry[1] != null && entry[1] > 0)
@@ -100,6 +111,10 @@ export function MenuItemFormPage() {
       // Invariante BLUEPRINT §4.2: con tamaños el ítem no lleva price propio.
       price: hasSizes ? null : price,
       ...(hasSizes ? { priceOverrides: priceOverrides ?? [] } : {}),
+      // Solo se envía si cambió: así el guardado no depende de la migración 0011 en ítems sin promo.
+      ...(!hasSizes && (promoPizzaCount !== (existing?.promoPizzaCount ?? null) || promoSizeId !== (existing?.promoPizzaSizeId ?? null))
+        ? { promoPizzaCount, promoPizzaSizeId: promoPizzaCount === null ? null : promoSizeId }
+        : {}),
       isFeatured,
       isActive,
     };
@@ -198,6 +213,25 @@ export function MenuItemFormPage() {
                 placeholder="0.00"
                 hint={`Los ítems de «${category.nameEs}» tienen precio propio único.`}
               />
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <NumberField
+                  label="Pizzas incluidas (promo)"
+                  min={1}
+                  max={6}
+                  step={1}
+                  value={promoCount}
+                  onValueChange={setPromoCount}
+                  placeholder="Vacío = no es promo de pizzas"
+                  hint="En el POS se eligen los sabores de cada pizza; las que no son Clásicas suman la diferencia de precio."
+                />
+                <Select
+                  label="Tamaño de las pizzas de la promo"
+                  placeholder="Sin tamaño"
+                  value={promoSizeId === null ? '' : String(promoSizeId)}
+                  onValueChange={(next) => setPromoSizeId(next === '' ? null : Number(next))}
+                  options={(sizes ?? []).map((size) => ({ value: String(size.id), label: size.labelEs }))}
+                />
+              </div>
             </CardContent>
           </Card>
         )}

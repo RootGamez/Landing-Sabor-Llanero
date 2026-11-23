@@ -1,69 +1,86 @@
-import { useEffect, useMemo, useState, type Ref } from 'react';
+import { useEffect, useMemo, useRef, useState, type Ref } from 'react';
 import type { AsyncState } from '../../hooks/useAsync';
-import { POS_SECTION_ITEM_LIMIT, normalizeText, priceLookup, type PosCatalog, type PosOption, type PosProduct } from '../../lib/posCatalog';
-import { usePosCartStore } from '../../store/posCartStore';
+import { POS_SECTION_ITEM_LIMIT, priceLookup, type PosCatalog, type PosOption, type PosProduct } from '../../lib/posCatalog';
+import { resolveGridView, unitsByCategory, type ActiveCategory } from '../../lib/posNavigation';
+import { useCart, useCartApi } from '../../store/posCartContext';
+import { usePosCatalogStore } from '../../store/posCatalogStore';
 import { toastError } from '../../store/toastStore';
+import { FlavorPicker, type FlavorRequest } from './FlavorPicker';
 import { EmptyState } from '../ui/EmptyState';
 import { ErrorState } from '../ui/ErrorState';
 import { Skeleton } from '../ui/Skeleton';
+import { CategoryGrid } from './CategoryGrid';
 import { ProductGrid } from './ProductGrid';
-import { ALL_CATEGORIES, ProductToolbar, type CategoryFilter } from './ProductToolbar';
+import { ProductToolbar } from './ProductToolbar';
 import { SizePicker } from './SizePicker';
+import { TILE_GRID_CLASS } from './tileStyles';
 
 type CatalogState = AsyncState<PosCatalog> & { refetch: () => void };
 
 interface PosCatalogPanelProps {
   state: CatalogState;
   searchRef: Ref<HTMLInputElement>;
+  /**
+   * Alinear el ticket con los precios vigentes al cargar (mostrador). La cuenta de una
+   * mesa lo desactiva: sus precios son el snapshot que guardó el servidor.
+   */
+  repriceOnLoad?: boolean;
 }
 
 function GridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4" aria-busy="true" aria-label="Cargando productos">
+    <div className={TILE_GRID_CLASS} aria-busy="true" aria-label="Cargando productos">
       {Array.from({ length: 8 }, (_, index) => (
-        <Skeleton key={index} className="h-24 w-full" />
+        <Skeleton key={index} className="h-28 w-full" />
       ))}
     </div>
   );
 }
 
 /** Un carrito restaurado tras un refresh puede traer precios viejos: se alinea con el catálogo vigente. */
-function useRepriceCartOnLoad(catalog: PosCatalog | undefined) {
+function useRepriceCartOnLoad(catalog: PosCatalog | undefined, enabled: boolean) {
+  const cart = useCartApi();
   useEffect(() => {
-    if (!catalog) return;
-    const removed = usePosCartStore.getState().reprice(priceLookup(catalog));
+    if (!catalog || !enabled) return;
+    const removed = cart.getState().reprice(priceLookup(catalog));
     if (removed.length > 0) {
       toastError(`Se quitaron ${removed.length} producto(s) del ticket que ya no están disponibles.`);
     }
-  }, [catalog]);
+  }, [catalog, enabled, cart]);
 }
 
-function filterProducts(catalog: PosCatalog, category: CategoryFilter, query: string): PosProduct[] {
-  const needle = normalizeText(query);
-  if (needle) return catalog.products.filter((product) => product.searchText.includes(needle));
-  if (category === ALL_CATEGORIES) return catalog.products;
-  return catalog.products.filter((product) => product.categoryId === category);
+/** Deja el catálogo cargado a mano del ticket (sabores de una línea) sin volver a pedirlo a la red. */
+function usePublishCatalog(state: CatalogState) {
+  const publish = usePosCatalogStore((s) => s.publish);
+  const { data, error, refetch } = state;
+  useEffect(() => {
+    publish({ catalog: data ?? null, error: error ?? null, retry: refetch });
+  }, [data, error, refetch, publish]);
 }
 
 function CatalogBody({
   catalog,
   category,
   query,
+  onCategoryChange,
 }: {
   catalog: PosCatalog;
-  category: CategoryFilter;
+  category: ActiveCategory;
   query: string;
+  onCategoryChange: (category: ActiveCategory) => void;
 }) {
-  const lines = usePosCartStore((s) => s.lines);
-  const add = usePosCartStore((s) => s.add);
+  const lines = useCart((s) => s.lines);
+  const add = useCart((s) => s.add);
   const [sizeProduct, setSizeProduct] = useState<PosProduct | null>(null);
+  const [promoRequest, setPromoRequest] = useState<FlavorRequest | null>(null);
 
   const unitsByProduct = useMemo(() => {
     const units = new Map<number, number>();
     for (const line of lines) units.set(line.itemId, (units.get(line.itemId) ?? 0) + line.quantity);
     return units;
   }, [lines]);
-  const visible = useMemo(() => filterProducts(catalog, category, query), [catalog, category, query]);
+  const categoryUnits = useMemo(() => unitsByCategory(catalog, unitsByProduct), [catalog, unitsByProduct]);
+  const view = useMemo(() => resolveGridView(catalog, category, query), [catalog, category, query]);
 
   function addOption(product: PosProduct, option: PosOption) {
     add({
@@ -77,7 +94,9 @@ function CatalogBody({
 
   function handleSelect(product: PosProduct) {
     const [only] = product.options;
-    if (product.options.length === 1 && only) addOption(product, only);
+    // Promo con pizzas a elegir: primero los sabores (precio en vivo con adicionales), luego al ticket.
+    if (product.promo && only) setPromoRequest({ product, sizeId: null, initial: null });
+    else if (product.options.length === 1 && only) addOption(product, only);
     else if (product.options.length > 1) setSizeProduct(product);
   }
 
@@ -88,13 +107,20 @@ function CatalogBody({
           Por ahora solo se muestran los primeros {POS_SECTION_ITEM_LIMIT} productos de: {catalog.truncatedCategories.join(', ')}.
         </p>
       )}
-      <ProductGrid
-        products={visible}
-        unitsByProduct={unitsByProduct}
-        showCategory={category === ALL_CATEGORIES || query.trim() !== ''}
-        isFiltering={query.trim() !== ''}
-        onSelect={handleSelect}
-      />
+      {view.kind === 'categories' ? (
+        <CategoryGrid tiles={view.categories} unitsByCategory={categoryUnits} onSelect={onCategoryChange} />
+      ) : (
+        <ProductGrid
+          products={view.products}
+          unitsByProduct={unitsByProduct}
+          showCategory={view.kind === 'search'}
+          isFiltering={view.kind === 'search'}
+          onSelect={handleSelect}
+          {...(view.kind === 'products'
+            ? { back: { categoryName: view.category.name, onBack: () => onCategoryChange(null) } }
+            : {})}
+        />
+      )}
       <SizePicker
         product={sizeProduct}
         onClose={() => setSizeProduct(null)}
@@ -103,15 +129,33 @@ function CatalogBody({
           setSizeProduct(null);
         }}
       />
+      <FlavorPicker
+        request={promoRequest}
+        confirmLabel="Agregar al ticket"
+        onClose={() => setPromoRequest(null)}
+        onConfirm={(choice) => {
+          const product = promoRequest?.product;
+          const [only] = product?.options ?? [];
+          if (product && only) add({ itemId: product.id, sizeId: only.sizeId, name: product.name, sizeLabel: only.label, ...choice });
+          setPromoRequest(null);
+        }}
+      />
     </>
   );
 }
 
-/** Buscador + chips de categoría + grilla de productos con estados de carga, error y vacío. */
-export function PosCatalogPanel({ state, searchRef }: PosCatalogPanelProps) {
-  const [category, setCategory] = useState<CategoryFilter>(ALL_CATEGORIES);
+/** Buscador + cuadrícula (categorías -> productos de la categoría) de productos con estados de carga, error y vacío. */
+export function PosCatalogPanel({ state, searchRef, repriceOnLoad = true }: PosCatalogPanelProps) {
+  const [category, setCategory] = useState<ActiveCategory>(null);
   const [query, setQuery] = useState('');
-  useRepriceCartOnLoad(state.data);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useRepriceCartOnLoad(state.data, repriceOnLoad);
+  usePublishCatalog(state);
+
+  function changeCategory(next: ActiveCategory) {
+    setCategory(next);
+    scrollRef.current?.scrollTo({ top: 0 });
+  }
 
   const catalog = state.data;
   let body;
@@ -124,19 +168,14 @@ export function PosCatalogPanel({ state, searchRef }: PosCatalogPanelProps) {
         description="Activa productos con canal “Mostrador” o “Ambos” en Tienda online > Menú."
       />
     );
-  } else body = <CatalogBody catalog={catalog} category={category} query={query} />;
+  } else body = <CatalogBody catalog={catalog} category={category} query={query} onCategoryChange={changeCategory} />;
 
   return (
     <section aria-label="Productos" className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-      <ProductToolbar
-        categories={catalog?.categories ?? []}
-        category={category}
-        onCategoryChange={setCategory}
-        query={query}
-        onQueryChange={setQuery}
-        searchRef={searchRef}
-      />
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{body}</div>
+      <ProductToolbar query={query} onQueryChange={setQuery} searchRef={searchRef} />
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        {body}
+      </div>
     </section>
   );
 }

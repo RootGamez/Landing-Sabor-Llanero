@@ -1,10 +1,21 @@
-import { toCents, type MenuChannel, type OrderItemInput } from '@sabor/shared';
+import {
+  FlavorPricingError,
+  normalizeLineNote,
+  priceFlavoredLine,
+  toCents,
+  type FlavorPricingCatalog,
+  type FlavorTarget,
+  type MenuChannel,
+  type OrderItemInput,
+  type SaleItemFlavors,
+} from '@sabor/shared';
 import type { OrderItemRow, OrderRow } from '../db/rows';
 import { badRequest, conflict, notFound } from './http-error';
-import { buildOrderLine, loadPricingContext } from '../routes/orders';
+import { buildOrderLine, loadPricingContext, type PricingContext } from '../routes/orders';
+import { loadFlavorCatalog } from './flavor-catalog';
 
 /** Canales vendibles en el mostrador (D6). */
-const POS_CHANNELS: readonly MenuChannel[] = ['both', 'pos'];
+export const POS_CHANNELS: readonly MenuChannel[] = ['both', 'pos'];
 
 /** Línea de venta ya tasada en céntimos, lista para `sale_items` (snapshot D5). */
 export interface SaleLine {
@@ -14,7 +25,17 @@ export interface SaleLine {
   sizeLabel: string | null;
   unitPriceCents: number;
   quantity: number;
+  /** Sabores tasados server-side (opcional: ventas sin sabores, pedidos web, cuentas viejas). */
+  flavors?: SaleItemFlavors | null;
+  /** Nota libre ya saneada. */
+  note?: string | null;
 }
+
+/** Línea del carrito del POS: ids + cantidad + (opcional) sabores por pizza y nota. Nunca precios. */
+export type CartLineInput = OrderItemInput & {
+  flavors?: readonly (readonly number[])[];
+  note?: string;
+};
 
 export function sumLines(lines: readonly SaleLine[]): number {
   return lines.reduce((sum, line) => sum + line.unitPriceCents * line.quantity, 0);
@@ -30,12 +51,24 @@ function assertPriced(unitPriceCents: number, name: string): void {
  * `item_prices` con la misma lógica pura que los pedidos web. Ítems inactivos
  * o solo-web se rechazan con 400.
  */
-export async function priceCartLines(db: D1Database, inputs: OrderItemInput[]): Promise<SaleLine[]> {
-  const ctx = await loadPricingContext(db, inputs, POS_CHANNELS);
-  return inputs.map((input) => {
-    const line = buildOrderLine(input, ctx);
-    const unitPriceCents = toCents(line.unitPrice);
+export async function priceCartLines(db: D1Database, inputs: readonly CartLineInput[]): Promise<SaleLine[]> {
+  const plainInputs = inputs.map(({ itemId, sizeId, quantity }) => ({ itemId, quantity, ...(sizeId !== undefined ? { sizeId } : {}) }));
+  const needsFlavors = inputs.some((input) => input.flavors !== undefined && input.flavors.length > 0);
+  const [ctx, flavorCatalog] = await Promise.all([
+    loadPricingContext(db, plainInputs, POS_CHANNELS),
+    needsFlavors ? loadFlavorCatalog(db, POS_CHANNELS) : Promise.resolve(null),
+  ]);
+  return inputs.map((input, index) => {
+    const line = buildOrderLine(plainInputs[index]!, ctx);
+    let unitPriceCents = toCents(line.unitPrice);
     assertPriced(unitPriceCents, line.nameEs);
+    let flavors: SaleItemFlavors | null = null;
+    if (flavorCatalog && input.flavors && input.flavors.length > 0) {
+      const target = flavorTargetFor(input, ctx, unitPriceCents, line.nameEs);
+      const priced = priceWithFlavors(target, input.flavors, flavorCatalog, line.nameEs);
+      unitPriceCents = priced.unitPriceCents;
+      flavors = { kind: target.kind, pizzas: priced.pizzas };
+    }
     return {
       itemId: line.itemId,
       sizeId: input.sizeId ?? null,
@@ -43,8 +76,43 @@ export async function priceCartLines(db: D1Database, inputs: OrderItemInput[]): 
       sizeLabel: line.sizeLabel,
       unitPriceCents,
       quantity: line.quantity,
+      flavors,
+      note: normalizeLineNote(input.note),
     };
   });
+}
+
+/**
+ * Decide cómo se tasa una línea con sabores según el ítem: pizza por tamaño
+ * (categoría con tamaños) o promo configurada con N pizzas de un tamaño. Lo
+ * demás no admite sabores.
+ */
+function flavorTargetFor(input: CartLineInput, ctx: PricingContext, basePriceCents: number, name: string): FlavorTarget {
+  const item = ctx.itemById.get(input.itemId);
+  const category = item ? ctx.categoryById.get(item.category_id) : undefined;
+  if (!item || !category) throw badRequest(`"${name}" no está disponible`);
+  if (category.has_sizes === 1) {
+    if (input.sizeId === undefined) throw badRequest(`"${name}" requiere tamaño`);
+    return { kind: 'pizza', itemId: item.id, sizeId: input.sizeId };
+  }
+  const pizzaCount = item.promo_pizza_count ?? null;
+  const sizeId = item.promo_pizza_size_id ?? null;
+  if (pizzaCount === null || sizeId === null) throw badRequest(`"${name}" no admite sabores`);
+  return { kind: 'promo', itemId: item.id, basePriceCents, pizzaCount, sizeId };
+}
+
+function priceWithFlavors(
+  target: FlavorTarget,
+  selection: readonly (readonly number[])[],
+  catalog: FlavorPricingCatalog,
+  name: string,
+) {
+  try {
+    return priceFlavoredLine(target, selection, catalog);
+  } catch (err) {
+    if (err instanceof FlavorPricingError) throw badRequest(`${name}: ${err.message}`);
+    throw err;
+  }
 }
 
 /**

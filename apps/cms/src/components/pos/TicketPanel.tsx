@@ -1,10 +1,11 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Minus, Plus, ReceiptText, Trash2 } from 'lucide-react';
 import { formatPEN } from '@sabor/shared';
-import { cartCount, cartSubtotal, cartTotal, centsToInputText, lineTotal, parseSolesToCents } from '../../lib/posCart';
+import { cartCount, cartSubtotal, cartTotal, centsToInputText, lineTotal, parseSolesToCents, type CartLine } from '../../lib/posCart';
 import { cn } from '../../lib/utils';
-import { usePosCartStore } from '../../store/posCartStore';
+import { useCart, useCartApi } from '../../store/posCartContext';
 import { Button } from '../ui/Button';
+import { TicketLineExtras } from './TicketLineExtras';
 
 const STEP_BUTTON =
   'inline-flex size-11 items-center justify-center rounded-full border-2 border-border bg-surface text-text outline-none transition-colors hover:border-forest-line focus-visible:ring-2 focus-visible:ring-ring active:bg-muted disabled:opacity-40';
@@ -13,6 +14,28 @@ interface TicketPanelProps {
   canDiscount: boolean;
   onCharge: () => void;
   className?: string;
+  /** Encabezado (por defecto "Ticket"; en una mesa, "Mesa 3"). */
+  title?: string;
+  /**
+   * Cuenta de mesa: cantidades ya guardadas por línea. Lo que supera lo guardado se
+   * marca como nuevo; sin `canReduceSaved` no se puede bajar de lo guardado.
+   */
+  savedQuantities?: ReadonlyMap<string, number>;
+  canReduceSaved?: boolean;
+  /** Reemplaza el botón "Cobrar" (la mesa muestra "Guardar pedido" / "Cerrar mesa"). */
+  footerActions?: ReactNode;
+  /** Muestra "Vaciar" (por defecto sí; la cuenta de una mesa no se vacía así). */
+  allowClear?: boolean;
+}
+
+/** Unidades nuevas de la línea desde el último guardado y el mínimo al que se puede bajar. */
+function lineSavedState(line: CartLine, saved: ReadonlyMap<string, number> | undefined, canReduceSaved: boolean) {
+  const savedQty = saved?.get(line.key) ?? 0;
+  return {
+    newUnits: saved ? Math.max(line.quantity - savedQty, 0) : 0,
+    isNewLine: saved !== undefined && savedQty === 0,
+    minQuantity: canReduceSaved ? 0 : savedQty,
+  };
 }
 
 /** Solo admite montos bien formados ("5", "2.50", "2,5"): no hay estado inválido que dejar a medias. */
@@ -20,8 +43,8 @@ const DISCOUNT_INPUT_RE = /^\d{0,7}(?:[.,]\d{0,2})?$/;
 
 function DiscountField({ subtotalCents }: { subtotalCents: number }) {
   const fieldId = useId();
-  const discountCents = usePosCartStore((s) => s.discountCents);
-  const setDiscount = usePosCartStore((s) => s.setDiscount);
+  const discountCents = useCart((s) => s.discountCents);
+  const setDiscount = useCart((s) => s.setDiscount);
   const [text, setText] = useState(() => (discountCents > 0 ? centsToInputText(discountCents) : ''));
 
   // El store recorta el descuento (p. ej. al quitar líneas): el texto debe reflejarlo.
@@ -50,6 +73,7 @@ function DiscountField({ subtotalCents }: { subtotalCents: number }) {
         autoComplete="off"
         value={text}
         onChange={(event) => handleChange(event.target.value)}
+        onFocus={(event) => event.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })}
         placeholder="0"
         aria-describedby={`${fieldId}-hint`}
         className="h-11 w-full rounded-xl border-2 border-border bg-surface px-3 text-base tabular-nums text-text outline-none focus:border-primary focus:ring-2 focus:ring-ring/30"
@@ -98,11 +122,20 @@ function ClearButton({ onClear }: { onClear: () => void }) {
   );
 }
 
-export function TicketPanel({ canDiscount, onCharge, className }: TicketPanelProps) {
+export function TicketPanel({
+  canDiscount,
+  onCharge,
+  className,
+  title = 'Ticket',
+  savedQuantities,
+  canReduceSaved = true,
+  footerActions,
+  allowClear = true,
+}: TicketPanelProps) {
   const titleId = useId();
-  const lines = usePosCartStore((s) => s.lines);
-  const discountCents = usePosCartStore((s) => s.discountCents);
-  const { increment, decrement, remove, clear } = usePosCartStore.getState();
+  const lines = useCart((s) => s.lines);
+  const discountCents = useCart((s) => s.discountCents);
+  const { increment, decrement, remove, clear } = useCartApi().getState();
   const subtotal = cartSubtotal(lines);
   const total = cartTotal(lines, discountCents);
   const isEmpty = lines.length === 0;
@@ -114,9 +147,9 @@ export function TicketPanel({ canDiscount, onCharge, className }: TicketPanelPro
     >
       <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
         <h2 id={titleId} className="font-display text-base font-bold text-text">
-          Ticket <span className="font-medium text-text-muted">({cartCount(lines)})</span>
+          {title} <span className="font-medium text-text-muted">({cartCount(lines)})</span>
         </h2>
-        {!isEmpty && <ClearButton onClear={clear} />}
+        {allowClear && !isEmpty && <ClearButton onClear={clear} />}
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
@@ -128,47 +161,64 @@ export function TicketPanel({ canDiscount, onCharge, className }: TicketPanelPro
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {lines.map((line) => (
-              <li key={line.key} className="flex items-center gap-2 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 break-words text-sm font-bold leading-tight text-text">{line.name}</p>
-                  <p className="truncate text-xs text-text-muted">
-                    {line.sizeLabel ? `${line.sizeLabel} · ` : ''}
-                    {formatPEN(line.unitPriceCents)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className={STEP_BUTTON}
-                  onClick={() => decrement(line.key)}
-                  aria-label={`Quitar una unidad de ${line.name}${line.sizeLabel ? ` ${line.sizeLabel}` : ''}`}
-                >
-                  <Minus className="size-4" aria-hidden="true" />
-                </button>
-                <span className="w-7 text-center text-base font-bold tabular-nums">
-                  {line.quantity}
-                </span>
-                <button
-                  type="button"
-                  className={STEP_BUTTON}
-                  onClick={() => increment(line.key)}
-                  aria-label={`Agregar una unidad de ${line.name}${line.sizeLabel ? ` ${line.sizeLabel}` : ''}`}
-                >
-                  <Plus className="size-4" aria-hidden="true" />
-                </button>
-                <span className="w-16 text-right text-sm font-bold tabular-nums text-text">
-                  {formatPEN(lineTotal(line))}
-                </span>
-                <button
-                  type="button"
-                  className="inline-flex size-11 items-center justify-center rounded-full text-text-muted outline-none hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() => remove(line.key)}
-                  aria-label={`Quitar ${line.name}${line.sizeLabel ? ` ${line.sizeLabel}` : ''} del ticket`}
-                >
-                  <Trash2 className="size-4" aria-hidden="true" />
-                </button>
-              </li>
-            ))}
+            {lines.map((line) => {
+              const { newUnits, isNewLine, minQuantity } = lineSavedState(line, savedQuantities, canReduceSaved);
+              return (
+                <li key={line.key} className="flex flex-col gap-1.5 py-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 break-words text-sm font-bold leading-tight text-text">
+                        {line.name}
+                        {newUnits > 0 && (
+                          <span className="ml-1.5 inline-flex rounded-full border border-forest bg-accent px-1.5 align-middle text-[11px] font-bold uppercase text-accent-foreground">
+                            {isNewLine ? 'Nuevo' : `+${newUnits} nuevo`}
+                          </span>
+                        )}
+                      </p>
+                      <p className="truncate text-xs text-text-muted">
+                        {line.sizeLabel ? `${line.sizeLabel} · ` : ''}
+                        {formatPEN(line.unitPriceCents)}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-base font-extrabold tabular-nums text-text">
+                      {formatPEN(lineTotal(line))}
+                    </span>
+                  </div>
+                  <TicketLineExtras line={line} locked={minQuantity > 0} />
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className={STEP_BUTTON}
+                        disabled={minQuantity > 0 && line.quantity <= minQuantity}
+                        onClick={() => decrement(line.key)}
+                        aria-label={`Quitar una unidad de ${line.name}${line.sizeLabel ? ` ${line.sizeLabel}` : ''}`}
+                      >
+                        <Minus className="size-4" aria-hidden="true" />
+                      </button>
+                      <span className="min-w-8 text-center text-lg font-bold tabular-nums">{line.quantity}</span>
+                      <button
+                        type="button"
+                        className={STEP_BUTTON}
+                        onClick={() => increment(line.key)}
+                        aria-label={`Agregar una unidad de ${line.name}${line.sizeLabel ? ` ${line.sizeLabel}` : ''}`}
+                      >
+                        <Plus className="size-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      className="inline-flex size-11 items-center justify-center rounded-full text-text-muted outline-none hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+                      disabled={minQuantity > 0}
+                      onClick={() => remove(line.key)}
+                      aria-label={`Quitar ${line.name}${line.sizeLabel ? ` ${line.sizeLabel}` : ''} del ticket`}
+                    >
+                      <Trash2 className="size-5" aria-hidden="true" />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -190,12 +240,14 @@ export function TicketPanel({ canDiscount, onCharge, className }: TicketPanelPro
           <span className="font-display text-sm font-bold uppercase tracking-wide">Total</span>
           <span className="text-4xl font-extrabold tabular-nums">{formatPEN(total)}</span>
         </p>
-        <Button size="lg" className="h-16 w-full text-lg" disabled={isEmpty || total <= 0} onClick={onCharge}>
-          Cobrar
-          <kbd className="ml-1 hidden rounded border border-current/40 px-1.5 text-xs font-medium normal-case lg:inline">
-            Enter
-          </kbd>
-        </Button>
+        {footerActions ?? (
+          <Button size="lg" className="h-16 w-full text-lg" disabled={isEmpty || total <= 0} onClick={onCharge}>
+            Cobrar
+            <kbd className="ml-1 hidden rounded border border-current/40 px-1.5 text-xs font-medium normal-case lg:inline">
+              Enter
+            </kbd>
+          </Button>
+        )}
       </footer>
     </section>
   );

@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create, createStore, type StoreApi } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import {
   MAX_CART_LINES,
@@ -6,16 +6,19 @@ import {
   addLine,
   cartSubtotal,
   changeQuantity,
-  lineKey,
+  lineKeyOf,
   newClientUuid,
   removeLine,
   repriceLines,
+  updateLineDetails,
   type CartLine,
+  type LineDetailsPatch,
   type NewCartLine,
   type PriceSource,
 } from '../lib/posCart';
+import { normalizeLineNote, parseSaleItemFlavors } from '@sabor/shared';
 
-interface PosCartState {
+export interface PosCartState {
   lines: CartLine[];
   discountCents: number;
   /** Idempotencia del cobro: estable entre reintentos, nuevo cuando cambia el contenido del ticket. */
@@ -26,8 +29,12 @@ interface PosCartState {
   remove: (key: string) => void;
   setDiscount: (cents: number) => void;
   clear: () => void;
+  /** Reemplaza todas las líneas (p. ej. al cargar la cuenta guardada de una mesa). */
+  replaceLines: (lines: CartLine[]) => void;
+  /** Edita sabores/nota (y el precio en vivo) de una línea; si queda igual a otra, se fusionan. */
+  updateDetails: (key: string, patch: LineDetailsPatch) => void;
   /** Alinea precios con el catálogo vigente; devuelve las líneas que ya no existen. */
-  reprice: (lookup: (itemId: number, sizeId: number | null) => PriceSource | undefined) => CartLine[];
+  reprice: (lookup: (itemId: number, sizeId: number | null, line?: CartLine) => PriceSource | undefined) => CartLine[];
 }
 
 /** sessionStorage puede no existir o lanzar (modo privado, cuota): el carrito sigue funcionando en memoria. */
@@ -69,8 +76,22 @@ function isCartLine(value: unknown): value is CartLine {
     (line.quantity as number) > 0 &&
     (line.quantity as number) <= MAX_LINE_QUANTITY &&
     (line.unitPriceCents as number) >= 0 &&
-    line.key === lineKey(line.itemId as number, line.sizeId as number | null)
+    hasValidDetails(line) &&
+    line.key === lineKeyOf(line as unknown as CartLine)
   );
+}
+
+/** Sabores (itemIds por pizza) y nota restaurados del storage: forma estricta o se descarta la línea. */
+function hasValidDetails(line: Record<string, unknown>): boolean {
+  const { flavors, note, flavorInfo } = line;
+  const flavorsOk =
+    flavors === undefined ||
+    flavors === null ||
+    (Array.isArray(flavors) &&
+      flavors.every((pizza) => Array.isArray(pizza) && pizza.length > 0 && pizza.every((id) => Number.isInteger(id) && id > 0)));
+  const noteOk = note === undefined || note === null || (typeof note === 'string' && note === normalizeLineNote(note));
+  const infoOk = flavorInfo === undefined || flavorInfo === null || parseSaleItemFlavors(JSON.stringify(flavorInfo)) !== null;
+  return flavorsOk && noteOk && infoOk;
 }
 
 /** Descarta líneas inválidas, con clave repetida o por encima del tope de líneas. */
@@ -107,25 +128,35 @@ function withFreshUuid(lines: CartLine[], discountCents: number) {
   };
 }
 
+type SetCart = StoreApi<PosCartState>['setState'];
+type GetCart = StoreApi<PosCartState>['getState'];
+
+/** Estado y acciones del ticket, compartidos por el mostrador y por el ticket de cada mesa. */
+function cartState(set: SetCart, get: GetCart, initialLines: CartLine[] = []): PosCartState {
+  return {
+    lines: initialLines,
+    discountCents: 0,
+    clientUuid: newClientUuid(),
+    add: (line) => set((s) => withFreshUuid(addLine(s.lines, line), s.discountCents)),
+    increment: (key) => set((s) => withFreshUuid(changeQuantity(s.lines, key, 1), s.discountCents)),
+    decrement: (key) => set((s) => withFreshUuid(changeQuantity(s.lines, key, -1), s.discountCents)),
+    remove: (key) => set((s) => withFreshUuid(removeLine(s.lines, key), s.discountCents)),
+    updateDetails: (key, patch) => set((s) => withFreshUuid(updateLineDetails(s.lines, key, patch), s.discountCents)),
+    setDiscount: (cents) =>
+      set((s) => ({ discountCents: Math.min(Math.max(cents, 0), cartSubtotal(s.lines)), clientUuid: newClientUuid() })),
+    clear: () => set(withFreshUuid([], 0)),
+    replaceLines: (lines) => set((s) => withFreshUuid(validLines(lines), s.discountCents)),
+    reprice: (lookup) => {
+      const result = repriceLines(get().lines, lookup);
+      if (result.changed) set((s) => withFreshUuid(result.lines, s.discountCents));
+      return result.removed;
+    },
+  };
+}
+
 export const usePosCartStore = create<PosCartState>()(
   persist(
-    (set, get) => ({
-      lines: [],
-      discountCents: 0,
-      clientUuid: newClientUuid(),
-      add: (line) => set((s) => withFreshUuid(addLine(s.lines, line), s.discountCents)),
-      increment: (key) => set((s) => withFreshUuid(changeQuantity(s.lines, key, 1), s.discountCents)),
-      decrement: (key) => set((s) => withFreshUuid(changeQuantity(s.lines, key, -1), s.discountCents)),
-      remove: (key) => set((s) => withFreshUuid(removeLine(s.lines, key), s.discountCents)),
-      setDiscount: (cents) =>
-        set((s) => ({ discountCents: Math.min(Math.max(cents, 0), cartSubtotal(s.lines)), clientUuid: newClientUuid() })),
-      clear: () => set(withFreshUuid([], 0)),
-      reprice: (lookup) => {
-        const result = repriceLines(get().lines, lookup);
-        if (result.changed) set((s) => withFreshUuid(result.lines, s.discountCents));
-        return result.removed;
-      },
-    }),
+    (set, get) => cartState(set, get),
     {
       name: 'sabor-pos-cart',
       version: 1,
@@ -135,3 +166,8 @@ export const usePosCartStore = create<PosCartState>()(
     },
   ),
 );
+
+/** Ticket en memoria (sin persistir) para la cuenta de una mesa: arranca con lo ya guardado. */
+export function createTableCartStore(initialLines: CartLine[]): StoreApi<PosCartState> {
+  return createStore<PosCartState>()((set, get) => cartState(set, get, validLines(initialLines)));
+}

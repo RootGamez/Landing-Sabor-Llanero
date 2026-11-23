@@ -313,7 +313,8 @@ menuItemRoutes.post('/', requireAuth, requireRole('owner', 'admin'), async (c) =
     );
   }
 
-  return c.json(mapMenuItem(item), 201);
+  const withPromo = await applyPromoConfig(c.env.DB, item, body, Boolean(category.has_sizes));
+  return c.json(mapMenuItem(withPromo), 201);
 });
 
 menuItemRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (c) => {
@@ -385,8 +386,45 @@ menuItemRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (
     ]);
   }
 
-  return c.json(mapMenuItem(updated!));
+  const withPromo = await applyPromoConfig(c.env.DB, updated!, body, Boolean(category.has_sizes));
+  return c.json(mapMenuItem(withPromo));
 });
+
+interface PromoConfigInput {
+  promoPizzaCount?: number | null;
+  promoPizzaSizeId?: number | null;
+}
+
+/**
+ * Configura "promo con pizzas a elegir" (0011). Solo toca las columnas si el
+ * body las trae (o si hay que limpiarlas al pasar a una categoría con tamaños),
+ * así el resto del CRUD funciona igual con una base aún sin migrar.
+ */
+async function applyPromoConfig(
+  db: D1Database,
+  row: MenuItemRow,
+  body: PromoConfigInput,
+  categoryHasSizes: boolean,
+): Promise<MenuItemRow> {
+  const requested = body.promoPizzaCount !== undefined || body.promoPizzaSizeId !== undefined;
+  const hasCurrent = (row.promo_pizza_count ?? null) !== null;
+  if (!requested && !(categoryHasSizes && hasCurrent)) return row;
+
+  let count = body.promoPizzaCount ?? null;
+  let sizeId = body.promoPizzaSizeId ?? null;
+  if (categoryHasSizes) {
+    if (count !== null) throw badRequest('solo los ítems de categorías sin tamaños (promos) incluyen pizzas a elegir');
+    count = null;
+    sizeId = null;
+  } else if (sizeId !== null && !(await allSizes(db)).some((size) => size.id === sizeId)) {
+    throw badRequest('promoPizzaSizeId no es un tamaño válido');
+  }
+  const saved = await db
+    .prepare('UPDATE menu_items SET promo_pizza_count = ?, promo_pizza_size_id = ? WHERE id = ? RETURNING *')
+    .bind(count, sizeId, row.id)
+    .first<MenuItemRow>();
+  return saved ?? row;
+}
 
 /**
  * Reemplaza el set completo de overrides de precio por tamaño de un ítem

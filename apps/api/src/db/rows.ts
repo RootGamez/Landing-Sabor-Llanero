@@ -40,6 +40,7 @@ import type {
   User,
   WhatsappConfig,
 } from '@sabor/shared';
+import { parseSaleItemFlavors } from '@sabor/shared';
 
 export interface UserRow {
   id: number;
@@ -130,8 +131,13 @@ export interface MenuItemRow {
   display_order: number;
   created_at: string;
   updated_at: string;
+  /** 0011: opcionales en el tipo para tolerar una base aún sin migrar (SELECT * no las trae). */
+  promo_pizza_count?: number | null;
+  promo_pizza_size_id?: number | null;
 }
 export const mapMenuItem = (r: MenuItemRow): MenuItem => ({
+  promoPizzaCount: r.promo_pizza_count ?? null,
+  promoPizzaSizeId: r.promo_pizza_size_id ?? null,
   id: r.id,
   categoryId: r.category_id,
   slug: r.slug,
@@ -531,8 +537,13 @@ export interface SaleItemRow {
   unit_price_cents: number;
   quantity: number;
   line_total_cents: number;
+  /** 0011 (NULL en ventas históricas; ausentes si la base aún no está migrada). */
+  flavors_json?: string | null;
+  note?: string | null;
 }
 export const mapSaleItem = (r: SaleItemRow): SaleItem => ({
+  flavors: parseSaleItemFlavors(r.flavors_json),
+  note: r.note ?? null,
   id: r.id,
   saleId: r.sale_id,
   itemId: r.item_id,

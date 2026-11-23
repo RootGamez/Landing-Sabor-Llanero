@@ -12,6 +12,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { ErrorState } from '../ui/ErrorState';
 import { Skeleton } from '../ui/Skeleton';
 import { PosModal } from './PosModal';
+import { SaleItemsWithDetails, hasLineDetails } from './LineDetails';
 
 const REASON_MAX = 200;
 
@@ -95,7 +96,11 @@ function SaleRow({ sale, methodLabel, onVoided }: SaleRowProps) {
           {formatPEN(sale.totalCents)}
         </p>
       </div>
-      <p className="text-sm text-text">{summarizeItems(sale.items)}</p>
+      {hasLineDetails(sale.items) ? (
+        <SaleItemsWithDetails items={sale.items} />
+      ) : (
+        <p className="text-sm text-text">{summarizeItems(sale.items)}</p>
+      )}
       {voided && sale.voidReason && <p className="text-xs text-text-muted">Motivo: {sale.voidReason}</p>}
       {!voided && !voiding && (
         <Button variant="outline" size="md" className="self-start" onClick={() => setVoiding(true)}>

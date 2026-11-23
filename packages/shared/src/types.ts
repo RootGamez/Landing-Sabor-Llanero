@@ -92,6 +92,10 @@ export interface MenuItem {
   displayOrder: number;
   createdAt: string;
   updatedAt: string;
+  /** Promo con pizzas a elegir en el POS: cuántas incluye (null = no es promo de pizzas). */
+  promoPizzaCount: number | null;
+  /** Tamaño de las pizzas incluidas en la promo (null si no aplica). */
+  promoPizzaSizeId: number | null;
 }
 
 /**

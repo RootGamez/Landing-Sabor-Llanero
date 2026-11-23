@@ -29,10 +29,12 @@ interface PaymentDialogProps {
   onPaid: (sale: Sale) => void;
   /** Se llama cuando el cobro falló (p. ej. la caja se cerró) para que el POS refresque su estado. */
   onFailed: () => void;
+  /** Cómo se registra el cobro; por defecto `POST /sales`. Cerrar una mesa usa su propio endpoint. */
+  submit?: (input: CreateSaleInput) => Promise<Sale>;
 }
 
-export function PaymentDialog({ open, onOpenChange, title, ...formProps }: PaymentDialogProps) {
-  const { mutate, loading } = useMutation(createSale);
+export function PaymentDialog({ open, onOpenChange, title, submit = createSale, ...formProps }: PaymentDialogProps) {
+  const { mutate, loading } = useMutation(submit);
   // Con el cobro en vuelo no se puede cerrar (Esc, X o clic fuera): la respuesta debe aplicarse al ticket correcto.
   const handleOpenChange = (next: boolean) => {
     if (!next && loading) return;
@@ -45,7 +47,7 @@ export function PaymentDialog({ open, onOpenChange, title, ...formProps }: Payme
   );
 }
 
-type PaymentFormProps = Omit<PaymentDialogProps, 'open' | 'onOpenChange' | 'title'> & {
+type PaymentFormProps = Omit<PaymentDialogProps, 'open' | 'onOpenChange' | 'title' | 'submit'> & {
   submitSale: (input: CreateSaleInput) => Promise<Sale | undefined>;
   loading: boolean;
 };
@@ -68,7 +70,7 @@ function MethodToggles({
       <p id="pos-method-legend" className="mb-1 text-xs font-bold font-display uppercase tracking-wide text-text-muted">
         Método de pago (opcional)
       </p>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
         {methods.map((method) => (
           <button
             key={method.key}
@@ -76,7 +78,7 @@ function MethodToggles({
             aria-pressed={selected === method.key}
             onClick={() => onToggle(method.key)}
             className={cn(
-              'flex min-h-14 items-center justify-center rounded-xl border-2 px-2 text-center text-sm font-bold text-text outline-none transition-colors',
+              'flex min-h-14 items-center justify-center break-words rounded-xl border-2 px-2 text-center text-sm font-bold text-text outline-none transition-colors',
               'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               selected === method.key
                 ? 'border-forest bg-accent text-accent-foreground shadow-sticker'
@@ -118,6 +120,7 @@ function CashFields({
           autoComplete="off"
           value={text}
           onChange={(event) => onTextChange(event.target.value)}
+          onFocus={(event) => event.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })}
           placeholder={centsToInputText(totalCents)}
           aria-invalid={parsed === null || shortfall ? true : undefined}
           aria-describedby="pos-change"
@@ -231,7 +234,7 @@ function PaymentForm({
         </p>
       )}
       {isCash && <CashFields totalCents={totalCents} text={cashText} onTextChange={setCashText} />}
-      <div className="sticky bottom-0 -mx-5 -mb-5 border-t border-border bg-surface p-4">
+      <div className="sticky bottom-0 -mx-4 -mb-4 sm:-mx-5 sm:-mb-5 border-t border-border bg-surface p-4">
         <Button
           type="submit"
           size="lg"

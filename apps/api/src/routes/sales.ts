@@ -34,7 +34,11 @@ const PENDING_WEB_ORDERS_DAYS = 7;
 const PENDING_WEB_ORDERS_LIMIT = 100;
 
 /** Solo el efectivo lleva "recibido" (≥ total) para calcular el vuelto; no se acepta en otros métodos. */
-function resolveCashReceived(body: CreateSaleInput, paymentMethod: string, totalCents: number): number | null {
+export function resolveCashReceived(
+  body: Pick<CreateSaleInput, 'cashReceivedCents'>,
+  paymentMethod: string,
+  totalCents: number,
+): number | null {
   if (body.cashReceivedCents === undefined) return null;
   if (paymentMethod !== CASH_METHOD_KEY) {
     throw badRequest('cashReceivedCents solo aplica al pagar en efectivo');

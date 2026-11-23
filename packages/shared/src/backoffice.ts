@@ -10,6 +10,14 @@ import { isValidLocalDate } from './localDate';
 import { MAX_CENTS } from './money';
 import type { OrderDto } from './dto';
 import { ORDER_ITEMS_MAX, UNSAFE_TEXT } from './validation';
+import {
+  LINE_NOTE_MAX,
+  MAX_FLAVORS_PER_PIZZA,
+  MAX_PROMO_PIZZAS,
+  cartLineIdentity,
+  normalizeLineNote,
+  type SaleItemFlavors,
+} from './flavors';
 
 // ── Primitivas ──────────────────────────────────────────────────────────────
 
@@ -79,6 +87,28 @@ export const closeSessionSchema = z
 
 // ── Ventas ──────────────────────────────────────────────────────────────────
 
+/**
+ * Sabores elegidos: una lista de itemIds por pizza (pizza individual = 1
+ * lista; promo = una por pizza incluida). Solo ids: el servidor valida que
+ * existan, estén activos, sean pizzas y tengan precio en el tamaño, y tasa.
+ */
+export const lineFlavorsSchema = z
+  .array(
+    z
+      .array(z.number().int().positive('sabor inválido'))
+      .min(1, 'cada pizza necesita al menos un sabor')
+      .max(MAX_FLAVORS_PER_PIZZA, `máximo ${MAX_FLAVORS_PER_PIZZA} sabores por pizza`),
+  )
+  .min(1, 'elige los sabores')
+  .max(MAX_PROMO_PIZZAS, `máximo ${MAX_PROMO_PIZZAS} pizzas por línea`);
+
+/** Nota libre por línea ("sin cebolla"): se valida el largo y se sanea (sin control/bidi); vacía → se omite. */
+export const lineNoteSchema = z
+  .string()
+  .trim()
+  .max(LINE_NOTE_MAX, `la nota no puede superar ${LINE_NOTE_MAX} caracteres`)
+  .transform((value) => normalizeLineNote(value) ?? undefined);
+
 const saleItemInputSchema = z.object({
   itemId: z.number().int().positive('itemId inválido'),
   sizeId: z.number().int().positive('sizeId inválido').optional(),
@@ -87,21 +117,24 @@ const saleItemInputSchema = z.object({
     .int('quantity debe ser entero')
     .min(1, 'quantity debe ser mayor a 0')
     .max(SALE_QUANTITY_MAX, `quantity no puede superar ${SALE_QUANTITY_MAX}`),
+  flavors: lineFlavorsSchema.optional(),
+  note: lineNoteSchema.optional(),
 });
 
-const saleItemsSchema = z
+export const saleItemsSchema = z
   .array(saleItemInputSchema)
   .min(1, 'la venta necesita al menos un ítem')
   .max(ORDER_ITEMS_MAX, `una venta admite como máximo ${ORDER_ITEMS_MAX} ítems`)
   .superRefine((items, ctx) => {
     const seen = new Set<string>();
     items.forEach((entry, index) => {
-      const key = `${entry.itemId}:${entry.sizeId ?? 'none'}`;
+      // Mismo producto con distintos sabores o nota = líneas distintas (no se fusionan).
+      const key = cartLineIdentity(entry.itemId, entry.sizeId ?? null, entry.flavors ?? null, entry.note ?? null);
       if (seen.has(key)) {
         ctx.addIssue({
           code: 'custom',
           path: [index, 'itemId'],
-          message: 'itemId (con el mismo sizeId) duplicado en items',
+          message: 'línea duplicada en items (mismo producto, tamaño, sabores y nota)',
         });
       }
       seen.add(key);
@@ -219,6 +252,10 @@ export interface SaleItem {
   unitPriceCents: number;
   quantity: number;
   lineTotalCents: number;
+  /** Sabores elegidos y cómo se tasaron (null en ventas sin sabores e históricas). */
+  flavors: SaleItemFlavors | null;
+  /** Nota libre de la línea ("sin cebolla"); null si no hay. */
+  note: string | null;
 }
 
 export interface Sale {

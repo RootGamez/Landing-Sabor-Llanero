@@ -9,17 +9,25 @@ import type {
   Size,
 } from '@sabor/shared';
 import { api } from './api';
-import { POS_SECTION_ITEM_LIMIT, buildCatalog, type PosCatalog, type PosMenuSection } from './posCatalog';
+import {
+  POS_SECTION_ITEM_LIMIT,
+  buildCatalog,
+  type CategoryWithPrices,
+  type PosCatalog,
+  type PosMenuSection,
+} from './posCatalog';
 
 export const SESSION_SALES_PAGE_SIZE = 100;
 
 /** Menú de mostrador (canal `pos` + `both`) con precios resueltos y tamaños, ya aplanado. */
 export async function fetchPosCatalog(): Promise<PosCatalog> {
-  const [sections, sizes] = await Promise.all([
+  const [sections, sizes, categories] = await Promise.all([
     api.get<PosMenuSection[]>(`/menu-items/sections?channel=pos&limit=${POS_SECTION_ITEM_LIMIT}`),
     api.get<Size[]>('/sizes'),
+    // Precios de lista por categoría: el adicional de las promos se calcula en vivo sin volver a pedir nada.
+    api.get<CategoryWithPrices[]>('/categories'),
   ]);
-  return buildCatalog(sections, sizes);
+  return buildCatalog(sections, sizes, categories);
 }
 
 export const fetchCurrentSession = () => api.get<CashSessionDetail | null>('/cash-sessions/current');

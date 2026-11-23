@@ -156,15 +156,33 @@ const menuItemBaseSchema = z.object({
   isFeatured: z.boolean().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().int().min(0).optional(),
+  /**
+   * Promo con pizzas a elegir en el POS: cuántas pizzas incluye y de qué
+   * tamaño. Ambos o ninguno (null = no se eligen sabores). Tope = MAX_PROMO_PIZZAS
+   * de flavors.ts (literal acá para no crear un import circular).
+   */
+  promoPizzaCount: z.number().int().min(1, 'mínimo 1 pizza').max(6, 'máximo 6 pizzas').nullable().optional(),
+  promoPizzaSizeId: z.number().int().positive('tamaño inválido').nullable().optional(),
 });
 
 interface MenuItemPriceShape {
   price?: number | null;
   priceOverrides?: Array<{ sizeId: number; price: number }>;
+  promoPizzaCount?: number | null;
+  promoPizzaSizeId?: number | null;
 }
 
 
 function validateMenuItemPrices(data: MenuItemPriceShape, ctx: z.RefinementCtx): void {
+  const hasCount = data.promoPizzaCount != null;
+  const hasSize = data.promoPizzaSizeId != null;
+  if ((data.promoPizzaCount !== undefined || data.promoPizzaSizeId !== undefined) && hasCount !== hasSize) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [hasCount ? 'promoPizzaSizeId' : 'promoPizzaCount'],
+      message: 'indica cuántas pizzas incluye la promo y de qué tamaño (o ninguno)',
+    });
+  }
   if (data.price != null && data.priceOverrides && data.priceOverrides.length > 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

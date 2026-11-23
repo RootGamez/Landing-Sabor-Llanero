@@ -4,7 +4,13 @@
  * operaciones inmutables. El servidor recalcula precios y totales; esto solo
  * alimenta la pantalla.
  */
-import { MAX_CENTS, ORDER_ITEMS_MAX, type CreateSaleInput } from '@sabor/shared';
+import {
+  MAX_CENTS,
+  ORDER_ITEMS_MAX,
+  cartLineIdentity,
+  type CreateSaleInput,
+  type SaleItemFlavors,
+} from '@sabor/shared';
 
 export const MAX_LINE_QUANTITY = 99;
 export const MAX_CART_LINES = ORDER_ITEMS_MAX;
@@ -13,7 +19,10 @@ export const MAX_CART_LINES = ORDER_ITEMS_MAX;
 const CASH_SHORTCUTS_CENTS = [2_000, 5_000, 10_000, 20_000] as const;
 
 export interface CartLine {
-  /** `itemId:sizeId` — identifica la línea (mismo producto y tamaño suman cantidad). */
+  /**
+   * Identidad de la línea: `itemId:sizeId` + sabores + nota (ver `lineKeyOf`).
+   * Mismo producto, tamaño, sabores y nota suman cantidad; si algo difiere es otra línea.
+   */
   key: string;
   itemId: number;
   sizeId: number | null;
@@ -21,12 +30,50 @@ export interface CartLine {
   sizeLabel: string | null;
   unitPriceCents: number;
   quantity: number;
+  /** Sabores elegidos: itemIds por pizza (null/ausente = sin sabores). */
+  flavors?: number[][] | null;
+  /** Cómo se tasaron los sabores (precio del más caro, adicionales): solo para mostrar. */
+  flavorInfo?: SaleItemFlavors | null;
+  /** Nota libre ya saneada ("sin cebolla"). */
+  note?: string | null;
 }
 
 export type NewCartLine = Omit<CartLine, 'key' | 'quantity'>;
 
+/** Clave histórica (sin sabores ni nota). */
 export function lineKey(itemId: number, sizeId: number | null): string {
   return `${itemId}:${sizeId ?? 0}`;
+}
+
+/** Clave completa de una línea: incluye sabores y nota (idéntica a `lineKey` si no tiene ninguno). */
+export function lineKeyOf(line: Pick<CartLine, 'itemId' | 'sizeId' | 'flavors' | 'note'>): string {
+  return cartLineIdentity(line.itemId, line.sizeId, line.flavors ?? null, line.note ?? null);
+}
+
+/** Cambios de sabores/nota sobre una línea ya agregada (con el precio recalculado en vivo). */
+export interface LineDetailsPatch {
+  flavors?: number[][] | null;
+  flavorInfo?: SaleItemFlavors | null;
+  note?: string | null;
+  unitPriceCents?: number;
+}
+
+/**
+ * Edita sabores/nota de una línea. La clave cambia con ellos: si choca con
+ * otra línea idéntica, se fusionan sumando cantidades (respetando el tope).
+ */
+export function updateLineDetails(lines: readonly CartLine[], key: string, patch: LineDetailsPatch): CartLine[] {
+  const target = lines.find((line) => line.key === key);
+  if (!target) return [...lines];
+  const merged: CartLine = { ...target, ...patch };
+  const updated = { ...merged, key: lineKeyOf(merged) };
+  const twin = lines.find((line) => line.key === updated.key && line.key !== key);
+  if (!twin) return lines.map((line) => (line.key === key ? updated : line));
+  return lines.flatMap((line) => {
+    if (line.key === key) return [];
+    if (line.key === twin.key) return [{ ...twin, quantity: Math.min(twin.quantity + target.quantity, MAX_LINE_QUANTITY) }];
+    return [line];
+  });
 }
 
 export function lineTotal(line: CartLine): number {
@@ -49,7 +96,7 @@ export function cartTotal(lines: readonly CartLine[], discountCents: number): nu
 
 /** Suma 1 a la línea existente o la agrega al final. Respeta los topes de cantidad y de líneas. */
 export function addLine(lines: readonly CartLine[], next: NewCartLine): CartLine[] {
-  const key = lineKey(next.itemId, next.sizeId);
+  const key = lineKeyOf(next);
   if (lines.some((line) => line.key === key)) {
     return lines.map((line) =>
       line.key === key ? { ...line, quantity: Math.min(line.quantity + 1, MAX_LINE_QUANTITY) } : line,
@@ -76,22 +123,25 @@ export interface PriceSource {
   name: string;
   sizeLabel: string | null;
   unitPriceCents: number;
+  /** Solo líneas con sabores: tasación vigente de esos sabores. */
+  flavorInfo?: SaleItemFlavors | null;
 }
 
 /**
  * Alinea nombre y precio de las líneas con el catálogo vigente (un carrito
  * restaurado tras un refresh pudo quedar viejo). Devuelve las líneas que ya no
  * existen en `removed` para avisar al cajero en vez de descartarlas en silencio.
+ * `lookup` recibe la línea completa para re-tasar sus sabores si los tiene.
  */
 export function repriceLines(
   lines: readonly CartLine[],
-  lookup: (itemId: number, sizeId: number | null) => PriceSource | undefined,
+  lookup: (itemId: number, sizeId: number | null, line?: CartLine) => PriceSource | undefined,
 ): { lines: CartLine[]; removed: CartLine[]; changed: boolean } {
   const kept: CartLine[] = [];
   const removed: CartLine[] = [];
   let changed = false;
   for (const line of lines) {
-    const source = lookup(line.itemId, line.sizeId);
+    const source = lookup(line.itemId, line.sizeId, line);
     if (!source) {
       removed.push(line);
       changed = true;
@@ -100,7 +150,8 @@ export function repriceLines(
     const same =
       source.unitPriceCents === line.unitPriceCents &&
       source.name === line.name &&
-      source.sizeLabel === line.sizeLabel;
+      source.sizeLabel === line.sizeLabel &&
+      (source.flavorInfo === undefined || JSON.stringify(source.flavorInfo) === JSON.stringify(line.flavorInfo ?? null));
     if (!same) changed = true;
     kept.push(same ? line : { ...line, ...source });
   }
@@ -113,6 +164,8 @@ export function toSaleItems(lines: readonly CartLine[]): NonNullable<CreateSaleI
     itemId: line.itemId,
     ...(line.sizeId !== null ? { sizeId: line.sizeId } : {}),
     quantity: line.quantity,
+    ...(line.flavors && line.flavors.length > 0 ? { flavors: line.flavors } : {}),
+    ...(line.note ? { note: line.note } : {}),
   }));
 }
 

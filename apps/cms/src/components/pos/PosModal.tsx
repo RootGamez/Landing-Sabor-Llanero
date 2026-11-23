@@ -3,15 +3,19 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-type Placement = 'center' | 'bottom' | 'right';
+type Placement = 'center' | 'bottom' | 'right' | 'sheet';
 
 const PLACEMENT_CLASS: Record<Placement, string> = {
   center:
     'left-1/2 top-1/2 max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl2 border-2 data-[state=open]:zoom-in-95',
   bottom:
-    'inset-x-0 bottom-0 max-h-[88dvh] rounded-t-xl2 border-t-2 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom',
+    'inset-x-0 bottom-0 max-h-[88dvh] pb-[env(safe-area-inset-bottom)] rounded-t-xl2 border-t-2 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom',
   right:
     'inset-y-0 right-0 w-full max-w-md border-l-2 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right',
+  /** Hoja inferior alta en móvil (una mano) y diálogo centrado ancho desde `sm`. */
+  sheet:
+    'inset-x-0 bottom-0 h-[92dvh] pb-[env(safe-area-inset-bottom)] rounded-t-xl2 border-t-2 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom ' +
+    'sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:h-[min(90dvh,48rem)] sm:w-[calc(100%-2rem)] sm:max-w-2xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl2 sm:border-2 sm:pb-0',
 };
 
 interface PosModalProps {
@@ -22,6 +26,8 @@ interface PosModalProps {
   description?: string;
   placement?: Placement;
   children: ReactNode;
+  /** Acciones fijas abajo (fuera del área con scroll), p. ej. "Listo". */
+  footer?: ReactNode;
 }
 
 /**
@@ -37,6 +43,7 @@ export function PosModal({
   description,
   placement = 'center',
   children,
+  footer,
 }: PosModalProps) {
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +68,7 @@ export function PosModal({
             PLACEMENT_CLASS[placement],
           )}
         >
-          <header className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 py-3">
+          <header className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
             <div className="min-w-0">
               <DialogPrimitive.Title className="font-display text-lg font-bold leading-tight text-text">
                 {title}
@@ -77,7 +84,8 @@ export function PosModal({
               <span className="sr-only">Cerrar</span>
             </DialogPrimitive.Close>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">{children}</div>
+          {footer && <div className="shrink-0 border-t-2 border-border bg-surface px-4 py-3 sm:px-5">{footer}</div>}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
