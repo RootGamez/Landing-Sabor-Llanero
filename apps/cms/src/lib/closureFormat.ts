@@ -3,15 +3,28 @@ import { localDate, type CashSessionSummary } from '@sabor/shared';
 
 const LIMA_TZ = 'America/Lima';
 
-function parseUtc(sqliteUtc: string): Date | null {
+/** Fecha de un timestamp UTC de D1 ("YYYY-MM-DD HH:MM:SS"); `null` si no se puede leer. */
+export function parseUtc(sqliteUtc: string): Date | null {
   const date = new Date(`${sqliteUtc.replace(' ', 'T')}Z`);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Crear un `Intl.DateTimeFormat` es caro y se formatea una vez por fila: se reutiliza uno por conjunto de opciones. */
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatterFor(options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = JSON.stringify(options);
+  const cached = formatters.get(key);
+  if (cached) return cached;
+  const created = new Intl.DateTimeFormat('es-PE', { timeZone: LIMA_TZ, ...options });
+  formatters.set(key, created);
+  return created;
 }
 
 function format(sqliteUtc: string, options: Intl.DateTimeFormatOptions): string {
   const date = parseUtc(sqliteUtc);
   if (!date) return sqliteUtc;
-  return new Intl.DateTimeFormat('es-PE', { timeZone: LIMA_TZ, ...options }).format(date);
+  return formatterFor(options).format(date);
 }
 
 /** "Domingo 22 de noviembre de 2026". */

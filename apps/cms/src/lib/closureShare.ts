@@ -1,4 +1,4 @@
-/** Imagen PNG del cierre en el cliente y su entrega (compartir, descargar, copiar). */
+/** Imagen PNG de una tarjeta (cierre, egresos, comprobante) en el cliente y su entrega (compartir, descargar, copiar). */
 import { toBlob } from 'html-to-image';
 
 export const CARD_WIDTH = 1080;
@@ -16,21 +16,42 @@ async function waitForAssets(node: HTMLElement): Promise<void> {
   await Promise.all(images.map((img) => img.decode().catch(() => undefined)));
 }
 
-function capture(node: HTMLElement): Promise<Blob | null> {
+export interface CaptureSize {
+  width: number;
+  height: number;
+}
+
+/** Tamaño por defecto de las tarjetas de cierre y egresos. */
+const DEFAULT_CAPTURE_SIZE: CaptureSize = { width: CARD_WIDTH, height: CARD_HEIGHT };
+
+/** Tamaño real del nodo (para tarjetas de altura variable, como el comprobante de venta). */
+export function measureNode(node: HTMLElement): CaptureSize {
+  return { width: Math.ceil(node.offsetWidth), height: Math.ceil(node.offsetHeight) };
+}
+
+function capture(node: HTMLElement, size: CaptureSize, backgroundColor: string): Promise<Blob | null> {
   return toBlob(node, {
     pixelRatio: PIXEL_RATIO,
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    backgroundColor: CARD_BACKGROUND,
+    width: size.width,
+    height: size.height,
+    backgroundColor,
   });
 }
 
+export interface RenderPngOptions {
+  /** Tamaño fijo en px; si falta, 1080 × 1350 (cierres y egresos). `'auto'` mide el nodo. */
+  size?: CaptureSize | 'auto';
+  backgroundColor?: string;
+}
+
 /** Safari/iOS suele devolver la primera captura en blanco: si pesa muy poco se repite una vez. */
-export async function renderPngBlob(node: HTMLElement): Promise<Blob> {
+export async function renderPngBlob(node: HTMLElement, options: RenderPngOptions = {}): Promise<Blob> {
   await waitForAssets(node);
-  let blob = await capture(node);
-  if (!blob || blob.size < MIN_VALID_PNG_BYTES) blob = await capture(node);
-  if (!blob) throw new Error('No se pudo generar la imagen del cierre');
+  const size = options.size === 'auto' ? measureNode(node) : (options.size ?? DEFAULT_CAPTURE_SIZE);
+  const background = options.backgroundColor ?? CARD_BACKGROUND;
+  let blob = await capture(node, size, background);
+  if (!blob || blob.size < MIN_VALID_PNG_BYTES) blob = await capture(node, size, background);
+  if (!blob) throw new Error('No se pudo generar la imagen');
   return blob;
 }
 

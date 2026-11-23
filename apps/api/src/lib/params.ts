@@ -29,7 +29,13 @@ export function requireIdParam(c: Context<AppEnv>, name = 'id'): number {
   return parsed;
 }
 
-const PAGE_SIZE_MAX = 100;
+/**
+ * Tope de `?pageSize`. Ojo: `hydrateSales` (sale-queries.ts) hace `IN (?, ...)`
+ * con los ids de una página y D1 admite como máximo 100 variables por consulta;
+ * por eso trocea en lotes de `HYDRATE_CHUNK_SIZE`. Si subes este valor, la
+ * hidratación sigue funcionando (más lotes), pero revisa el costo en consultas.
+ */
+export const PAGE_SIZE_MAX = 100;
 
 /** `?page` y `?pageSize` saneados (página ≥ 1, tamaño entre 1 y 100). */
 export function parsePagination(c: Context<AppEnv>, defaultPageSize = 24): { page: number; pageSize: number } {

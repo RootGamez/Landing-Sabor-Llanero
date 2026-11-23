@@ -258,6 +258,14 @@ export interface SaleItem {
   note: string | null;
 }
 
+/** Mesa de origen de una venta cobrada desde una cuenta de mesa (para el comprobante). */
+export interface SaleTable {
+  tabId: number;
+  tableLabel: string;
+  /** Apertura de la cuenta, UTC "YYYY-MM-DD HH:MM:SS". */
+  openedAt: string;
+}
+
 export interface Sale {
   id: number;
   sessionId: number;
@@ -279,6 +287,8 @@ export interface Sale {
   voidReason: string | null;
   source: BackofficeSource;
   items: SaleItem[];
+  /** Mesa de origen si se cobró una cuenta de mesa; null/ausente en mostrador y pedidos web. */
+  table?: SaleTable | null;
 }
 
 export interface ExpenseCategory {

@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
+import { Receipt } from 'lucide-react';
 import { formatPEN, type PaymentMethod, type Sale } from '@sabor/shared';
 import { useSessionSales } from '../../hooks/usePos';
 import { useMutation } from '../../hooks/useMutation';
 import { voidSale } from '../../lib/posApi';
 import { formatClock, isVoided, summarizeItems } from '../../lib/posFormat';
+import { toReceiptData } from '../../lib/receiptData';
 import { cn } from '../../lib/utils';
 import { toastSuccess } from '../../store/toastStore';
 import { Badge } from '../ui/badge';
@@ -11,6 +13,7 @@ import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
 import { ErrorState } from '../ui/ErrorState';
 import { Skeleton } from '../ui/Skeleton';
+import { ReceiptDialog } from '../receipts/ReceiptDialog';
 import { PosModal } from './PosModal';
 import { SaleItemsWithDetails, hasLineDetails } from './LineDetails';
 
@@ -69,15 +72,37 @@ function VoidForm({ sale, onDone, onCancel }: { sale: Sale; onDone: () => void; 
   );
 }
 
+interface SaleReceiptDialogProps {
+  sale: Sale;
+  methodLabels: ReadonlyMap<string, string>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+/** Calcula los datos del comprobante aquí dentro: solo existe para las ventas cuyo comprobante se abrió. */
+function SaleReceiptDialog({ sale, methodLabels, open, onOpenChange }: SaleReceiptDialogProps) {
+  const receipt = useMemo(() => toReceiptData(sale, methodLabels), [sale, methodLabels]);
+  return <ReceiptDialog open={open} onOpenChange={onOpenChange} data={receipt} />;
+}
+
 interface SaleRowProps {
   sale: Sale;
-  methodLabel: string;
+  methodLabels: ReadonlyMap<string, string>;
   onVoided: () => void;
 }
 
-function SaleRow({ sale, methodLabel, onVoided }: SaleRowProps) {
+function SaleRow({ sale, methodLabels, onVoided }: SaleRowProps) {
   const [voiding, setVoiding] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  // Se monta al abrir por primera vez y queda montado para que el diálogo conserve su animación de cierre.
+  const [receiptRequested, setReceiptRequested] = useState(false);
   const voided = isVoided(sale);
+  const methodLabel = methodLabels.get(sale.paymentMethod) ?? sale.paymentMethod;
+
+  function openReceipt() {
+    setReceiptRequested(true);
+    setReceiptOpen(true);
+  }
 
   return (
     <li className={cn('flex flex-col gap-1.5 rounded-xl border-2 border-border bg-card p-3', voided && 'opacity-70')}>
@@ -102,10 +127,23 @@ function SaleRow({ sale, methodLabel, onVoided }: SaleRowProps) {
         <p className="text-sm text-text">{summarizeItems(sale.items)}</p>
       )}
       {voided && sale.voidReason && <p className="text-xs text-text-muted">Motivo: {sale.voidReason}</p>}
-      {!voided && !voiding && (
-        <Button variant="outline" size="md" className="self-start" onClick={() => setVoiding(true)}>
-          Anular
-        </Button>
+      {!voiding && (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="md" onClick={openReceipt}>
+            <Receipt aria-hidden="true" />
+            Comprobante
+            <span className="sr-only"> de la venta #{sale.number}</span>
+          </Button>
+          {!voided && (
+            <Button variant="outline" size="md" onClick={() => setVoiding(true)}>
+              Anular
+              <span className="sr-only"> la venta #{sale.number}</span>
+            </Button>
+          )}
+        </div>
+      )}
+      {receiptRequested && (
+        <SaleReceiptDialog sale={sale} methodLabels={methodLabels} open={receiptOpen} onOpenChange={setReceiptOpen} />
       )}
       {voiding && (
         <VoidForm
@@ -123,7 +161,7 @@ function SaleRow({ sale, methodLabel, onVoided }: SaleRowProps) {
 
 function SalesList({ sessionId, methods, onVoided }: Omit<SessionSalesSheetProps, 'open' | 'onOpenChange'>) {
   const sales = useSessionSales(sessionId);
-  const labels = new Map((methods ?? []).map((method) => [method.key, method.label]));
+  const labels = useMemo(() => new Map((methods ?? []).map((method) => [method.key, method.label])), [methods]);
 
   function handleVoided() {
     sales.refetch();
@@ -148,7 +186,7 @@ function SalesList({ sessionId, methods, onVoided }: Omit<SessionSalesSheetProps
         <SaleRow
           key={sale.id}
           sale={sale}
-          methodLabel={labels.get(sale.paymentMethod) ?? sale.paymentMethod}
+          methodLabels={labels}
           onVoided={handleVoided}
         />
       ))}

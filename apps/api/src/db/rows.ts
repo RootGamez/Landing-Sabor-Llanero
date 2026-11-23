@@ -36,6 +36,7 @@ import type {
   Role,
   Sale,
   SaleItem,
+  SaleTable,
   Size,
   User,
   WhatsappConfig,
@@ -504,8 +505,24 @@ export interface SaleRow {
   source: BackofficeSource;
   legacy_ref: string | null;
 }
-/** Las líneas se cargan aparte (un solo SELECT por lote, como db/covers.ts) y se pasan acá. */
-export const mapSale = (r: SaleRow, items: SaleItem[]): Sale => ({
+/** Cuenta de mesa de la que nació una venta (JOIN dining_tabs + dining_tables). */
+export interface SaleTableRow {
+  sale_id: number;
+  tab_id: number;
+  table_label: string;
+  opened_at: string;
+}
+export const mapSaleTable = (r: SaleTableRow): SaleTable => ({
+  tabId: r.tab_id,
+  tableLabel: r.table_label,
+  openedAt: r.opened_at,
+});
+
+/**
+ * Las líneas y la mesa se cargan aparte (un SELECT por lote cada una, como db/covers.ts)
+ * y se pasan acá. `table` es null para ventas de mostrador y pedidos web.
+ */
+export const mapSale = (r: SaleRow, items: SaleItem[], table: SaleTable | null = null): Sale => ({
   id: r.id,
   sessionId: r.session_id,
   number: r.number,
@@ -525,6 +542,7 @@ export const mapSale = (r: SaleRow, items: SaleItem[]): Sale => ({
   voidReason: r.void_reason,
   source: r.source,
   items,
+  table,
 });
 
 export interface SaleItemRow {

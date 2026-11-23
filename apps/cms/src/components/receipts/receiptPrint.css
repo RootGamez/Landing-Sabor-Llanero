@@ -1,0 +1,65 @@
+/*
+ * Impresión del comprobante de venta.
+ *
+ * El diálogo (Radix, en un portal) NO se imprime: `ReceiptPrintRoot` monta una
+ * copia del comprobante en `#receipt-print-root`, hijo directo de <body>. En
+ * pantalla está oculta; al imprimir se oculta todo lo demás y queda solo ella.
+ *
+ * Todo lo que altera la impresión cuelga de la clase `printing-receipt` en
+ * <html>, que `ReceiptPrintRoot` pone al montarse y quita al desmontarse: así,
+ * con el diálogo cerrado, Ctrl+P en cualquier otra pantalla imprime normal.
+ * El único ajuste global posible es `@page`, que no admite condiciones (ni
+ * clases ni :has), así que se usa una página con nombre (`receipt`) que solo
+ * se aplica al elemento con `page: receipt`, o sea, a la raíz de impresión.
+ *
+ * El comprobante mide 576 px de ancho (ticket de 80 mm). `zoom` lo reduce para
+ * que quepa en la zona imprimible de un rollo térmico de 80 mm (~72 mm con
+ * márgenes) y, en hoja A4, queda como un ticket centrado. No se fija el
+ * tamaño de página: lo decide la impresora (80 mm térmica o A4).
+ */
+#receipt-print-root {
+  display: none;
+}
+
+@page receipt {
+  margin: 4mm;
+}
+
+@media print {
+  html.printing-receipt,
+  html.printing-receipt body {
+    background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  html.printing-receipt body > *:not(#receipt-print-root) {
+    display: none !important;
+  }
+
+  html.printing-receipt #receipt-print-root {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    page: receipt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  html.printing-receipt #receipt-print-root .receipt-card {
+    zoom: 0.45;
+    break-inside: avoid;
+  }
+
+  /*
+   * Impresora térmica monocroma: todo en negro puro, sin grises tenues que se
+   * pierdan (detalles `text-text-muted`, reglas finas, bordes translúcidos).
+   */
+  html.printing-receipt #receipt-print-root,
+  html.printing-receipt #receipt-print-root * {
+    color: #000 !important;
+    border-color: #000 !important;
+    text-decoration-color: #000 !important;
+    opacity: 1 !important;
+  }
+}
