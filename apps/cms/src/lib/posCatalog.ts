@@ -51,6 +51,8 @@ export interface PosProduct {
   /** Vacío = sin precio configurado: no se puede vender. */
   options: PosOption[];
   searchText: string;
+  /** Clave de la foto de portada en la API de media (null = sin foto). */
+  coverImageKey?: string | null;
   /** Pizza vendida por tamaño: admite "Agregar sabores" (hasta MAX_FLAVORS_PER_PIZZA). */
   isPizza?: boolean;
   /** Promo con pizzas a elegir (null/ausente si no aplica). */
@@ -61,6 +63,8 @@ export interface PosCategory {
   id: number;
   name: string;
   colorIndex: number;
+  /** Foto del primer producto que tenga una (las categorías no tienen foto propia). */
+  coverImageKey?: string | null;
 }
 
 export interface PosCatalog {
@@ -121,6 +125,7 @@ function toProduct(
     colorIndex: category.colorIndex,
     options: optionsFor(item, source, sizeById),
     searchText: normalizeText(`${item.nameEs} ${category.name}`),
+    coverImageKey: item.coverImageKey ?? null,
     isPizza: source.hasSizes,
     promo: promoFor(item, source, sizeById),
   };
@@ -177,7 +182,12 @@ export function buildCatalog(
 
   sections.forEach((section, index) => {
     if (section.items.length === 0) return;
-    const category: PosCategory = { id: section.category.id, name: section.category.nameEs, colorIndex: index };
+    const category: PosCategory = {
+      id: section.category.id,
+      name: section.category.nameEs,
+      colorIndex: index,
+      coverImageKey: section.items.find((item) => item.coverImageKey)?.coverImageKey ?? null,
+    };
     categories.push(category);
     if (section.items.length >= POS_SECTION_ITEM_LIMIT) truncatedCategories.push(category.name);
     for (const item of section.items) {

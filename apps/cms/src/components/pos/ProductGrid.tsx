@@ -5,17 +5,25 @@ import { displayPrice, type PosProduct } from '../../lib/posCatalog';
 import { cn } from '../../lib/utils';
 import { EmptyState } from '../ui/EmptyState';
 import { toneFor } from './categoryColors';
-import { TILE_BASE_CLASS, TILE_GRID_CLASS } from './tileStyles';
+import { TilePhoto } from './TilePhoto';
+import { TILE_SECONDARY_TEXT_CLASS, tileClass, tileGridClass } from './tileStyles';
 
 interface ProductButtonProps {
   product: PosProduct;
   /** Unidades de este producto (todos los tamaños) que ya están en el ticket. */
   inCart: number;
   showCategory: boolean;
+  showPhotos: boolean;
   onSelect: (product: PosProduct) => void;
 }
 
-const ProductButton = memo(function ProductButton({ product, inCart, showCategory, onSelect }: ProductButtonProps) {
+const ProductButton = memo(function ProductButton({
+  product,
+  inCart,
+  showCategory,
+  showPhotos,
+  onSelect,
+}: ProductButtonProps) {
   const price = displayPrice(product);
   const unavailable = price === null;
   const label = [
@@ -36,25 +44,28 @@ const ProductButton = memo(function ProductButton({ product, inCart, showCategor
         onSelect(product);
       }}
       aria-label={label}
-      className={cn(TILE_BASE_CLASS, toneFor(product.colorIndex).card)}
+      className={cn(tileClass(showPhotos), toneFor(product.colorIndex).card)}
     >
-      <span className="flex flex-col gap-0.5">
-        {showCategory && (
-          <span className="text-[11px] font-bold uppercase tracking-wide text-text-muted">
-            {product.categoryName}
-          </span>
-        )}
-        <span className="line-clamp-2 break-words text-base font-bold leading-tight">{product.name}</span>
-      </span>
-      <span className="text-lg font-extrabold tabular-nums">
-        {price ? (
-          <>
-            {price.isFrom && <span className="font-medium text-text-muted">desde </span>}
-            {formatPEN(price.cents)}
-          </>
-        ) : (
-          <span className="font-medium text-text-muted">Sin precio</span>
-        )}
+      {showPhotos && <TilePhoto imageKey={product.coverImageKey} />}
+      <span className={cn('flex min-w-0 flex-col', showPhotos ? 'flex-1 gap-1' : 'h-full justify-between gap-2')}>
+        <span className="flex flex-col gap-0.5">
+          {showCategory && (
+            <span className={cn('text-xs font-bold uppercase tracking-wide', TILE_SECONDARY_TEXT_CLASS)}>
+              {product.categoryName}
+            </span>
+          )}
+          <span className="line-clamp-2 break-words text-lg font-bold leading-tight">{product.name}</span>
+        </span>
+        <span className="text-xl font-extrabold tabular-nums">
+          {price ? (
+            <>
+              {price.isFrom && <span className={cn('text-base font-medium', TILE_SECONDARY_TEXT_CLASS)}>desde </span>}
+              {formatPEN(price.cents)}
+            </>
+          ) : (
+            <span className={cn('font-medium', TILE_SECONDARY_TEXT_CLASS)}>Sin precio</span>
+          )}
+        </span>
       </span>
       {inCart > 0 && (
         <span
@@ -70,11 +81,12 @@ const ProductButton = memo(function ProductButton({ product, inCart, showCategor
 
 interface BackTileProps {
   categoryName: string;
+  showPhotos: boolean;
   onBack: () => void;
 }
 
 /** Primera celda de la vista de categoría: mismo tamaño que los productos. */
-function BackTile({ categoryName, onBack }: BackTileProps) {
+function BackTile({ categoryName, showPhotos, onBack }: BackTileProps) {
   return (
     <button
       type="button"
@@ -83,11 +95,19 @@ function BackTile({ categoryName, onBack }: BackTileProps) {
         if (event.detail > 0) event.currentTarget.blur();
         onBack();
       }}
-      className={cn(TILE_BASE_CLASS, 'items-center justify-center gap-1 border-forest bg-surface text-center')}
+      className={cn(
+        tileClass(showPhotos),
+        'border-forest bg-surface',
+        showPhotos ? 'justify-start' : 'items-center justify-center gap-1 text-center',
+      )}
     >
-      <ArrowLeft className="size-9" aria-hidden="true" />
-      <span className="text-base font-extrabold">Volver</span>
-      <span className="line-clamp-1 max-w-full break-words text-xs font-medium text-text-muted">{categoryName}</span>
+      <ArrowLeft className={showPhotos ? 'mx-5 size-9 shrink-0' : 'size-9'} aria-hidden="true" />
+      <span className={cn('flex min-w-0 flex-col', !showPhotos && 'items-center')}>
+        <span className="text-lg font-extrabold">Volver</span>
+        <span className={cn('line-clamp-1 max-w-full break-words text-sm font-medium', TILE_SECONDARY_TEXT_CLASS)}>
+          {categoryName}
+        </span>
+      </span>
     </button>
   );
 }
@@ -97,12 +117,21 @@ interface ProductGridProps {
   unitsByProduct: ReadonlyMap<number, number>;
   showCategory: boolean;
   isFiltering: boolean;
+  showPhotos: boolean;
   onSelect: (product: PosProduct) => void;
   /** Si viene, se agrega la celda "Volver" al inicio de la grilla (vista de categoría). */
   back?: { categoryName: string; onBack: () => void };
 }
 
-export function ProductGrid({ products, unitsByProduct, showCategory, isFiltering, onSelect, back }: ProductGridProps) {
+export function ProductGrid({
+  products,
+  unitsByProduct,
+  showCategory,
+  isFiltering,
+  showPhotos,
+  onSelect,
+  back,
+}: ProductGridProps) {
   const emptyState =
     products.length === 0 ? (
       <EmptyState
@@ -113,10 +142,10 @@ export function ProductGrid({ products, unitsByProduct, showCategory, isFilterin
   if (emptyState && !back) return emptyState;
   return (
     <>
-      <ul className={TILE_GRID_CLASS}>
+      <ul className={tileGridClass(showPhotos)}>
         {back && (
           <li>
-            <BackTile categoryName={back.categoryName} onBack={back.onBack} />
+            <BackTile categoryName={back.categoryName} showPhotos={showPhotos} onBack={back.onBack} />
           </li>
         )}
         {products.map((product) => (
@@ -125,6 +154,7 @@ export function ProductGrid({ products, unitsByProduct, showCategory, isFilterin
               product={product}
               inCart={unitsByProduct.get(product.id) ?? 0}
               showCategory={showCategory}
+              showPhotos={showPhotos}
               onSelect={onSelect}
             />
           </li>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type Ref } from 'react';
 import type { AsyncState } from '../../hooks/useAsync';
+import { useShowPhotos } from '../../hooks/useShowPhotos';
 import { POS_SECTION_ITEM_LIMIT, priceLookup, type PosCatalog, type PosOption, type PosProduct } from '../../lib/posCatalog';
 import { resolveGridView, unitsByCategory, type ActiveCategory } from '../../lib/posNavigation';
 import { useCart, useCartApi } from '../../store/posCartContext';
@@ -13,7 +14,7 @@ import { CategoryGrid } from './CategoryGrid';
 import { ProductGrid } from './ProductGrid';
 import { ProductToolbar } from './ProductToolbar';
 import { SizePicker } from './SizePicker';
-import { TILE_GRID_CLASS } from './tileStyles';
+import { tileGridClass } from './tileStyles';
 
 type CatalogState = AsyncState<PosCatalog> & { refetch: () => void };
 
@@ -27,11 +28,11 @@ interface PosCatalogPanelProps {
   repriceOnLoad?: boolean;
 }
 
-function GridSkeleton() {
+function GridSkeleton({ showPhotos }: { showPhotos: boolean }) {
   return (
-    <div className={TILE_GRID_CLASS} aria-busy="true" aria-label="Cargando productos">
+    <div className={tileGridClass(showPhotos)} aria-busy="true" aria-label="Cargando productos">
       {Array.from({ length: 8 }, (_, index) => (
-        <Skeleton key={index} className="h-28 w-full" />
+        <Skeleton key={index} className={showPhotos ? 'h-20 w-full' : 'h-28 w-full'} />
       ))}
     </div>
   );
@@ -62,11 +63,13 @@ function CatalogBody({
   catalog,
   category,
   query,
+  showPhotos,
   onCategoryChange,
 }: {
   catalog: PosCatalog;
   category: ActiveCategory;
   query: string;
+  showPhotos: boolean;
   onCategoryChange: (category: ActiveCategory) => void;
 }) {
   const lines = useCart((s) => s.lines);
@@ -108,13 +111,19 @@ function CatalogBody({
         </p>
       )}
       {view.kind === 'categories' ? (
-        <CategoryGrid tiles={view.categories} unitsByCategory={categoryUnits} onSelect={onCategoryChange} />
+        <CategoryGrid
+          tiles={view.categories}
+          unitsByCategory={categoryUnits}
+          showPhotos={showPhotos}
+          onSelect={onCategoryChange}
+        />
       ) : (
         <ProductGrid
           products={view.products}
           unitsByProduct={unitsByProduct}
           showCategory={view.kind === 'search'}
           isFiltering={view.kind === 'search'}
+          showPhotos={showPhotos}
           onSelect={handleSelect}
           {...(view.kind === 'products'
             ? { back: { categoryName: view.category.name, onBack: () => onCategoryChange(null) } }
@@ -148,6 +157,7 @@ function CatalogBody({
 export function PosCatalogPanel({ state, searchRef, repriceOnLoad = true }: PosCatalogPanelProps) {
   const [category, setCategory] = useState<ActiveCategory>(null);
   const [query, setQuery] = useState('');
+  const [showPhotos, setShowPhotos] = useShowPhotos();
   const scrollRef = useRef<HTMLDivElement>(null);
   useRepriceCartOnLoad(state.data, repriceOnLoad);
   usePublishCatalog(state);
@@ -160,7 +170,7 @@ export function PosCatalogPanel({ state, searchRef, repriceOnLoad = true }: PosC
   const catalog = state.data;
   let body;
   if (state.error && !catalog) body = <ErrorState message={state.error} onRetry={state.refetch} />;
-  else if (!catalog) body = <GridSkeleton />;
+  else if (!catalog) body = <GridSkeleton showPhotos={showPhotos} />;
   else if (catalog.products.length === 0) {
     body = (
       <EmptyState
@@ -168,11 +178,27 @@ export function PosCatalogPanel({ state, searchRef, repriceOnLoad = true }: PosC
         description="Activa productos con canal “Mostrador” o “Ambos” en Tienda online > Menú."
       />
     );
-  } else body = <CatalogBody catalog={catalog} category={category} query={query} onCategoryChange={changeCategory} />;
+  } else {
+    body = (
+      <CatalogBody
+        catalog={catalog}
+        category={category}
+        query={query}
+        showPhotos={showPhotos}
+        onCategoryChange={changeCategory}
+      />
+    );
+  }
 
   return (
     <section aria-label="Productos" className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-      <ProductToolbar query={query} onQueryChange={setQuery} searchRef={searchRef} />
+      <ProductToolbar
+        query={query}
+        onQueryChange={setQuery}
+        searchRef={searchRef}
+        showPhotos={showPhotos}
+        onShowPhotosChange={setShowPhotos}
+      />
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {body}
       </div>

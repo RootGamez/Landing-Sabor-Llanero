@@ -300,7 +300,7 @@ function FlavorBrowser({ groups, query, categoryId, onCategory, selected, isProm
     const tiles = groups.map((g) => ({ category: g.category, productCount: g.options.length }));
     const chosen = new Map<number, number>();
     for (const g of groups) chosen.set(g.category.id, g.options.filter((o) => selected.includes(o.itemId)).length);
-    return <CategoryGrid tiles={tiles} unitsByCategory={chosen} onSelect={onCategory} />;
+    return <CategoryGrid tiles={tiles} unitsByCategory={chosen} showPhotos={false} onSelect={onCategory} />;
   }
   return (
     <div className="flex flex-col gap-3">

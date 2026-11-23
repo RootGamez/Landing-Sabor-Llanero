@@ -34,11 +34,32 @@ export class PosPage {
     return this.page.getByRole('button', { name: new RegExp(`^${name},`) });
   }
 
-  /** Toca un producto; si tiene tamaños, elige `size` en el selector. */
+  /** Interruptor "Mostrar fotos" de la barra del catálogo. */
+  get photosSwitch(): Locator {
+    return this.page.getByRole('switch', { name: 'Mostrar fotos' });
+  }
+
+  categoryTile(name: string): Locator {
+    return this.page.getByRole('button', { name: new RegExp(`^${name},`) });
+  }
+
+  /** Abre una categoría desde la cuadrícula inicial (las celdas de producto aparecen después). */
+  async openCategory(name: string): Promise<void> {
+    await this.categoryTile(name).click();
+    await expect(this.page.getByRole('button', { name: /^Volver a las categorías/ })).toBeVisible();
+  }
+
+  /**
+   * Toca un producto; si tiene tamaños, elige `size` en el selector. El POS arranca en la vista de
+   * categorías, así que el producto se localiza con el buscador (resultados globales) y se limpia después.
+   */
   async addProduct(name: string, size?: string): Promise<void> {
+    const search = this.page.getByLabel('Buscar producto');
+    await search.fill(name);
     await this.product(name).click();
     if (size) await this.dialog.getByRole('button', { name: new RegExp(`^${size}`) }).click();
     await expect(this.dialog).toBeHidden();
+    await search.fill('');
   }
 
   async charge(): Promise<void> {
