@@ -110,7 +110,7 @@ export function SummaryStep({
       <CheckboxField
         variant="card"
         label="Importar también los ingresos como ventas resumen del día"
-        description="Cada ingreso entra como una venta en efectivo dentro de una caja ya cerrada de ese día, así el dashboard tiene tus ingresos completos. No se mezcla con las cajas que abras en el POS."
+        description="Déjalo desmarcado si tus ventas ya vienen de Aronium o del POS: importarlas también desde HomeBank las contaría dos veces. Solo márcalo para días que no tengas en ningún otro sistema; cada ingreso entra como una venta en una caja ya cerrada de ese día."
         checked={includeIncomes}
         disabled={busy}
         onCheckedChange={(value) => onIncludeIncomes(value === true)}

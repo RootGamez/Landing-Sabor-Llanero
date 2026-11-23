@@ -53,7 +53,9 @@ export function useHomebankImport(existingCategories: readonly ExistingCategory[
   const [needsDateFormat, setNeedsDateFormat] = useState(false);
   const [parseErrors, setParseErrors] = useState<HomebankParseError[]>([]);
   const [prepared, setPrepared] = useState<PreparedHomebankImport | null>(null);
-  const [includeIncomes, setIncomesIncluded] = useState(true);
+  // Por defecto NO se importan ingresos: las ventas reales vienen de Aronium/POS y
+  // traerlas también desde HomeBank las contaría dos veces.
+  const [includeIncomes, setIncomesIncluded] = useState(false);
   const [preview, setPreview] = useState<PreviewTotals | null>(null);
   const [choices, setChoices] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState<ImportProgress>({ done: 0, total: 0 });
@@ -83,7 +85,7 @@ export function useHomebankImport(existingCategories: readonly ExistingCategory[
     setNeedsDateFormat(false);
     setParseErrors([]);
     setPrepared(null);
-    setIncomesIncluded(true);
+    setIncomesIncluded(false);
     setPreview(null);
     setChoices({});
     setProgress({ done: 0, total: 0 });

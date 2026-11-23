@@ -23,6 +23,8 @@ test('importa un .xhb sintético y la reimportación da 0 nuevos', async ({ page
     await expect(importer.stat('Gastos')).toContainText('S/ 183.75');
     await expect(importer.stat('Ingresos')).toContainText('2');
     await expect(importer.stat('Ingresos')).toContainText('S/ 830.50');
+    // Los ingresos no se importan por defecto (evita duplicar las ventas de Aronium/POS).
+    await expect(page.getByRole('checkbox', { name: /ingresos como ventas/i })).not.toBeChecked();
   });
 
   await test.step('pasa al paso 3, crea categorías faltantes y ejecuta la importación', async () => {
@@ -30,7 +32,7 @@ test('importa un .xhb sintético y la reimportación da 0 nuevos', async ({ page
     await importer.createAllMissingCategories();
     await importer.runImport();
     await expect(page.getByText('3 nuevos')).toBeVisible();
-    await expect(page.getByText('2 nuevos')).toBeVisible();
+    await expect(page.getByText('2 nuevos')).toHaveCount(0);
   });
 
   await test.step('reimportar el mismo archivo reporta 0 nuevos (idempotencia)', async () => {
