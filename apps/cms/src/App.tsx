@@ -19,6 +19,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { PosPage } from './pages/PosPage';
 import { CashClosuresPage } from './pages/CashClosuresPage';
 import { SalesHistoryPage } from './pages/SalesHistoryPage';
+import { TablePlanPage } from './pages/TablePlanPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { ExpenseImportPage } from './pages/ExpenseImportPage';
 import { ExpenseCategoriesPage } from './pages/ExpenseCategoriesPage';
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/reportes" element={<ReportsPage />} />
             <Route path="/ventas/historial" element={<SalesHistoryPage />} />
+            <Route path="/ventas/mesas" element={<TablePlanPage />} />
             <Route path="/gastos" element={<ExpensesPage />} />
             <Route path="/gastos/importar" element={<ExpenseImportPage />} />
             <Route path="/gastos/categorias" element={<ExpenseCategoriesPage />} />

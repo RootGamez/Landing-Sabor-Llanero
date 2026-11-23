@@ -18,5 +18,6 @@ export * from './reports';
 export * from './reportPeriods';
 export * from './reportProjection';
 export * from './reportMath';
+export * from './tables';
 export * from './amountExpression';
 export * from './expenseSummary';

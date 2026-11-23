@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader } from '../ui/card';
 import { CashCountPanel } from './CashCountPanel';
 import { CashReconciliation } from './CashReconciliation';
 import { ReconcileToggle } from './ReconcileToggle';
+import { OpenTablesWarning } from '../tables/OpenTablesWarning';
 
 const NOTES_MAX = 500;
 const IRREVERSIBLE = 'Esta acción no se puede deshacer: ya no podrás registrar ventas en esta caja.';
@@ -112,6 +113,7 @@ export function CloseRegisterFlow({ session, onClosed, onRefresh }: CloseRegiste
         )}
         <CardContent className="gap-4">
           {reconcile && live && <CashReconciliation summary={live} countedCents={countedCents} />}
+          <OpenTablesWarning />
           <NotesField value={notes} onChange={setNotes} />
           <Button type="submit" size="lg" className="h-14 w-full text-base" disabled={input === null}>
             <Lock aria-hidden="true" />
