@@ -97,7 +97,7 @@ export class PosPage {
   async voidSale(number: number, reason: string): Promise<void> {
     const sheet = await this.openSessionSales();
     const row = sheet.getByRole('listitem').filter({ hasText: `Venta #${number}` });
-    await row.getByRole('button', { name: 'Anular', exact: true }).click();
+    await row.getByRole('button', { name: `Anular la venta #${number}`, exact: true }).click();
     await row.getByLabel('Motivo de la anulación').fill(reason);
     await row.getByRole('button', { name: 'Anular venta' }).click();
     await expect(row.getByText('Anulada')).toBeVisible();

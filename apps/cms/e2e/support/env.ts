@@ -9,9 +9,12 @@ export const E2E_DIR = path.resolve(here, '..');
 export const STATE_DIR = path.join(E2E_DIR, '.state');
 export const AUTH_DIR = path.join(STATE_DIR, 'auth');
 
-/** Puertos fijos y distintos de los de desarrollo (8787 api, 5174 cms, 5175 reservado). */
-export const API_PORT = 8791;
-export const CMS_PORT = 5193;
+/**
+ * Puertos distintos de los de desarrollo (8787 api, 5174 cms, 5175 reservado). Por defecto fijos;
+ * `E2E_API_PORT` / `E2E_CMS_PORT` permiten moverlos si otro proceso local ya ocupa uno.
+ */
+export const API_PORT = Number(process.env.E2E_API_PORT ?? 8791);
+export const CMS_PORT = Number(process.env.E2E_CMS_PORT ?? 5193);
 export const API_URL = `http://127.0.0.1:${API_PORT}`;
 export const CMS_URL = `http://127.0.0.1:${CMS_PORT}`;
 
@@ -38,6 +41,10 @@ export const CATALOG = {
   pizzaDemo: 1,
   gaseosaDemo: 2,
   aguaDemo: 3,
+  tequenosDemo: 4,
+  portionMediaDocena: 3,
+  portionDocena: 4,
+  portionDocenaYMedia: 5,
 } as const;
 
 export function storageStatePath(role: StaffRole): string {
