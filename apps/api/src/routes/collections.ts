@@ -3,6 +3,7 @@ import {
   COLLECTION_KEYS,
   replaceCollectionItemsSchema,
   resolveItemPrices,
+  resolvePortionPrices,
   resolveSimplePrice,
   updateCollectionSchema,
   type Category,
@@ -124,7 +125,9 @@ async function loadCollections(
     const category = categoryById.get(row.category_id);
     if (!category) continue; // no debería pasar (FK a categories), pero no reventar si la data está inconsistente
     const item = mapMenuItem(row);
-    const prices = category.hasSizes ? resolveItemPrices(item, category, sizes, categoryPrices, itemPrices) : [];
+    const prices = category.hasSizes
+      ? resolveItemPrices(item, category, sizes, categoryPrices, itemPrices)
+      : resolvePortionPrices(item, itemPrices, sizes);
     const withPrices: MenuItemWithPrices = {
       ...item,
       price: category.hasSizes ? null : resolveSimplePrice(item),

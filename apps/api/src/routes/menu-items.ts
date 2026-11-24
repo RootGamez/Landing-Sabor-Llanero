@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {
+  assertOverrideKinds,
   createMenuItemSchema,
   resolveItemPrices,
+  resolvePortionPrices,
   resolveSimplePrice,
   sizePriceInputSchema,
   updateMenuItemSchema,
@@ -33,7 +35,7 @@ import { badRequest, conflict, notFound } from '../lib/http-error';
 import { parseBody } from '../lib/validate';
 import { parsePositiveInt, requireIdParam } from '../lib/params';
 import { WEB_CHANNELS, channelCondition, requestedChannels } from '../lib/menu-channel';
-import { allSizes, assertKnownSizeIds } from './categories';
+import { allSizes } from './categories';
 
 export const menuItemRoutes = new Hono<AppEnv>();
 
@@ -153,9 +155,10 @@ menuItemRoutes.get('/sections', async (c) => {
     if (!categoryRow) continue;
     const category = mapCategory(categoryRow);
     const item = mapMenuItem(row);
+    // Con tamaños: precio por tamaño; sin tamaños: presentaciones del ítem (vacío si no tiene).
     const prices = category.hasSizes
       ? resolveItemPrices(item, category, sizes, categoryPrices, itemPrices)
-      : [];
+      : resolvePortionPrices(item, itemPrices, sizes);
     const list = itemsByCategory.get(row.category_id) ?? [];
     itemsByCategory.set(row.category_id, [
       ...list,
@@ -213,22 +216,16 @@ menuItemRoutes.get('/:slug', async (c) => {
   const category = mapCategory(categoryRow);
   const sizes: Size[] = sizeRows.map(mapSize);
 
-  let prices: ResolvedPrice[] = [];
-  if (category.hasSizes) {
-    const [{ results: categoryPriceRows }, { results: itemPriceRows }] = await Promise.all([
-      c.env.DB.prepare('SELECT * FROM category_prices WHERE category_id = ?')
-        .bind(category.id)
-        .all<CategoryPriceRow>(),
-      c.env.DB.prepare('SELECT * FROM item_prices WHERE item_id = ?').bind(item.id).all<ItemPriceRow>(),
-    ]);
-    prices = resolveItemPrices(
-      item,
-      category,
-      sizes,
-      categoryPriceRows.map(mapCategoryPrice),
-      itemPriceRows.map(mapItemPrice),
-    );
-  }
+  const [{ results: categoryPriceRows }, { results: itemPriceRows }] = await Promise.all([
+    category.hasSizes
+      ? c.env.DB.prepare('SELECT * FROM category_prices WHERE category_id = ?').bind(category.id).all<CategoryPriceRow>()
+      : Promise.resolve({ results: [] as CategoryPriceRow[] }),
+    c.env.DB.prepare('SELECT * FROM item_prices WHERE item_id = ?').bind(item.id).all<ItemPriceRow>(),
+  ]);
+  const itemPrices = itemPriceRows.map(mapItemPrice);
+  const prices: ResolvedPrice[] = category.hasSizes
+    ? resolveItemPrices(item, category, sizes, categoryPriceRows.map(mapCategoryPrice), itemPrices)
+    : resolvePortionPrices(item, itemPrices, sizes);
 
   const detail: MenuItemDetail = {
     ...mapMenuItem(item),
@@ -250,12 +247,55 @@ async function requireCategory(db: D1Database, categoryId: number): Promise<Cate
   return row;
 }
 
+type PriceOverride = { sizeId: number; price: number };
+
+/**
+ * Los overrides de un ítem deben ser del tipo que admite su categoría: tamaños
+ * de pizza (`kind = 'size'`) si vende por tamaño, presentaciones (`'portion'`)
+ * si no (0012). Evita mezclar tipos y ids inexistentes (FK) antes de escribir.
+ */
+async function assertOverridesForCategory(
+  db: D1Database,
+  overrides: readonly PriceOverride[],
+  categoryHasSizes: boolean,
+): Promise<void> {
+  if (overrides.length === 0) return;
+  const { results } = await db.prepare('SELECT * FROM sizes').all<SizeRow>();
+  const message = assertOverrideKinds(overrides, results.map(mapSize), categoryHasSizes);
+  if (message) throw badRequest(message);
+}
+
+function insertOverrideStatements(db: D1Database, itemId: number, overrides: readonly PriceOverride[]): D1PreparedStatement[] {
+  return overrides.map((entry) =>
+    db.prepare('INSERT INTO item_prices (item_id, size_id, price) VALUES (?, ?, ?)').bind(itemId, entry.sizeId, entry.price),
+  );
+}
+
+/** Reemplaza TODO el set de overrides del ítem (DELETE + INSERTs atómicos en un batch, ver categories.ts). */
+async function replaceItemOverrides(db: D1Database, itemId: number, overrides: readonly PriceOverride[]): Promise<void> {
+  await db.batch([
+    db.prepare('DELETE FROM item_prices WHERE item_id = ?').bind(itemId),
+    ...insertOverrideStatements(db, itemId, overrides),
+  ]);
+}
+
+/** ¿La categoría destino cambia el modo de precio (con/sin tamaños) respecto de la actual del ítem? */
+async function changedPriceMode(db: D1Database, previousCategoryId: number, next: CategoryRow): Promise<boolean> {
+  if (previousCategoryId === next.id) return false;
+  const previous = await db
+    .prepare('SELECT has_sizes FROM categories WHERE id = ?')
+    .bind(previousCategoryId)
+    .first<Pick<CategoryRow, 'has_sizes'>>();
+  return Boolean(previous?.has_sizes) !== Boolean(next.has_sizes);
+}
+
 menuItemRoutes.post('/', requireAuth, requireRole('owner', 'admin'), async (c) => {
   const body = await parseBody(c, createMenuItemSchema);
   const category = await requireCategory(c.env.DB, body.categoryId);
 
   // Invariantes BLUEPRINT §4.2: categorías con tamaño no llevan price propio;
-  // categorías sin tamaño exigen price y no admiten overrides.
+  // categorías sin tamaño exigen price (base / "1 docena") y sus priceOverrides,
+  // si los hay, son presentaciones (0012).
   let price: number | null;
   if (category.has_sizes) {
     if (body.price != null) {
@@ -266,11 +306,11 @@ menuItemRoutes.post('/', requireAuth, requireRole('owner', 'admin'), async (c) =
     if (body.price == null) {
       throw badRequest('las categorías sin tamaños requieren price');
     }
-    if (body.priceOverrides && body.priceOverrides.length > 0) {
-      throw badRequest('los ítems de categorías sin tamaños no admiten priceOverrides');
-    }
     price = body.price;
   }
+  const overrides = body.priceOverrides ?? [];
+  // Antes del INSERT: un override inválido no debe dejar el ítem creado a medias.
+  await assertOverridesForCategory(c.env.DB, overrides, Boolean(category.has_sizes));
 
   const slug = body.slug?.trim() || slugify(body.nameEs);
   const existing = await c.env.DB.prepare('SELECT id FROM menu_items WHERE slug = ?').bind(slug).first();
@@ -297,20 +337,9 @@ menuItemRoutes.post('/', requireAuth, requireRole('owner', 'admin'), async (c) =
     .first<MenuItemRow>();
   const item = result!;
 
-  if (category.has_sizes && body.priceOverrides && body.priceOverrides.length > 0) {
-    // Los sizeIds de un override deben ser subconjunto de los tamaños reales
-    // (no cobertura completa: un override vacío hereda de category_prices).
-    assertKnownSizeIds(body.priceOverrides, await allSizes(c.env.DB));
+  if (overrides.length > 0) {
     // batch: todos los INSERT se comitean como una sola transacción atómica.
-    await c.env.DB.batch(
-      body.priceOverrides.map((entry) =>
-        c.env.DB.prepare('INSERT INTO item_prices (item_id, size_id, price) VALUES (?, ?, ?)').bind(
-          item.id,
-          entry.sizeId,
-          entry.price,
-        ),
-      ),
-    );
+    await c.env.DB.batch(insertOverrideStatements(c.env.DB, item.id, overrides));
   }
 
   const withPromo = await applyPromoConfig(c.env.DB, item, body, Boolean(category.has_sizes));
@@ -340,9 +369,9 @@ menuItemRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (
     if (price == null) {
       throw badRequest('las categorías sin tamaños requieren price');
     }
-    if (body.priceOverrides && body.priceOverrides.length > 0) {
-      throw badRequest('los ítems de categorías sin tamaños no admiten priceOverrides');
-    }
+  }
+  if (body.priceOverrides !== undefined) {
+    await assertOverridesForCategory(c.env.DB, body.priceOverrides, Boolean(category.has_sizes));
   }
 
   const updated = await c.env.DB.prepare(
@@ -367,23 +396,12 @@ menuItemRoutes.patch('/:id', requireAuth, requireRole('owner', 'admin'), async (
     )
     .first<MenuItemRow>();
 
-  // Cambiar de categoría a una sin tamaños, o simplemente ya no tenerlos,
-  // invalida cualquier override previo — se limpia siempre que corresponda.
-  if (!category.has_sizes) {
+  if (body.priceOverrides !== undefined) {
+    await replaceItemOverrides(c.env.DB, id, body.priceOverrides);
+  } else if (await changedPriceMode(c.env.DB, current.category_id, category)) {
+    // Pasar de una categoría con tamaños a una sin ellos (o al revés) invalida
+    // los overrides previos (tamaños vs presentaciones): se limpian.
     await c.env.DB.prepare('DELETE FROM item_prices WHERE item_id = ?').bind(id).run();
-  } else if (body.priceOverrides !== undefined) {
-    assertKnownSizeIds(body.priceOverrides, await allSizes(c.env.DB));
-    // batch: DELETE + INSERTs atómicos (ver nota en categories.ts).
-    await c.env.DB.batch([
-      c.env.DB.prepare('DELETE FROM item_prices WHERE item_id = ?').bind(id),
-      ...body.priceOverrides.map((entry) =>
-        c.env.DB.prepare('INSERT INTO item_prices (item_id, size_id, price) VALUES (?, ?, ?)').bind(
-          id,
-          entry.sizeId,
-          entry.price,
-        ),
-      ),
-    ]);
   }
 
   const withPromo = await applyPromoConfig(c.env.DB, updated!, body, Boolean(category.has_sizes));
@@ -427,9 +445,10 @@ async function applyPromoConfig(
 }
 
 /**
- * Reemplaza el set completo de overrides de precio por tamaño de un ítem
- * (BLUEPRINT §4.2). Vacío = el ítem vuelve a heredar todo de category_prices.
- * Solo válido si la categoría del ítem vende por tamaño.
+ * Reemplaza el set completo de overrides de precio de un ítem (BLUEPRINT §4.2):
+ * por tamaño si su categoría vende por tamaño, por presentación (0012) si no.
+ * Vacío = vuelve a heredar de category_prices (tamaños) o a venderse solo con
+ * su `price` único (presentaciones).
  */
 menuItemRoutes.put('/:id/prices', requireAuth, requireRole('owner', 'admin'), async (c) => {
   const id = requireIdParam(c);
@@ -441,23 +460,8 @@ menuItemRoutes.put('/:id/prices', requireAuth, requireRole('owner', 'admin'), as
   if (!current) throw notFound('Ítem no encontrado');
 
   const category = await requireCategory(c.env.DB, current.category_id);
-  if (!category.has_sizes) {
-    throw badRequest('la categoría de este ítem no vende por tamaño (hasSizes = false)');
-  }
-
-  assertKnownSizeIds(body.priceOverrides, await allSizes(c.env.DB));
-
-  // batch: DELETE + INSERTs atómicos (ver nota en categories.ts).
-  await c.env.DB.batch([
-    c.env.DB.prepare('DELETE FROM item_prices WHERE item_id = ?').bind(id),
-    ...body.priceOverrides.map((entry) =>
-      c.env.DB.prepare('INSERT INTO item_prices (item_id, size_id, price) VALUES (?, ?, ?)').bind(
-        id,
-        entry.sizeId,
-        entry.price,
-      ),
-    ),
-  ]);
+  await assertOverridesForCategory(c.env.DB, body.priceOverrides, Boolean(category.has_sizes));
+  await replaceItemOverrides(c.env.DB, id, body.priceOverrides);
 
   const { results } = await c.env.DB.prepare('SELECT * FROM item_prices WHERE item_id = ?')
     .bind(id)

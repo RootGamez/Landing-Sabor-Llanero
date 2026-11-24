@@ -38,6 +38,7 @@ import type {
   SaleItem,
   SaleTable,
   Size,
+  SizeKind,
   User,
   WhatsappConfig,
 } from '@sabor/shared';
@@ -70,6 +71,9 @@ export interface SizeRow {
   detail_es: string;
   detail_en: string;
   display_order: number;
+  /** 0012: opcionales en el tipo para tolerar una base aún sin migrar (ausentes = tamaño de pizza). */
+  kind?: SizeKind;
+  units?: number | null;
 }
 export const mapSize = (r: SizeRow): Size => ({
   id: r.id,
@@ -79,6 +83,8 @@ export const mapSize = (r: SizeRow): Size => ({
   detailEs: r.detail_es,
   detailEn: r.detail_en,
   displayOrder: r.display_order,
+  kind: r.kind ?? 'size',
+  units: r.units ?? null,
 });
 
 export interface CategoryRow {

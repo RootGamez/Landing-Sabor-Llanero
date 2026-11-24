@@ -3,8 +3,10 @@ import {
   createOrderSchema,
   orderStatusUpdateSchema,
   resolveItemPrices,
+  resolvePortionPrices,
   resolveSimplePrice,
   updateOrderItemsSchema,
+  type Category,
   type OrderDto,
   type OrderItem,
   type OrderItemInput,
@@ -106,10 +108,54 @@ export async function loadPricingContext(
   };
 }
 
+/** Precio y etiqueta (snapshot de `size_label`) de una línea ya resuelta. */
+interface LinePrice {
+  unitPrice: number;
+  sizeLabel: string | null;
+}
+
+/** Categoría CON tamaños: el sizeId es obligatorio y debe ser un tamaño de pizza (`kind = 'size'`). */
+function priceSizedLine(input: OrderItemInput, ctx: PricingContext, itemRow: MenuItemRow, category: Category): LinePrice {
+  if (input.sizeId === undefined) throw badRequest(`itemId ${input.itemId} requiere sizeId`);
+  const sizeRow = ctx.sizeById.get(input.sizeId);
+  if (!sizeRow) throw badRequest(`sizeId ${input.sizeId} inválido`);
+  const size = mapSize(sizeRow);
+  const categoryPrices = ctx.categoryPriceRows.filter((p) => p.category_id === itemRow.category_id).map(mapCategoryPrice);
+  const itemPrices = ctx.itemPriceRows.filter((p) => p.item_id === input.itemId).map(mapItemPrice);
+  // resolveItemPrices ignora las presentaciones: un sizeId de presentación acaba en "sin precio".
+  const [resolved] = resolveItemPrices(mapMenuItem(itemRow), category, [size], categoryPrices, itemPrices);
+  if (!resolved) throw badRequest(`no hay precio configurado para itemId ${input.itemId} en ese tamaño`);
+  return { unitPrice: resolved.price, sizeLabel: size.labelEs };
+}
+
 /**
- * Tasa una línea del carrito con `resolveItemPrices`/`resolveSimplePrice`
- * (packages/shared/pricing.ts, puras, sin reimplementar la lógica acá). El
- * precio que manda el cliente en el body NO se lee acá — solo itemId/sizeId/quantity.
+ * Categoría SIN tamaños: si el ítem tiene presentaciones (0012), el sizeId es
+ * obligatorio y debe ser una de las suyas; precio y etiqueta salen de ahí. Si
+ * no tiene, vale su precio único y se rechaza cualquier sizeId.
+ */
+function priceUnsizedLine(input: OrderItemInput, ctx: PricingContext, itemRow: MenuItemRow): LinePrice {
+  const item = mapMenuItem(itemRow);
+  const itemPrices = ctx.itemPriceRows.filter((p) => p.item_id === input.itemId).map(mapItemPrice);
+  const portions = resolvePortionPrices(item, itemPrices, [...ctx.sizeById.values()].map(mapSize));
+  if (portions.length === 0) {
+    if (input.sizeId !== undefined) throw badRequest(`itemId ${input.itemId} no vende por tamaño`);
+    return { unitPrice: resolveSimplePrice(item), sizeLabel: null };
+  }
+  if (input.sizeId === undefined) {
+    throw badRequest(`itemId ${input.itemId} requiere elegir una presentación (sizeId)`);
+  }
+  const chosen = portions.find((p) => p.sizeId === input.sizeId);
+  if (!chosen) {
+    throw badRequest(`sizeId ${input.sizeId} no es una presentación válida para itemId ${input.itemId}`);
+  }
+  return { unitPrice: chosen.price, sizeLabel: chosen.labelEs ?? null };
+}
+
+/**
+ * Tasa una línea del carrito con `resolveItemPrices`/`resolvePortionPrices`/
+ * `resolveSimplePrice` (packages/shared/pricing.ts, puras, sin reimplementar
+ * la lógica acá). El precio que manda el cliente en el body NO se lee acá —
+ * solo itemId/sizeId/quantity.
  */
 export function buildOrderLine(input: OrderItemInput, ctx: PricingContext): OrderLine {
   const itemRow = ctx.itemById.get(input.itemId);
@@ -117,28 +163,10 @@ export function buildOrderLine(input: OrderItemInput, ctx: PricingContext): Orde
   const categoryRow = ctx.categoryById.get(itemRow.category_id);
   if (!categoryRow) throw notFound('Categoría del ítem no encontrada');
   const category = mapCategory(categoryRow);
-  const item = mapMenuItem(itemRow);
 
-  let unitPrice: number;
-  let sizeLabel: string | null;
-  if (category.hasSizes) {
-    if (input.sizeId === undefined) throw badRequest(`itemId ${input.itemId} requiere sizeId`);
-    const sizeRow = ctx.sizeById.get(input.sizeId);
-    if (!sizeRow) throw badRequest(`sizeId ${input.sizeId} inválido`);
-    const size = mapSize(sizeRow);
-    const categoryPrices = ctx.categoryPriceRows
-      .filter((p) => p.category_id === itemRow.category_id)
-      .map(mapCategoryPrice);
-    const itemPrices = ctx.itemPriceRows.filter((p) => p.item_id === input.itemId).map(mapItemPrice);
-    const [resolved] = resolveItemPrices(item, category, [size], categoryPrices, itemPrices);
-    if (!resolved) throw badRequest(`no hay precio configurado para itemId ${input.itemId} en ese tamaño`);
-    unitPrice = resolved.price;
-    sizeLabel = size.labelEs;
-  } else {
-    if (input.sizeId !== undefined) throw badRequest(`itemId ${input.itemId} no vende por tamaño`);
-    unitPrice = resolveSimplePrice(item);
-    sizeLabel = null;
-  }
+  const { unitPrice, sizeLabel } = category.hasSizes
+    ? priceSizedLine(input, ctx, itemRow, category)
+    : priceUnsizedLine(input, ctx, itemRow);
 
   return {
     itemId: input.itemId,

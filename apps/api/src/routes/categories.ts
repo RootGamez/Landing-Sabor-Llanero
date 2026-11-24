@@ -75,10 +75,15 @@ categoryRoutes.get('/', async (c) => {
   return c.json(body);
 });
 
-/** Todos los tamaños del negocio, usados para validar cobertura de precios. */
+/**
+ * Tamaños de pizza del negocio (`kind = 'size'`), usados para validar cobertura
+ * de precios. Las presentaciones (Media docena…) NO cuentan: una categoría de
+ * pizzas no debe exigirles precio ni los promos de pizzas aceptarlas. Filtra en
+ * JS (no en SQL) para tolerar una base aún sin migrar a 0012 (sin columna kind).
+ */
 export async function allSizes(db: D1Database): Promise<SizeRow[]> {
   const { results } = await db.prepare('SELECT * FROM sizes ORDER BY display_order ASC').all<SizeRow>();
-  return results;
+  return results.filter((row) => (row.kind ?? 'size') === 'size');
 }
 
 /**
@@ -86,7 +91,9 @@ export async function allSizes(db: D1Database): Promise<SizeRow[]> {
  * sizeId inexistente (ej. 999) pasa la validación de Zod (que no tiene acceso
  * a la DB) y revienta a mitad del batch por violación de FK. Se exporta para
  * reusarla en menu-items.ts, donde los priceOverrides deben ser subconjunto
- * de los tamaños existentes (no necesitan cobertura completa).
+ * de los tamaños existentes (no necesitan cobertura completa). `sizes` ya viene
+ * filtrado por tipo (`allSizes`), así que el id de una presentación también
+ * cae acá como inválido.
  */
 export function assertKnownSizeIds(prices: Array<{ sizeId: number }>, sizes: SizeRow[]): void {
   const validIds = new Set(sizes.map((s) => s.id));
