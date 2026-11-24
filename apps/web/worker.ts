@@ -50,7 +50,8 @@ function escapeHtml(value: string): string {
 }
 
 function priceDescription(item: MenuItemDetail): string {
-  if (item.category.hasSizes && item.prices.length > 0) {
+  // Tamaños de pizza o presentaciones (Media docena, 1 docena…): precio "desde".
+  if (item.prices.length > 1 || (item.category.hasSizes && item.prices.length > 0)) {
     const min = Math.min(...item.prices.map((p) => p.price));
     return `Desde ${formatPrice(min)} · ${SITE_NAME}`;
   }

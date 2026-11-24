@@ -6,7 +6,6 @@ import Image from "next/image";
 import {
   CATALOG_COPY,
   displayDescription,
-  displayName,
   formatPrice,
   type Lang,
   type MenuItemWithPrices,
@@ -19,13 +18,10 @@ import OrderButton from "@/components/menu/OrderButton";
 import SizeSelector from "@/components/menu/SizeSelector";
 import { mediaUrl } from "@/lib/api";
 import { accentStyle } from "@/lib/catalogAccent";
-import { cartLineFromItem, useCartActions } from "@/lib/cart";
-import { CATALOG_UI, sizeLabelFor } from "@/lib/catalogUi";
+import { CATALOG_UI } from "@/lib/catalogUi";
 import { parseIngredients } from "@/lib/catalogText";
-import { siteConfig } from "@/lib/siteConfig";
-import { useCustomerAuth } from "@/lib/customerAuth";
-import { useQuickOrder } from "@/lib/useQuickOrder";
-import { buildItemOrderLink } from "@/lib/whatsapp";
+import { optionKindOf, priceSummary } from "@/lib/priceOptions";
+import { useItemOrder } from "@/lib/useItemOrder";
 
 interface ItemModalProps {
   item: MenuItemWithPrices;
@@ -55,22 +51,22 @@ const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1
 export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: ItemModalProps) {
   const copy = CATALOG_COPY[lang];
   const ui = CATALOG_UI[lang];
-  const name = displayName(item, lang);
   const description = displayDescription(item, lang);
   const ingredients = description ? parseIngredients(description) : null;
-  const hasSizes = item.prices.length > 0;
-  const { addLine } = useCartActions();
-  const { customer } = useCustomerAuth();
-  const { confirm, submitting, error, manualLink } = useQuickOrder();
   // Dos ids distintos: el CTA se renderiza dos veces (barra fija de móvil +
   // inline de escritorio, una de cada par siempre oculta por CSS), y el hint
-  // de "elegí un tamaño" no puede compartir `id` entre ambas copias.
+  // de "elige un tamaño" no puede compartir `id` entre ambas copias.
   const disabledHintIdDesktop = useId();
   const disabledHintIdMobile = useId();
 
-  const [selectedSizeId, setSelectedSizeId] = useState<number | null>(
-    () => item.prices[0]?.sizeId ?? null,
+  // Tamaños: el primero viene preseleccionado (pedir en un toque). Presentaciones
+  // (Media docena, 1 docena…): sin preselección, para no pedir una cantidad que
+  // el cliente no eligió; el CTA queda bloqueado hasta que escoja una.
+  const [selectedSizeId, setSelectedSizeId] = useState<number | null>(() =>
+    optionKindOf(item.prices) === "portion" ? null : (item.prices[0]?.sizeId ?? null),
   );
+  const order = useItemOrder({ item, sizes, lang, whatsapp, selectedSizeId });
+  const { name, hasOptions, needsChoice } = order;
   const [mounted, setMounted] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -143,54 +139,11 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
 
   if (!mounted) return null;
 
-  const selectedPrice = hasSizes
-    ? (item.prices.find((price) => price.sizeId === selectedSizeId) ?? null)
-    : null;
-  const displayedPrice = hasSizes ? selectedPrice?.price : item.price;
-
-  // Ruta de share con Open Graph reales — ver nota en ItemCard.tsx.
-  const itemUrl = `${siteConfig.url}/menu/item/${item.slug}`;
-  let orderHref: string | null = null;
-  if (hasSizes && selectedPrice) {
-    orderHref = buildItemOrderLink({
-      config: whatsapp,
-      lang,
-      itemName: name,
-      price: selectedPrice.price,
-      sizeLabel: sizeLabelFor(selectedPrice, sizes, lang),
-      itemUrl,
-    });
-  } else if (!hasSizes && item.price != null) {
-    orderHref = buildItemOrderLink({
-      config: whatsapp,
-      lang,
-      itemName: name,
-      price: item.price,
-      sizeLabel: null,
-      itemUrl,
-    });
-  }
-
-  const handleQuickOrder = (): void => {
-    if (!orderHref) return;
-    confirm({
-      itemId: item.id,
-      sizeId: hasSizes ? (selectedPrice?.sizeId ?? undefined) : undefined,
-      whatsappHref: orderHref,
-    });
-  };
-
-  const canAddToCart = hasSizes ? selectedPrice != null : item.price != null;
-  const addToCart = (): void => {
-    const line = cartLineFromItem({
-      item,
-      hasSizes,
-      selectedPrice,
-      name,
-      sizeLabel: selectedPrice ? sizeLabelFor(selectedPrice, sizes, lang) : null,
-    });
-    if (line) addLine(line);
-  };
+  const summary = hasOptions
+    ? priceSummary(item.prices, selectedSizeId)
+    : item.price != null
+      ? { mode: "single" as const, amount: item.price }
+      : null;
 
   /**
    * Botones de acción compartidos entre la barra fija de móvil (siempre
@@ -203,32 +156,32 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
   const renderCta = (hintId: string) => (
     <>
       <AddToCartButton
-        onAdd={addToCart}
-        disabled={!canAddToCart}
+        onAdd={order.addToCart}
+        disabled={!order.canAddToCart}
         label={`${ui.addToCart}: ${name}`}
         addedAnnouncement={`${name} — ${ui.addedToCart}`}
-        ariaDescribedBy={hasSizes && !selectedPrice ? hintId : undefined}
+        ariaDescribedBy={needsChoice ? hintId : undefined}
       />
       <div className="min-w-0 flex-1">
         <OrderButton
-          href={orderHref}
+          href={order.orderHref}
           itemId={item.id}
           lang={lang}
-          disabledHint={hasSizes && !selectedPrice ? ui.chooseSize : undefined}
+          disabledHint={needsChoice ? order.chooseHint : undefined}
           hintId={hintId}
-          onConfirm={customer ? handleQuickOrder : undefined}
-          loading={submitting}
+          onConfirm={order.onQuickOrder}
+          loading={order.submitting}
         />
-        {error && (
+        {order.error && (
           <p role="alert" className="mt-1.5 text-xs text-brand-red">
-            {error}
+            {order.error}
           </p>
         )}
-        {manualLink && (
+        {order.manualLink && (
           <p role="alert" className="mt-1.5 text-xs text-ink/70">
             Tu pedido ya se creó, pero el navegador bloqueó la pestaña de WhatsApp.{" "}
             <a
-              href={manualLink}
+              href={order.manualLink}
               target="_blank"
               rel="noopener noreferrer"
               className="font-semibold text-brand-blue hover:text-brand-red"
@@ -337,9 +290,18 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
                 >
                   {name}
                 </h2>
-                {displayedPrice != null && (
-                  <p className="font-display mt-2 text-3xl text-brand-red tabular-nums">
-                    {formatPrice(displayedPrice)}
+                {summary && (
+                  <p
+                    aria-live="polite"
+                    aria-atomic="true"
+                    className="font-display mt-2 text-3xl text-brand-red tabular-nums"
+                  >
+                    {summary.mode === "from" && (
+                      <span className="mr-2 font-sans text-sm font-bold tracking-wider text-ink/70 uppercase">
+                        {copy.from}
+                      </span>
+                    )}
+                    {formatPrice(summary.amount)}
                   </p>
                 )}
               </div>
@@ -366,14 +328,14 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
                 )
               )}
 
-              {hasSizes && (
+              {hasOptions && (
                 <SizeSelector
                   prices={item.prices}
                   sizes={sizes}
                   lang={lang}
                   selectedSizeId={selectedSizeId}
                   onSelect={setSelectedSizeId}
-                  label={copy.sizes}
+                  label={ui.optionLegend[order.optionKind]}
                   variant="modal"
                 />
               )}

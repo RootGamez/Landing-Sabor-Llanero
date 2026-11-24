@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { formatPrice, type Lang, type ResolvedPrice, type Size } from "@sabor/shared";
-import { sizeLabelFor } from "@/lib/catalogUi";
+import { optionDetailFor, optionLabelFor } from "@/lib/priceOptions";
 
 interface SizeSelectorProps {
   prices: ResolvedPrice[];
@@ -10,14 +10,15 @@ interface SizeSelectorProps {
   lang: Lang;
   selectedSizeId: number | null;
   onSelect: (sizeId: number) => void;
-  /** Texto del <legend>: "Tamaños" / "Sizes". */
+  /** Texto del <legend>: "Tamaño" / "Presentación" según el tipo de opciones. */
   label: string;
   /** `card` = chips compactos; `modal` = chips grandes que reparten el ancho. */
   variant?: "card" | "modal";
 }
 
 /**
- * Selector de tamaño compartido por la card y el modal, implementado como el
+ * Selector de tamaño o presentación (Media docena, 1 docena…) compartido por
+ * la card y el modal, implementado como el
  * radiogroup del patrón WAI-ARIA de verdad:
  *
  * - Un solo tab stop (roving tabindex): entra al grupo el radio seleccionado
@@ -95,6 +96,7 @@ export default function SizeSelector({
       >
         {prices.map((price, index) => {
           const active = price.sizeId === selectedSizeId;
+          const detail = optionDetailFor(price, sizes, lang);
           return (
             <button
               key={price.sizeId}
@@ -120,8 +122,11 @@ export default function SizeSelector({
               <span
                 className={`block text-xs font-semibold ${active ? "text-brand-red" : "text-ink/70"}`}
               >
-                {sizeLabelFor(price, sizes, lang)}
+                {optionLabelFor(price, sizes, lang)}
               </span>
+              {detail && (
+                <span className="block text-[11px] leading-tight text-ink/70">{detail}</span>
+              )}
               <span
                 className={`block font-bold tabular-nums ${isModal ? "text-base" : "text-sm"} ${
                   active ? "text-brand-red" : "text-ink"

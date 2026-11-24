@@ -4,7 +4,6 @@ import { useId, useState } from "react";
 import {
   CATALOG_COPY,
   displayDescription,
-  displayName,
   formatPrice,
   type Lang,
   type MenuItemWithPrices,
@@ -12,14 +11,10 @@ import {
   type WhatsappConfig,
 } from "@sabor/shared";
 import { ChevronRightIcon, ExpandIcon, StarIcon } from "@/components/ui/icons";
-import { siteConfig } from "@/lib/siteConfig";
 import { accentStyle } from "@/lib/catalogAccent";
-import { cartLineFromItem, useCartActions } from "@/lib/cart";
-import { CATALOG_UI, sizeLabelFor } from "@/lib/catalogUi";
-import { useCustomerAuth } from "@/lib/customerAuth";
-import { useQuickOrder } from "@/lib/useQuickOrder";
-import { buildItemOrderLink } from "@/lib/whatsapp";
-// sizeLabelFor sigue usándose para el label del deep link de WhatsApp.
+import { CATALOG_UI } from "@/lib/catalogUi";
+import { priceSummary, type PriceSummary } from "@/lib/priceOptions";
+import { useItemOrder } from "@/lib/useItemOrder";
 import AddToCartButton from "@/components/menu/AddToCartButton";
 import MenuImage from "@/components/menu/MenuImage";
 import OrderButton from "@/components/menu/OrderButton";
@@ -52,7 +47,7 @@ interface ItemCardProps {
  * Layout del grid (no `compact`):
  * - Móvil: fila horizontal (miniatura + nombre + descripción + precio "desde").
  *   Elegir tamaño y pedir viven en el modal — un toque los abre con el primer
- *   tamaño preseleccionado. Así entran 4-5 productos por pantalla.
+ *   tamaño preseleccionado (las presentaciones se eligen siempre a mano). Así entran 4-5 productos por pantalla.
  * - `sm`+: card vertical con foto grande, chips de tamaño y CTA de WhatsApp
  *   en la propia card.
  */
@@ -66,69 +61,20 @@ export default function ItemCard({
   compact = false,
 }: ItemCardProps) {
   const [selectedSizeId, setSelectedSizeId] = useState<number | null>(null);
-  const { addLine } = useCartActions();
-  const { customer } = useCustomerAuth();
-  const { confirm, submitting, error, manualLink } = useQuickOrder();
   const disabledHintId = useId();
 
   const copy = CATALOG_COPY[lang];
   const ui = CATALOG_UI[lang];
-  const name = displayName(item, lang);
   const description = displayDescription(item, lang);
-  const hasSizes = item.prices.length > 0;
-  const selectedPrice = hasSizes ? (item.prices.find((p) => p.sizeId === selectedSizeId) ?? null) : null;
-  const fromPrice = hasSizes ? Math.min(...item.prices.map((p) => p.price)) : null;
+  const order = useItemOrder({ item, sizes, lang, whatsapp, selectedSizeId });
+  const { name, hasOptions, needsChoice } = order;
 
-  const canAddToCart = hasSizes ? selectedPrice != null : item.price != null;
-  const addToCart = (): void => {
-    const line = cartLineFromItem({
-      item,
-      hasSizes,
-      selectedPrice,
-      name,
-      sizeLabel: selectedPrice ? sizeLabelFor(selectedPrice, sizes, lang) : null,
-    });
-    if (line) addLine(line);
-  };
-
-  // Ruta de share con Open Graph reales (apps/web/worker.ts)
-  // en vez del ancla directa: WhatsApp nunca ve el fragmento `#item-slug` (no
-  // viaja al servidor en un sitio export estático), así que sin esta ruta
-  // intermedia todo ítem compartido mostraría la misma vista previa genérica
-  // de /menu. La función redirige a `/menu/#item-slug` para quien lo abre.
-  const itemUrl = `${siteConfig.url}/menu/item/${item.slug}`;
-  let orderHref: string | null = null;
-  if (hasSizes && selectedPrice) {
-    orderHref = buildItemOrderLink({
-      config: whatsapp,
-      lang,
-      itemName: name,
-      price: selectedPrice.price,
-      sizeLabel: sizeLabelFor(selectedPrice, sizes, lang),
-      itemUrl,
-    });
-  } else if (!hasSizes && item.price != null) {
-    orderHref = buildItemOrderLink({
-      config: whatsapp,
-      lang,
-      itemName: name,
-      price: item.price,
-      sizeLabel: null,
-      itemUrl,
-    });
-  }
-
-  // Con sesión: crear el pedido real antes de abrir WhatsApp (P... quick
-  // order sin carrito). Sin sesión, OrderButton sigue usando `orderHref`
-  // directo — comportamiento sin cambios.
-  const handleQuickOrder = (): void => {
-    if (!orderHref) return;
-    confirm({
-      itemId: item.id,
-      sizeId: hasSizes ? (selectedPrice?.sizeId ?? undefined) : undefined,
-      whatsappHref: orderHref,
-    });
-  };
+  // Con opciones: "Desde S/ X" hasta elegir una, y el precio de la elegida después.
+  const summary: PriceSummary | null = hasOptions
+    ? priceSummary(item.prices, selectedSizeId)
+    : item.price != null
+      ? { mode: "single", amount: item.price }
+      : null;
 
   // Card vertical siempre (rails); card responsiva (grid) es fila en móvil.
   const rootLayout = compact ? "flex-col" : "flex-row sm:flex-col";
@@ -186,13 +132,20 @@ export default function ItemCard({
               {name}
             </button>
           </h4>
-          {!hasSizes && item.price != null && (
+          {summary && (
             <p
-              className={`shrink-0 font-display text-xl text-brand-red tabular-nums ${
+              aria-live={hasOptions ? "polite" : undefined}
+              aria-atomic="true"
+              className={`shrink-0 text-right font-display text-xl text-brand-red tabular-nums ${
                 compact ? "" : "hidden sm:block"
               }`}
             >
-              {formatPrice(item.price)}
+              {summary.mode === "from" && (
+                <span className="block font-sans text-[11px] leading-none font-bold tracking-wider text-ink/70 uppercase">
+                  {copy.from}
+                </span>
+              )}
+              {formatPrice(summary.amount)}
             </p>
           )}
         </div>
@@ -210,24 +163,22 @@ export default function ItemCard({
         {/* Precio compacto solo en la fila de móvil del grid. */}
         {!compact && (
           <p className="mt-auto pt-2 font-display text-base text-brand-red tabular-nums sm:hidden">
-            {hasSizes && fromPrice != null
-              ? `${copy.from} ${formatPrice(fromPrice)}`
-              : item.price != null
-                ? formatPrice(item.price)
-                : ""}
+            {summary
+              ? `${summary.mode === "from" ? `${copy.from} ` : ""}${formatPrice(summary.amount)}`
+              : ""}
           </p>
         )}
 
         {/* Chips de tamaño + CTA: en la card vertical (rails y grid desde sm). */}
         <div className={compact ? "" : "hidden sm:block"}>
-          {hasSizes && (
+          {hasOptions && (
             <SizeSelector
               prices={item.prices}
               sizes={sizes}
               lang={lang}
               selectedSizeId={selectedSizeId}
               onSelect={setSelectedSizeId}
-              label={copy.sizes}
+              label={ui.optionLegend[order.optionKind]}
             />
           )}
         </div>
@@ -236,34 +187,34 @@ export default function ItemCard({
           className={`relative z-10 mt-auto items-start gap-2 pt-4 ${compact ? "flex" : "hidden sm:flex"}`}
         >
           <AddToCartButton
-            onAdd={addToCart}
-            disabled={!canAddToCart}
+            onAdd={order.addToCart}
+            disabled={!order.canAddToCart}
             compact={compact}
             label={`${ui.addToCart}: ${name}`}
             addedAnnouncement={`${name} — ${ui.addedToCart}`}
-            ariaDescribedBy={hasSizes && !selectedPrice ? disabledHintId : undefined}
+            ariaDescribedBy={needsChoice ? disabledHintId : undefined}
           />
           <div className="min-w-0 flex-1">
             <OrderButton
-              href={orderHref}
+              href={order.orderHref}
               itemId={item.id}
               lang={lang}
-              disabledHint={hasSizes && !selectedPrice ? ui.chooseSize : undefined}
+              disabledHint={needsChoice ? order.chooseHint : undefined}
               compact={compact}
               hintId={disabledHintId}
-              onConfirm={customer ? handleQuickOrder : undefined}
-              loading={submitting}
+              onConfirm={order.onQuickOrder}
+              loading={order.submitting}
             />
-            {error && (
+            {order.error && (
               <p role="alert" className="mt-1.5 text-xs text-brand-red">
-                {error}
+                {order.error}
               </p>
             )}
-            {manualLink && (
+            {order.manualLink && (
               <p role="alert" className="mt-1.5 text-xs text-ink/70">
                 Tu pedido ya se creó, pero el navegador bloqueó la pestaña de WhatsApp.{" "}
                 <a
-                  href={manualLink}
+                  href={order.manualLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-semibold text-brand-blue hover:text-brand-red"

@@ -10,6 +10,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { isCartLine, type CartLine, type CartLineInput } from "@/lib/cartLines";
+
+export { buildCartLineKey, cartLineFromItem, findStaleLines } from "@/lib/cartLines";
+export type { CartLine, CartLineInput, StaleReason } from "@/lib/cartLines";
 
 /**
  * Carrito multi-ítem para invitados (P2.7, sin cuenta): Context + localStorage,
@@ -22,23 +26,6 @@ import {
  * client-side entre rutas, sin depender de releer localStorage en cada page.
  */
 const STORAGE_KEY = "sabor-llanero-cart";
-
-export interface CartLine {
-  /** Identifica la línea: mismo ítem+tamaño acumula cantidad, no duplica fila. */
-  key: string;
-  itemId: number;
-  /** Slug del ítem, para armar el anchor de vuelta a /menu (mismo criterio que itemUrl de whatsapp.ts). */
-  itemSlug: string;
-  /** Nombre ya resuelto en el idioma activo al momento de agregar (snapshot, igual que order_items). */
-  name: string;
-  /** `null` si el ítem no vende por tamaño. Necesario (no solo el label) para armar `POST /orders` en el checkout logueado (P2.8). */
-  sizeId: number | null;
-  sizeLabel: string | null;
-  unitPrice: number;
-  quantity: number;
-}
-
-export type CartLineInput = Omit<CartLine, "quantity">;
 
 interface CartActions {
   addLine: (input: CartLineInput, quantity?: number) => void;
@@ -68,68 +55,6 @@ interface CartState {
 // (stepper de /carrito, otro ItemCard agregando algo, etc).
 const CartActionsContext = createContext<CartActions | null>(null);
 const CartStateContext = createContext<CartState | null>(null);
-
-/** Key de línea, genérica para ítems con tamaño (`sizeId` real) o sin tamaño (`null`). */
-export function buildCartLineKey(itemId: number, sizeId: number | null): string {
-  return sizeId != null ? `${itemId}:${sizeId}` : `${itemId}:base`;
-}
-
-interface CartLineCandidate {
-  item: { id: number; slug: string; price: number | null };
-  hasSizes: boolean;
-  selectedPrice: { sizeId: number; price: number } | null;
-  name: string;
-  /** Label del tamaño ya resuelto en el idioma activo (vía `sizeLabelFor`); ignorado si `!hasSizes`. */
-  sizeLabel: string | null;
-}
-
-/**
- * Arma el `CartLineInput` para el ítem/tamaño actualmente seleccionado en una
- * card o en el modal — mismo cálculo en ambos (ItemCard.tsx e ItemModal.tsx),
- * extraído acá para no duplicarlo. Devuelve `null` si no hay precio resuelto
- * todavía (ítem con tamaños sin seleccionar, o item.price nulo).
- */
-export function cartLineFromItem(candidate: CartLineCandidate): CartLineInput | null {
-  const { item, hasSizes, selectedPrice, name, sizeLabel } = candidate;
-  if (hasSizes) {
-    if (!selectedPrice) return null;
-    return {
-      key: buildCartLineKey(item.id, selectedPrice.sizeId),
-      itemId: item.id,
-      itemSlug: item.slug,
-      name,
-      sizeId: selectedPrice.sizeId,
-      sizeLabel,
-      unitPrice: selectedPrice.price,
-    };
-  }
-  if (item.price == null) return null;
-  return {
-    key: buildCartLineKey(item.id, null),
-    itemId: item.id,
-    itemSlug: item.slug,
-    name,
-    sizeId: null,
-    sizeLabel: null,
-    unitPrice: item.price,
-  };
-}
-
-function isCartLine(value: unknown): value is CartLine {
-  if (typeof value !== "object" || value === null) return false;
-  const line = value as Record<string, unknown>;
-  return (
-    typeof line.key === "string" &&
-    typeof line.itemId === "number" &&
-    typeof line.itemSlug === "string" &&
-    typeof line.name === "string" &&
-    (line.sizeId === null || typeof line.sizeId === "number") &&
-    (line.sizeLabel === null || typeof line.sizeLabel === "string") &&
-    typeof line.unitPrice === "number" &&
-    typeof line.quantity === "number" &&
-    line.quantity > 0
-  );
-}
 
 function readStoredCart(): CartLine[] {
   try {

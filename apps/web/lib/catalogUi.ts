@@ -4,7 +4,8 @@
  * y no en shared porque el contrato del paquete compartido está cerrado
  * (fase 2); estas strings son detalles de presentación de la landing.
  */
-import { displaySizeLabel, type Lang, type ResolvedPrice, type Size } from "@sabor/shared";
+import type { Lang } from "@sabor/shared";
+import type { OptionKind } from "@/lib/priceOptions";
 
 interface CatalogUiCopy {
   /** Kicker de la sección (pill sobre el título). */
@@ -18,6 +19,10 @@ interface CatalogUiCopy {
   retry: string;
   /** Hint bajo el botón de pedir cuando el ítem exige elegir tamaño. */
   chooseSize: string;
+  /** Ídem para ítems que se venden por presentación (Media docena, 1 docena…). */
+  choosePortion: string;
+  /** Legend del selector de opciones, según sean tamaños o presentaciones. */
+  optionLegend: Record<OptionKind, string>;
   /** aria-labels de los botones del carrusel. */
   prev: string;
   next: string;
@@ -61,6 +66,8 @@ export const CATALOG_UI: Record<Lang, CatalogUiCopy> = {
     errorHint: "Revisa tu conexión e inténtalo de nuevo.",
     retry: "Reintentar",
     chooseSize: "Elige un tamaño",
+    choosePortion: "Elige una presentación",
+    optionLegend: { size: "Tamaño", portion: "Presentación" },
     prev: "Anterior",
     next: "Siguiente",
     photoOf: "Foto de",
@@ -90,6 +97,8 @@ export const CATALOG_UI: Record<Lang, CatalogUiCopy> = {
     errorHint: "Check your connection and try again.",
     retry: "Try again",
     chooseSize: "Choose a size",
+    choosePortion: "Choose a portion",
+    optionLegend: { size: "Size", portion: "Portion" },
     prev: "Previous",
     next: "Next",
     photoOf: "Photo of",
@@ -118,29 +127,4 @@ export function displayCollectionTitle(
   lang: Lang,
 ): string {
   return lang === "en" && collection.titleEn ? collection.titleEn : collection.titleEs;
-}
-
-/**
- * Fallback bilingüe de los `sizeKey` conocidos (seed.sql: mediana/grande/
- * familiar) para cuando GET /sizes falla y ItemCard no tiene el label real
- * de la BD. Antes se capitalizaba el key crudo, lo que mostraba "Mediana"
- * incluso en inglés.
- */
-export const SIZE_KEY_FALLBACK: Record<Lang, Record<string, string>> = {
-  es: { mediana: "Mediana", grande: "Grande", familiar: "Familiar" },
-  en: { mediana: "Medium", grande: "Large", familiar: "Family" },
-};
-
-/**
- * Label visible de un tamaño. Fuente primaria: el `Size` real de la BD. Si
- * GET /sizes falló, cae al diccionario bilingüe de keys conocidos y, como
- * último recurso, capitaliza el key crudo. Compartido por ItemCard e ItemModal.
- */
-export function sizeLabelFor(price: ResolvedPrice, sizes: Size[], lang: Lang): string {
-  const size = sizes.find((s) => s.id === price.sizeId);
-  if (size) return displaySizeLabel(size, lang);
-
-  const known = SIZE_KEY_FALLBACK[lang][price.sizeKey];
-  if (known) return known;
-  return price.sizeKey.charAt(0).toUpperCase() + price.sizeKey.slice(1);
 }

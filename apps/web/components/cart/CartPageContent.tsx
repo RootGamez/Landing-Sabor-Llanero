@@ -1,18 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { formatPrice, type OrderDto } from "@sabor/shared";
 import { CartIcon, WhatsAppIcon } from "@/components/ui/icons";
 import CartLineRow from "@/components/cart/CartLineRow";
 import { ApiError, api } from "@/lib/api";
-import { useCart, type CartLine } from "@/lib/cart";
+import { findStaleLines, useCart, type CartLine } from "@/lib/cart";
 import { useCustomerAuth } from "@/lib/customerAuth";
 import { trackOrderClick } from "@/lib/events";
-import { fetchWhatsappConfig } from "@/lib/menuData";
+import { fetchMenuSections, fetchWhatsappConfig } from "@/lib/menuData";
 import { siteConfig } from "@/lib/siteConfig";
 import { useAsync } from "@/lib/useAsync";
 import { buildCartOrderLink, FALLBACK_WHATSAPP_CONFIG } from "@/lib/whatsapp";
+
+const STALE_HINT_ID = "cart-stale-hint";
+
+/** Mensaje al fallar el POST /orders; el 400 por presentación faltante se traduce a algo accionable. */
+function checkoutErrorMessage(err: unknown): string {
+  if (!(err instanceof ApiError)) return "No se pudo crear el pedido. Intenta de nuevo.";
+  if (err.status === 400 && /presentaci[oó]n/i.test(err.message)) {
+    return "Algún producto de tu carrito ahora se vende por presentación. Quítalo y vuelve a agregarlo desde la carta eligiendo una.";
+  }
+  return err.message;
+}
 
 /**
  * Vista del carrito: invitado (P2.7) o logueado (P2.8). Sin sesión, confirmar
@@ -25,6 +36,7 @@ export default function CartPageContent() {
   const { lines, updateQuantity, removeLine, clear, subtotal } = useCart();
   const { customer } = useCustomerAuth();
   const whatsappState = useAsync(fetchWhatsappConfig);
+  const menuState = useAsync(fetchMenuSections);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const [submitting, setSubmitting] = useState(false);
@@ -46,6 +58,14 @@ export default function CartPageContent() {
   useEffect(() => {
     if (manualLink) manualLinkRef.current?.focus();
   }, [manualLink]);
+
+  // Carritos viejos (localStorage): ítems que ahora exigen elegir presentación/
+  // tamaño. Si la carta no carga, no se detecta nada y la API sigue siendo la red de seguridad.
+  const staleLines = useMemo(
+    () => findStaleLines(lines, menuState.data?.flatMap((section) => section.items) ?? []),
+    [lines, menuState.data],
+  );
+  const hasStaleLines = staleLines.size > 0;
 
   const focusHeading = (): void => headingRef.current?.focus();
 
@@ -116,7 +136,7 @@ export default function CartPageContent() {
     } catch (err) {
       tab?.close();
       if (mountedRef.current) {
-        setCheckoutError(err instanceof ApiError ? err.message : "No se pudo crear el pedido. Intenta de nuevo.");
+        setCheckoutError(checkoutErrorMessage(err));
         setSubmitting(false);
       }
       return;
@@ -204,6 +224,7 @@ export default function CartPageContent() {
                 onIncrement={handleIncrement}
                 onDecrement={handleDecrement}
                 onRemove={handleRemove}
+                staleReason={staleLines.get(line.key)}
               />
             ))}
           </ul>
@@ -229,6 +250,13 @@ export default function CartPageContent() {
               </p>
             )}
 
+            {hasStaleLines && (
+              <p id={STALE_HINT_ID} role="alert" className="mt-2 text-sm text-brand-red">
+                Algunos productos cambiaron desde que los agregaste. Elige su presentación en la carta (o
+                quítalos) para poder confirmar.
+              </p>
+            )}
+
             {checkoutError && (
               <p role="alert" className="mt-2 text-sm text-brand-red">
                 {checkoutError}
@@ -238,8 +266,9 @@ export default function CartPageContent() {
             <button
               type="button"
               onClick={handleConfirmClick}
-              disabled={submitting}
+              disabled={submitting || hasStaleLines}
               aria-busy={submitting}
+              aria-describedby={hasStaleLines ? STALE_HINT_ID : undefined}
               className="btn-shine mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-red px-6 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:scale-[1.02] hover:bg-brand-red-deep active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 md:text-base"
             >
               <WhatsAppIcon className="h-4 w-4" />
