@@ -1,23 +1,27 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ImageIcon, PackagePlus } from 'lucide-react';
-import type { CreateMenuItemInput, MenuItem, UpdateMenuItemInput } from '@sabor/shared';
+import { createMenuItemSchema, type CreateMenuItemInput, type MenuItem, type UpdateMenuItemInput } from '@sabor/shared';
 import type { CategoryWithPrices } from '../lib/adminTypes';
 import { useCategories, useMenuItemDetail, useSizes } from '../hooks/useCmsData';
 import { useMutation } from '../hooks/useMutation';
 import { api } from '../lib/api';
-import { slugify } from '../lib/slug';
+import { buildMenuItemInput, promoCountOf } from '../lib/menuItemInput';
+import { basePortionOf, validatePortions, type PortionErrors } from '../lib/portionPrices';
+import { pizzaSizesOf, portionsOf } from '../lib/sizeKinds';
 import { toastError, toastSuccess } from '../store/toastStore';
 import { TextField, TextAreaField } from '../components/ui/FormField';
 import { Select } from '../components/ui/Select';
 import { SwitchField } from '../components/ui/Switch';
-import { NumberField } from '../components/ui/NumberField';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { ItemPriceFields } from '../components/menu-items/ItemPriceFields';
 import { MediaManager } from '../components/menu-items/MediaManager';
+import { SimplePriceSection } from '../components/menu-items/SimplePriceSection';
 import { Skeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
+
+const NO_PORTION_ERRORS: PortionErrors = { fields: new Map(), general: null };
 
 export function MenuItemFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,7 +29,11 @@ export function MenuItemFormPage() {
   const navigate = useNavigate();
 
   const { data: categories } = useCategories();
-  const { data: sizes } = useSizes();
+  const { data: allSizes } = useSizes();
+  // `/sizes` mezcla tamaños de pizza y presentaciones: cada uso toma solo el suyo.
+  const sizes = useMemo(() => (allSizes ? pizzaSizesOf(allSizes) : undefined), [allSizes]);
+  const portions = useMemo(() => (allSizes ? portionsOf(allSizes) : []), [allSizes]);
+  const basePortionId = basePortionOf(portions)?.id;
   const { data: existing, loading: loadingExisting, error, refetch } = useMenuItemDetail(
     isEditing ? id : undefined,
   );
@@ -37,11 +45,17 @@ export function MenuItemFormPage() {
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [price, setPrice] = useState<number | null>(null);
   const [overrides, setOverrides] = useState<Map<number, number | null>>(new Map());
+  // Presentaciones (Media docena, 1 docena…) de un ítem de categoría sin tamaños.
+  const [sellByPortions, setSellByPortions] = useState(false);
+  const [portionValues, setPortionValues] = useState<Map<number, number | null>>(new Map());
+  const [portionErrors, setPortionErrors] = useState<PortionErrors>(NO_PORTION_ERRORS);
   const [isFeatured, setIsFeatured] = useState(false);
   const [isActive, setIsActive] = useState(true);
   // Promo con pizzas a elegir en el POS (sabores + adicional por categoría). null = no aplica.
   const [promoCount, setPromoCount] = useState<number | null>(null);
   const [promoSizeId, setPromoSizeId] = useState<number | null>(null);
+
+  const savedPortions = useMemo(() => existing?.prices.filter((p) => p.kind === 'portion') ?? [], [existing]);
 
   useEffect(() => {
     if (!existing) return;
@@ -55,12 +69,19 @@ export function MenuItemFormPage() {
     setIsActive(existing.isActive);
     setPromoCount(existing.promoPizzaCount ?? null);
     setPromoSizeId(existing.promoPizzaSizeId ?? null);
-    // Solo los precios con isOverride=true son overrides propios del ítem;
-    // el resto son heredados de la categoría y no se envían.
+    // Solo los precios con isOverride=true de tamaños son overrides propios del ítem;
+    // el resto son heredados de la categoría y no se envían. Las presentaciones van aparte.
     setOverrides(
-      new Map(existing.prices.filter((p) => p.isOverride).map((p) => [p.sizeId, p.price])),
+      new Map(
+        existing.prices
+          .filter((p) => p.isOverride && p.kind !== 'portion')
+          .map((p) => [p.sizeId, p.price]),
+      ),
     );
-  }, [existing]);
+    setSellByPortions(savedPortions.length > 0);
+    setPortionValues(new Map(savedPortions.map((p) => [p.sizeId, p.price])));
+    setPortionErrors(NO_PORTION_ERRORS);
+  }, [existing, savedPortions]);
 
   const category: CategoryWithPrices | undefined = categories?.find((c) => c.id === categoryId);
   const hasSizes = category?.hasSizes ?? false;
@@ -73,51 +94,83 @@ export function MenuItemFormPage() {
   );
 
   function setOverride(sizeId: number, value: number | null) {
-    setOverrides((prev) => {
-      const next = new Map(prev);
-      next.set(sizeId, value);
-      return next;
-    });
+    setOverrides((prev) => new Map(prev).set(sizeId, value));
+  }
+
+  /** "1 docena" es la fuente visible del precio del ítem: se mantiene `price` sincronizado. */
+  function setPortionValue(sizeId: number, value: number | null) {
+    setPortionValues((prev) => new Map(prev).set(sizeId, value));
+    if (sizeId === basePortionId && value != null && value > 0) setPrice(value);
+    setPortionErrors(NO_PORTION_ERRORS);
+  }
+
+  function toggleSellByPortions(enabled: boolean) {
+    setSellByPortions(enabled);
+    setPortionErrors(NO_PORTION_ERRORS);
+    // Al activarlas, el precio actual pasa a ser el de "1 docena" (si no lo tenía).
+    if (enabled && basePortionId !== undefined && price != null && price > 0 && portionValues.get(basePortionId) == null) {
+      setPortionValue(basePortionId, price);
+    }
+  }
+
+  /** Valida con el Zod compartido; los errores de presentaciones van a su campo. Devuelve true si todo está bien. */
+  function validateInput(input: CreateMenuItemInput): boolean {
+    const parsed = createMenuItemSchema.safeParse(input);
+    if (parsed.success) return true;
+    const fields = new Map<number, string>();
+    for (const issue of parsed.error.issues) {
+      const [root, index] = issue.path;
+      const sizeId = root === 'priceOverrides' && typeof index === 'number' ? input.priceOverrides?.[index]?.sizeId : undefined;
+      if (sizeId !== undefined) fields.set(sizeId, issue.message);
+    }
+    if (fields.size > 0) setPortionErrors({ fields, general: null });
+    else toastError(parsed.error.issues[0]?.message ?? 'Revisa los datos del ítem');
+    return false;
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!categoryId || !nameEs.trim() || !category) return;
 
-    if (!hasSizes && (price == null || price <= 0)) {
+    if (!hasSizes && sellByPortions) {
+      const errors = validatePortions(portionValues);
+      if (errors.fields.size > 0 || errors.general) {
+        setPortionErrors(errors);
+        return;
+      }
+    }
+    if (!hasSizes && !sellByPortions && (price == null || price <= 0)) {
       toastError('Los ítems de esta categoría necesitan un precio propio');
       return;
     }
 
-    const promoPizzaCount = promoCount != null && promoCount > 0 ? Math.round(promoCount) : null;
-    if (!hasSizes && (promoPizzaCount === null) !== (promoSizeId === null)) {
+    const promoPizzaCount = promoCountOf(promoCount);
+    if (!hasSizes && !sellByPortions && (promoPizzaCount === null) !== (promoSizeId === null)) {
       toastError('Para la promo indica cuántas pizzas incluye y de qué tamaño (o deja ambos vacíos)');
       return;
     }
 
-    const priceOverrides = hasSizes
-      ? [...overrides.entries()]
-          .filter((entry): entry is [number, number] => entry[1] != null && entry[1] > 0)
-          .map(([sizeId, p]) => ({ sizeId, price: p }))
-      : undefined;
-
-    const input: CreateMenuItemInput = {
+    const input = buildMenuItemInput({
       categoryId,
-      nameEs: nameEs.trim(),
-      nameEn: nameEn.trim(),
-      descriptionEs: descriptionEs.trim(),
-      descriptionEn: descriptionEn.trim(),
-      slug: existing?.slug ?? slugify(nameEs),
-      // Invariante BLUEPRINT §4.2: con tamaños el ítem no lleva price propio.
-      price: hasSizes ? null : price,
-      ...(hasSizes ? { priceOverrides: priceOverrides ?? [] } : {}),
-      // Solo se envía si cambió: así el guardado no depende de la migración 0011 en ítems sin promo.
-      ...(!hasSizes && (promoPizzaCount !== (existing?.promoPizzaCount ?? null) || promoSizeId !== (existing?.promoPizzaSizeId ?? null))
-        ? { promoPizzaCount, promoPizzaSizeId: promoPizzaCount === null ? null : promoSizeId }
-        : {}),
+      nameEs,
+      nameEn,
+      descriptionEs,
+      descriptionEn,
+      slug: existing?.slug,
+      hasSizes,
+      price,
+      overrides,
+      sellByPortions,
+      portionValues,
+      basePortionId,
+      hadPortions: savedPortions.length > 0,
+      promoCount,
+      promoSizeId,
+      savedPromo: { count: existing?.promoPizzaCount ?? null, sizeId: existing?.promoPizzaSizeId ?? null },
       isFeatured,
       isActive,
-    };
+    });
+    if (!validateInput(input)) return;
 
     const result = await save(input);
     if (result !== undefined) {
@@ -201,39 +254,26 @@ export function MenuItemFormPage() {
 
         {/* Lógica de precios según la categoría elegida (BLUEPRINT §4.2). */}
         {category && !hasSizes && (
-          <Card>
-            <CardContent className="pt-5">
-              <NumberField
-                label="Precio"
-                required
-                min={0.01}
-                value={price}
-                onValueChange={setPrice}
-                prefix="S/"
-                placeholder="0.00"
-                hint={`Los ítems de «${category.nameEs}» tienen precio propio único.`}
-              />
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <NumberField
-                  label="Pizzas incluidas (promo)"
-                  min={1}
-                  max={6}
-                  step={1}
-                  value={promoCount}
-                  onValueChange={setPromoCount}
-                  placeholder="Vacío = no es promo de pizzas"
-                  hint="En el POS se eligen los sabores de cada pizza; las que no son Clásicas suman la diferencia de precio."
-                />
-                <Select
-                  label="Tamaño de las pizzas de la promo"
-                  placeholder="Sin tamaño"
-                  value={promoSizeId === null ? '' : String(promoSizeId)}
-                  onValueChange={(next) => setPromoSizeId(next === '' ? null : Number(next))}
-                  options={(sizes ?? []).map((size) => ({ value: String(size.id), label: size.labelEs }))}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <SimplePriceSection
+            categoryName={category.nameEs}
+            price={price}
+            onPriceChange={setPrice}
+            portion={{
+              portions,
+              enabled: sellByPortions,
+              onEnabledChange: toggleSellByPortions,
+              values: portionValues,
+              onValueChange: setPortionValue,
+              errors: portionErrors,
+            }}
+            promo={{
+              count: promoCount,
+              onCountChange: setPromoCount,
+              sizeId: promoSizeId,
+              onSizeIdChange: setPromoSizeId,
+              sizes: sizes ?? [],
+            }}
+          />
         )}
         {category && hasSizes && sizes && (
           <ItemPriceFields

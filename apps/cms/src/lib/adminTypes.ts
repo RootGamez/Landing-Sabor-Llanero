@@ -4,7 +4,7 @@
  * tamaño ya resueltos, ítems con portada resuelta). Ver apps/api/src/routes
  * para el shape exacto de cada respuesta.
  */
-import type { Category, CategoryPrice, MenuItem, MenuItemMedia } from '@sabor/shared';
+import type { Category, CategoryPrice, MenuItem, MenuItemMedia, ResolvedPrice } from '@sabor/shared';
 
 export interface CategoryWithPrices extends Category {
   prices: CategoryPrice[];
@@ -17,7 +17,8 @@ export interface MenuItemWithCover extends MenuItem {
 export interface MenuItemDetailAdmin extends MenuItem {
   media: MenuItemMedia[];
   category: Pick<Category, 'id' | 'slug' | 'nameEs' | 'nameEn' | 'hasSizes'>;
-  prices: Array<{ sizeId: number; sizeKey: string; price: number; isOverride: boolean }>;
+  /** Por tamaño (categorías con tamaños) o presentaciones `kind: 'portion'` (ítems sin tamaños que las usan). */
+  prices: ResolvedPrice[];
 }
 
 export interface OrderClickRow {

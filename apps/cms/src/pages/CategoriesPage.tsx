@@ -1,5 +1,5 @@
 import { useConfirm } from '../components/ui/ConfirmDialog';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { CreateCategoryInput, Size } from '@sabor/shared';
 import type { CategoryWithPrices } from '../lib/adminTypes';
@@ -7,6 +7,7 @@ import { useCategories, useSizes } from '../hooks/useCmsData';
 import { useMutation } from '../hooks/useMutation';
 import { api } from '../lib/api';
 import { slugify } from '../lib/slug';
+import { pizzaSizesOf } from '../lib/sizeKinds';
 import { formatPrice } from '../lib/format';
 import { toastError, toastSuccess } from '../store/toastStore';
 import { CategoryBannerControl } from '../components/categories/CategoryBannerControl';
@@ -55,7 +56,9 @@ function formFromCategory(category: CategoryWithPrices): FormState {
 
 export function CategoriesPage() {
   const { data: categories, loading, error, refetch } = useCategories();
-  const { data: sizes } = useSizes();
+  const { data: allSizes } = useSizes();
+  // Las presentaciones (Media docena…) no son tamaños de categoría: no llevan precio por categoría.
+  const sizes = useMemo(() => (allSizes ? pizzaSizesOf(allSizes) : undefined), [allSizes]);
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CategoryWithPrices | null>(null);
@@ -98,7 +101,7 @@ export function CategoriesPage() {
 
     const priceInputs = toSizePriceInputs(form.prices);
     if (form.hasSizes && sizes && priceInputs.length < sizes.length) {
-      toastError('Una categoría con tamaños necesita precio para los 3 tamaños');
+      toastError(`Una categoría con tamaños necesita precio para los ${sizes.length} tamaños`);
       return;
     }
 
