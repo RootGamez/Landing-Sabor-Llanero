@@ -3,7 +3,7 @@ import type { CreateMenuItemInput } from '@sabor/shared';
 import { resolveItemPrice, toPortionOverrides, type PortionValues } from './portionPrices';
 import { slugify } from './slug';
 
-/** Payload de ítem; la promo de pizzas (0011) aún no vive en el DTO compartido. */
+/** Payload de ítem: `CreateMenuItemInput` del DTO más la promo de pizzas (0011), que aún no está en el DTO. */
 export type MenuItemPayload = CreateMenuItemInput & {
   promoPizzaCount?: number | null;
   promoPizzaSizeId?: number | null;
@@ -59,7 +59,9 @@ function priceFields(v: MenuItemFormValues): Pick<CreateMenuItemInput, 'price' |
 }
 
 function promoFields(v: MenuItemFormValues): Pick<MenuItemPayload, 'promoPizzaCount' | 'promoPizzaSizeId'> | undefined {
-  if (v.hasSizes || v.sellByPortions) return undefined;
+  if (v.hasSizes) return undefined;
+  // Con presentaciones la promo de pizzas no aplica: si había una guardada, se limpia.
+  if (v.sellByPortions) return v.savedPromo.count === null ? undefined : { promoPizzaCount: null, promoPizzaSizeId: null };
   const count = promoCountOf(v.promoCount);
   // Solo se envía si cambió: así el guardado no depende de la migración 0011 en ítems sin promo.
   if (count === v.savedPromo.count && v.promoSizeId === v.savedPromo.sizeId) return undefined;

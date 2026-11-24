@@ -66,6 +66,17 @@ describe('payload del ítem', () => {
     assert.equal('promoPizzaCount' in input, false);
   });
 
+  it('al pasar a presentaciones limpia la promo de pizzas guardada', () => {
+    const input = buildMenuItemInput({
+      ...BASE,
+      sellByPortions: true,
+      portionValues: new Map([[6, 36]]),
+      savedPromo: { count: 2, sizeId: 1 },
+    });
+    assert.equal(input.promoPizzaCount, null);
+    assert.equal(input.promoPizzaSizeId, null);
+  });
+
   it('en categorías con tamaños envía price null y los overrides de tamaño', () => {
     const input = buildMenuItemInput({ ...BASE, hasSizes: true, overrides: new Map<number, number | null>([[1, 22], [2, null]]) });
     assert.equal(input.price, null);

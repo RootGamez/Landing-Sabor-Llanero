@@ -338,7 +338,10 @@ function EditOrderItemsForm({ order, categories, sizes, onClose, onSaved, onSavi
             aria-label="Buscar productos para agregar"
             placeholder="Buscar producto por nombre…"
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+              setPortionChoice(null);
+            }}
             className="pl-10"
           />
         </div>

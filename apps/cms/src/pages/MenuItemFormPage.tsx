@@ -7,7 +7,7 @@ import { useCategories, useMenuItemDetail, useSizes } from '../hooks/useCmsData'
 import { useMutation } from '../hooks/useMutation';
 import { api } from '../lib/api';
 import { buildMenuItemInput, promoCountOf } from '../lib/menuItemInput';
-import { basePortionOf, validatePortions, type PortionErrors } from '../lib/portionPrices';
+import { basePortionOf, resolveItemPrice, validatePortions, type PortionErrors } from '../lib/portionPrices';
 import { pizzaSizesOf, portionsOf } from '../lib/sizeKinds';
 import { toastError, toastSuccess } from '../store/toastStore';
 import { TextField, TextAreaField } from '../components/ui/FormField';
@@ -101,7 +101,12 @@ export function MenuItemFormPage() {
   function setPortionValue(sizeId: number, value: number | null) {
     setPortionValues((prev) => new Map(prev).set(sizeId, value));
     if (sizeId === basePortionId && value != null && value > 0) setPrice(value);
-    setPortionErrors(NO_PORTION_ERRORS);
+    // Solo se limpia el error del campo editado (y el general, que ya no aplica).
+    setPortionErrors((prev) => {
+      const fields = new Map(prev.fields);
+      fields.delete(sizeId);
+      return { fields, general: null };
+    });
   }
 
   function toggleSellByPortions(enabled: boolean) {
@@ -136,6 +141,11 @@ export function MenuItemFormPage() {
       const errors = validatePortions(portionValues);
       if (errors.fields.size > 0 || errors.general) {
         setPortionErrors(errors);
+        return;
+      }
+      const basePrice = resolveItemPrice(portionValues, basePortionId, price);
+      if (basePrice == null || basePrice <= 0) {
+        toastError('Indica el precio base de referencia del ítem');
         return;
       }
     }

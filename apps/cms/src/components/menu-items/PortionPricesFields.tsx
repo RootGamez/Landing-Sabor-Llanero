@@ -55,21 +55,26 @@ export function PortionPricesFields({
       className="flex flex-col gap-3 rounded-xl2 border-2 border-accent/40 bg-lime-soft/40 p-4"
       aria-describedby={errors.general ? generalErrorId : undefined}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <legend className="float-left flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-forest">
-          <Layers className="size-4" aria-hidden="true" />
-          Precios por presentación
-        </legend>
-        <Button type="button" variant="ghost" size="sm" disabled={!hasEmptyWithSuggestion} onClick={applySuggested}>
-          <Wand2 className="size-4" aria-hidden="true" />
-          Usar sugeridos
-        </Button>
-      </div>
+      <legend className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-forest">
+        <Layers className="size-4" aria-hidden="true" />
+        Precios por presentación
+      </legend>
 
       <p className="text-xs text-text-muted">
         Deja vacía la presentación que no ofreces. El precio sugerido es proporcional al de la docena (la mitad, ×1,5 y
         ×2).
       </p>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        className="self-start"
+        disabled={!hasEmptyWithSuggestion}
+        onClick={applySuggested}
+      >
+        <Wand2 className="size-4" aria-hidden="true" />
+        Usar sugeridos
+      </Button>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {portions.map((portion) => {
