@@ -30,7 +30,7 @@ ALTER TABLE sizes ADD COLUMN units INTEGER
   CHECK (units IS NULL OR units > 0);
 
 -- ── Las 4 presentaciones estándar ──────────────────────────────────────────
--- display_order 100-103: después de los tamaños (1-3). Idempotente: el
+-- display_order 100-103: después de los tamaños (1-3). Estos INSERT son idempotentes: el
 -- WHERE NOT EXISTS por key permite re-ejecutar sin duplicar ni pisar los
 -- textos que el dueño haya editado desde el CMS.
 INSERT INTO sizes (key, label_es, label_en, detail_es, detail_en, display_order, kind, units)

@@ -395,6 +395,7 @@ describe('presentaciones por ítem', () => {
       const token = await createCustomer();
       const res = await customerOrder(token, [{ itemId: menu.pizza, sizeId: portion.docena, quantity: 1 }]);
       expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/presentaci/i);
     });
 
     it('el precio del cliente se ignora: no puede forzar el precio de una presentación', async () => {

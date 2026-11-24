@@ -120,9 +120,9 @@ function priceSizedLine(input: OrderItemInput, ctx: PricingContext, itemRow: Men
   const sizeRow = ctx.sizeById.get(input.sizeId);
   if (!sizeRow) throw badRequest(`sizeId ${input.sizeId} inválido`);
   const size = mapSize(sizeRow);
+  if (size.kind === 'portion') throw badRequest(`sizeId ${input.sizeId} es una presentación, no un tamaño de itemId ${input.itemId}`);
   const categoryPrices = ctx.categoryPriceRows.filter((p) => p.category_id === itemRow.category_id).map(mapCategoryPrice);
   const itemPrices = ctx.itemPriceRows.filter((p) => p.item_id === input.itemId).map(mapItemPrice);
-  // resolveItemPrices ignora las presentaciones: un sizeId de presentación acaba en "sin precio".
   const [resolved] = resolveItemPrices(mapMenuItem(itemRow), category, [size], categoryPrices, itemPrices);
   if (!resolved) throw badRequest(`no hay precio configurado para itemId ${input.itemId} en ese tamaño`);
   return { unitPrice: resolved.price, sizeLabel: size.labelEs };
