@@ -183,13 +183,9 @@ function validateMenuItemPrices(data: MenuItemPriceShape, ctx: z.RefinementCtx):
       message: 'indica cuántas pizzas incluye la promo y de qué tamaño (o ninguno)',
     });
   }
-  if (data.price != null && data.priceOverrides && data.priceOverrides.length > 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['price'],
-      message: 'un ítem no puede tener price propio y priceOverrides al mismo tiempo',
-    });
-  }
+  // `price` + `priceOverrides` ya no es un error de forma (0012): un ítem de categoría
+  // sin tamaños lleva `price` (respaldo) Y precios por presentación. Qué combinación
+  // vale depende de la categoría y su tipo de tamaño: lo valida la API (assertOverrideKinds).
   if (data.priceOverrides) {
     const seen = new Set<number>();
     data.priceOverrides.forEach((entry, index) => {

@@ -69,11 +69,13 @@ export interface CreateCategoryInput {
 export type UpdateCategoryInput = Partial<CreateCategoryInput>;
 
 /**
- * Alta de ítem de menú. `price` solo tiene sentido si la categoría destino
- * NO tiene tamaños; `priceOverrides` solo si SÍ los tiene. La validación
- * cruzada contra `categoryId` (que exige consultar la DB) la hace la API;
- * `createMenuItemSchema` en validation.ts solo valida la forma del input
- * (ambos campos no pueden venir a la vez).
+ * Alta de ítem de menú. `price` es obligatorio si la categoría destino NO
+ * tiene tamaños (y debe ser null si los tiene). `priceOverrides` lleva precios
+ * por tamaño (`kind = 'size'`) en categorías con tamaños, o por presentación
+ * (`kind = 'portion'`: Media docena, 1 docena…) en categorías sin tamaños,
+ * donde viaja JUNTO a `price`. La validación cruzada contra `categoryId` (que
+ * exige consultar la DB) la hace la API; `createMenuItemSchema` en
+ * validation.ts solo valida la forma del input (sin sizeId duplicado).
  */
 export interface CreateMenuItemInput {
   categoryId: number;

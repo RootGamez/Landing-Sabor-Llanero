@@ -22,9 +22,17 @@ export interface User {
 }
 
 /**
- * Tamaño global del negocio (Mediana/Grande/Familiar). Es tabla y no enum
- * para poder agregar un tamaño nuevo (ej. "Personal") desde una migración,
- * con sus propios labels bilingües, sin tocar código.
+ * Tipo de fila de `sizes` (0012): 'size' = tamaño de pizza (Mediana/Grande/…,
+ * con precio por categoría); 'portion' = presentación de un ítem de categoría
+ * sin tamaños (Media docena, 1 docena…, con precio por ítem).
+ */
+export type SizeKind = 'size' | 'portion';
+
+/**
+ * Tamaño global del negocio (Mediana/Grande/Familiar) o presentación de un
+ * ítem (Media docena/1 docena/…, ver `kind`). Es tabla y no enum para poder
+ * agregar uno nuevo (ej. "Personal") desde una migración, con sus propios
+ * labels bilingües, sin tocar código.
  */
 export interface Size {
   id: number;
@@ -35,6 +43,10 @@ export interface Size {
   detailEs: string;
   detailEn: string;
   displayOrder: number;
+  /** 'size' | 'portion'. La API siempre lo envía; ausente (datos viejos/fixtures) = 'size'. */
+  kind?: SizeKind;
+  /** Unidades de una presentación (6, 12, 18, 24); null en tamaños. La API siempre lo envía. */
+  units?: number | null;
 }
 
 /**
@@ -151,14 +163,25 @@ export interface ResolvedPrice {
   price: number;
   /** true si el precio viene de un override en ItemPrice; false si se heredó de CategoryPrice. */
   isOverride: boolean;
+  /**
+   * Solo en presentaciones (0012): 'portion'. Ausente en precios por tamaño
+   * (tratar ausente como 'size'). El `sizeId` se envía tal cual como `sizeId`
+   * al crear la línea del pedido/venta.
+   */
+  kind?: SizeKind;
+  /** Presentaciones: unidades que trae (6, 12, 18, 24). */
+  units?: number | null;
+  /** Presentaciones: etiqueta bilingüe lista para mostrar. */
+  labelEs?: string;
+  labelEn?: string;
 }
 
 /**
  * Ítem con sus relaciones cargadas, como lo devuelve GET /menu-items/:slug.
  * En categorías con tamaños, `prices` trae un `ResolvedPrice` por cada
  * tamaño activo y `price` (heredado de MenuItem) queda en null. En
- * categorías sin tamaños, `prices` queda vacío y el precio propio vive en
- * `price`.
+ * categorías sin tamaños, el precio propio vive en `price` y `prices` trae
+ * las presentaciones del ítem (Media docena, 1 docena…) si las tiene; vacío si no.
  */
 export interface MenuItemDetail extends MenuItem {
   media: MenuItemMedia[];
