@@ -35,11 +35,13 @@ export interface PosMenuSection {
   items: MenuItemWithPrices[];
 }
 
-/** Una forma de vender un producto: sin tamaño (`sizeId` null) o un tamaño concreto. */
+/** Una forma de vender un producto: sin tamaño (`sizeId` null), un tamaño de pizza o una presentación. */
 export interface PosOption {
   sizeId: number | null;
   label: string | null;
   priceCents: number;
+  /** Solo presentaciones (Media docena = 6, 1 docena = 12…); ausente en tamaños y precio único. */
+  units?: number;
 }
 
 export interface PosProduct {
@@ -97,17 +99,25 @@ function safeCents(soles: number | null): number {
   }
 }
 
+/**
+ * Opciones de venta de un ítem. Si trae `prices` (tamaños de pizza o presentaciones) se vende
+ * por ellas; si no, y su categoría no tiene tamaños, tiene un único precio propio.
+ */
 function optionsFor(item: MenuItemWithPrices, category: Category, sizeById: Map<number, Size>): PosOption[] {
-  if (!category.hasSizes) {
-    const priceCents = safeCents(item.price);
+  if (item.prices.length === 0) {
+    const priceCents = category.hasSizes ? 0 : safeCents(item.price);
     return priceCents > 0 ? [{ sizeId: null, label: null, priceCents }] : [];
   }
   return item.prices
-    .map((price) => ({
-      sizeId: price.sizeId,
-      label: sizeById.get(price.sizeId)?.labelEs ?? price.sizeKey,
-      priceCents: safeCents(price.price),
-    }))
+    .map((price): PosOption => {
+      const units = price.kind === 'portion' ? price.units : null;
+      return {
+        sizeId: price.sizeId,
+        label: price.labelEs ?? sizeById.get(price.sizeId)?.labelEs ?? price.sizeKey,
+        priceCents: safeCents(price.price),
+        ...(units ? { units } : {}),
+      };
+    })
     .filter((option) => option.priceCents > 0);
 }
 
@@ -133,7 +143,8 @@ function toProduct(
 
 function promoFor(item: MenuItemWithPrices, category: Category, sizeById: Map<number, Size>): PosPromo | null {
   const { promoPizzaCount, promoPizzaSizeId } = item;
-  if (category.hasSizes || !promoPizzaCount || !promoPizzaSizeId) return null;
+  // Las promos de pizzas solo aplican al precio único (no a ítems con presentaciones).
+  if (category.hasSizes || item.prices.length > 0 || !promoPizzaCount || !promoPizzaSizeId) return null;
   const size = sizeById.get(promoPizzaSizeId);
   if (!size) return null;
   return { pizzaCount: promoPizzaCount, sizeId: size.id, sizeLabel: size.labelEs };

@@ -63,6 +63,14 @@ describe('comprobante: líneas', () => {
     );
   });
 
+  it('muestra la presentación vendida como "nombre (presentación)"', () => {
+    const data = toReceiptData(
+      sale({ items: [item({ id: 1, name: 'Tequeños', sizeId: 5, sizeLabel: 'Media docena', lineTotalCents: 2000 })] }),
+      LABELS,
+    );
+    assert.equal(data.lines[0]?.title, 'Tequeños (Media docena)');
+  });
+
   it('agrega el detalle de nota y sabores como en el ticket', () => {
     const data = toReceiptData(
       sale({ items: [item({ id: 1, name: 'Pizza', note: 'sin cebolla' })] }),

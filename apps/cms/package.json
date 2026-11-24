@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "tsx --test src/components/layout/navConfig.test.ts src/lib/posNavigation.test.ts src/lib/dashboardFormat.test.ts src/lib/tableTab.test.ts src/lib/flavorSelection.test.ts src/lib/posPhotos.test.ts src/lib/receiptData.test.ts",
+    "test": "tsx --test src/components/layout/navConfig.test.ts src/lib/posNavigation.test.ts src/lib/dashboardFormat.test.ts src/lib/tableTab.test.ts src/lib/flavorSelection.test.ts src/lib/posPhotos.test.ts src/lib/receiptData.test.ts src/lib/posCatalog.test.ts src/lib/portionPrices.test.ts src/lib/menuItemInput.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p e2e/tsconfig.json",
     "test:e2e": "playwright test -c e2e/playwright.config.ts"
   },

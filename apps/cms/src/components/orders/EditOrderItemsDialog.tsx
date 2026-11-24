@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Minus, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { ORDER_ITEMS_MAX, type OrderDto, type OrderItemInput, type PaginatedResult, type Size } from '@sabor/shared';
+import { ORDER_ITEMS_MAX, type OrderDto, type OrderItemInput, type PaginatedResult, type ResolvedPrice, type Size } from '@sabor/shared';
 import type { CategoryWithPrices, MenuItemDetailAdmin, MenuItemWithCover } from '../../lib/adminTypes';
 import { useMutation } from '../../hooks/useMutation';
 import { api } from '../../lib/api';
 import { formatPrice } from '../../lib/format';
+import { pizzaSizesOf } from '../../lib/sizeKinds';
 import { toastError, toastSuccess } from '../../store/toastStore';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { PortionChoice } from './PortionChoice';
 
 const SEARCH_DEBOUNCE_MS = 350;
 const SEARCH_PAGE_SIZE = 8;
@@ -130,6 +132,9 @@ function EditOrderItemsForm({ order, categories, sizes, onClose, onSaved, onSavi
   const [results, setResults] = useState<MenuItemWithCover[]>([]);
   const [searching, setSearching] = useState(false);
   const [addingKey, setAddingKey] = useState<string | null>(null);
+  // Ítem sin tamaños que se vende por presentaciones: falta elegir cuál agregar.
+  const [portionChoice, setPortionChoice] = useState<{ item: MenuItemWithCover; portions: ResolvedPrice[] } | null>(null);
+  const pizzaSizes = pizzaSizesOf(sizes);
 
   const categoryById = new Map(categories.map((c) => [c.id, c]));
 
@@ -199,11 +204,7 @@ function EditOrderItemsForm({ order, categories, sizes, onClose, onSaved, onSavi
     const key = draftKey(item.id, sizeId);
 
     if (sizeId == null) {
-      if (item.price == null) {
-        toastError(`"${item.nameEs}" no tiene un precio configurado`);
-        return;
-      }
-      upsertDraftLine({ key, itemId: item.id, sizeId: undefined, nameEs: item.nameEs, sizeLabel: null, unitPrice: item.price, quantity: 1 });
+      await addWithoutSize(item, key);
       return;
     }
 
@@ -226,6 +227,42 @@ function EditOrderItemsForm({ order, categories, sizes, onClose, onSaved, onSavi
     } finally {
       setAddingKey(null);
     }
+  }
+
+  /** Ítem sin tamaños: si tiene presentaciones se pide elegir una; si no, se agrega con su precio único. */
+  async function addWithoutSize(item: MenuItemWithCover, key: string) {
+    setAddingKey(key);
+    try {
+      const detail = await api.get<MenuItemDetailAdmin>(`/menu-items/${item.id}`);
+      const portions = detail.prices.filter((p) => p.kind === 'portion');
+      if (portions.length > 0) {
+        setPortionChoice({ item, portions });
+        return;
+      }
+      if (item.price == null) {
+        toastError(`"${item.nameEs}" no tiene un precio configurado`);
+        return;
+      }
+      upsertDraftLine({ key, itemId: item.id, sizeId: undefined, nameEs: item.nameEs, sizeLabel: null, unitPrice: item.price, quantity: 1 });
+    } catch {
+      toastError('No se pudo cargar el precio de ese producto');
+    } finally {
+      setAddingKey(null);
+    }
+  }
+
+  function addPortion(item: MenuItemWithCover, portion: ResolvedPrice) {
+    const label = portion.labelEs ?? portion.sizeKey;
+    upsertDraftLine({
+      key: draftKey(item.id, portion.sizeId),
+      itemId: item.id,
+      sizeId: portion.sizeId,
+      nameEs: item.nameEs,
+      sizeLabel: label,
+      unitPrice: portion.price,
+      quantity: 1,
+    });
+    setPortionChoice(null);
   }
 
   function removeLine(key: string) {
@@ -307,15 +344,23 @@ function EditOrderItemsForm({ order, categories, sizes, onClose, onSaved, onSavi
         </div>
         {searchInput.trim() && (
           <div className="max-h-52 overflow-y-auto rounded-xl border-2 border-border bg-surface">
+            {portionChoice && (
+              <PortionChoice
+                itemName={portionChoice.item.nameEs}
+                portions={portionChoice.portions}
+                onPick={(portion) => addPortion(portionChoice.item, portion)}
+                onCancel={() => setPortionChoice(null)}
+              />
+            )}
             {searching && <p className="p-3 text-sm text-text-muted">Buscando…</p>}
-            {!searching && results.length === 0 && <p className="p-3 text-sm text-text-muted">Sin resultados.</p>}
-            {!searching &&
+            {!portionChoice && !searching && results.length === 0 && <p className="p-3 text-sm text-text-muted">Sin resultados.</p>}
+            {!portionChoice && !searching &&
               results.map((item) => (
                 <SearchResultRow
                   key={item.id}
                   item={item}
                   hasSizes={categoryById.get(item.categoryId)?.hasSizes ?? false}
-                  sizes={sizes}
+                  sizes={pizzaSizes}
                   addingKey={addingKey}
                   onAdd={(sizeId) => handleAdd(item, sizeId)}
                 />

@@ -37,6 +37,15 @@ const tab: DiningTab = {
 };
 
 describe('cuenta ↔ ticket', () => {
+  it('una presentación guardada vuelve al ticket con su sizeId, etiqueta y precio', () => {
+    const portionTab: DiningTab = {
+      ...tab,
+      items: [{ id: 9, itemId: 20, sizeId: 5, name: 'Tequeños', sizeLabel: 'Media docena', unitPriceCents: 2000, quantity: 2, lineTotalCents: 4000 }],
+    };
+    const [only] = tabToCartLines(portionTab);
+    assert.deepEqual([only?.key, only?.sizeId, only?.sizeLabel, only?.unitPriceCents], ['20:5', 5, 'Media docena', 2000]);
+  });
+
   it('convierte la cuenta en líneas editables y aparta los productos borrados del menú', () => {
     const lines = tabToCartLines(tab);
     assert.deepEqual(lines.map((l) => [l.key, l.quantity, l.unitPriceCents]), [
