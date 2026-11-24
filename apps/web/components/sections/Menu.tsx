@@ -16,6 +16,7 @@ import {
   type CatalogSection,
 } from "@/lib/menuData";
 import { useAsync } from "@/lib/useAsync";
+import { useDeepLinkedItem } from "@/lib/useDeepLinkedItem";
 import { FALLBACK_WHATSAPP_CONFIG } from "@/lib/whatsapp";
 import CategoryBlock from "@/components/menu/CategoryBlock";
 import ErrorRetry from "@/components/menu/ErrorRetry";
@@ -105,6 +106,12 @@ function MenuContent() {
     setQuery("");
     setActiveCategoryId(null);
   }, []);
+
+  const allItems = useMemo(
+    () => (sections.data ?? []).flatMap((section) => section.items),
+    [sections.data],
+  );
+  useDeepLinkedItem(allItems, setActiveItem);
 
   const tokens = useMemo(() => toSearchTokens(query), [query]);
   const isFiltering = tokens.length > 0 || activeCategoryId !== null;

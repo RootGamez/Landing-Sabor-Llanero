@@ -36,7 +36,7 @@ export default function CartPageContent() {
   const { lines, updateQuantity, removeLine, clear, subtotal } = useCart();
   const { customer } = useCustomerAuth();
   const whatsappState = useAsync(fetchWhatsappConfig);
-  const menuState = useAsync(fetchMenuSections);
+  const menuState = useAsync(fetchMenuSections, lines.length > 0);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const [submitting, setSubmitting] = useState(false);

@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { isCartLine, type CartLine, type CartLineInput } from "@/lib/cartLines";
+import { buildCartLineKey, isCartLine, type CartLine, type CartLineInput } from "@/lib/cartLines";
 
 export { buildCartLineKey, cartLineFromItem, findStaleLines } from "@/lib/cartLines";
 export type { CartLine, CartLineInput, StaleReason } from "@/lib/cartLines";
@@ -89,7 +89,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [lines, hydrated]);
 
   const addLine = useCallback((input: CartLineInput, quantity = 1) => {
-    setLines((prev) => {
+    setLines((current) => {
+      // Carrito viejo: al elegir una presentación/tamaño se reemplaza la línea
+      // sin opción (`id:base`) del mismo ítem, que ya no es válida.
+      const staleKey = buildCartLineKey(input.itemId, null);
+      const prev = input.sizeId != null ? current.filter((line) => line.key !== staleKey) : current;
       const existing = prev.find((line) => line.key === input.key);
       if (existing) {
         // Se refresca con `input` (no solo la cantidad): si el usuario cambió

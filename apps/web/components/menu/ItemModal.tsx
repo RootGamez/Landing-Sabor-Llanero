@@ -32,7 +32,8 @@ interface ItemModalProps {
 }
 
 /** Selector del atrapa-foco: lo tabulable dentro del panel. */
-const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'a[href], button:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Detalle de un ítem del catálogo: foto grande a un lado, descripción legible
@@ -59,11 +60,13 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
   const disabledHintIdDesktop = useId();
   const disabledHintIdMobile = useId();
 
-  // Tamaños: el primero viene preseleccionado (pedir en un toque). Presentaciones
-  // (Media docena, 1 docena…): sin preselección, para no pedir una cantidad que
+  // Tamaños: el primero viene preseleccionado (pedir en un toque). Varias
+  // presentaciones (Media docena, 1 docena…): sin preselección, para no pedir una cantidad que
   // el cliente no eligió; el CTA queda bloqueado hasta que escoja una.
   const [selectedSizeId, setSelectedSizeId] = useState<number | null>(() =>
-    optionKindOf(item.prices) === "portion" ? null : (item.prices[0]?.sizeId ?? null),
+    optionKindOf(item.prices) === "portion" && item.prices.length > 1
+      ? null
+      : (item.prices[0]?.sizeId ?? null),
   );
   const order = useItemOrder({ item, sizes, lang, whatsapp, selectedSizeId });
   const { name, hasOptions, needsChoice } = order;
@@ -111,8 +114,13 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
       }
       if (event.key !== "Tab") return;
 
-      const focusables = panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE);
-      if (!focusables || focusables.length === 0) return;
+      // Solo lo realmente tabulable: el CTA se renderiza dos veces y una copia
+      // queda oculta por CSS (sin cajas de layout), y los radios no activos
+      // llevan tabindex -1.
+      const focusables = Array.from(
+        panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
+      ).filter((el) => el.getClientRects().length > 0);
+      if (focusables.length === 0) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
       if (!first || !last) return;
