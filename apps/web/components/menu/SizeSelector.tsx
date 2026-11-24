@@ -92,7 +92,10 @@ export default function SizeSelector({
       <div
         role="radiogroup"
         aria-label={label}
-        className={`flex flex-wrap gap-2 ${isModal ? "mt-3" : ""}`}
+        className={`gap-2 ${isModal ? "mt-3" : ""} ${
+          // 4 presentaciones: cuadrícula 2x2 (en fila se parten en 3+1 con labels cortados).
+          isModal && prices.length >= 4 ? "grid grid-cols-2" : "flex flex-wrap"
+        }`}
       >
         {prices.map((price, index) => {
           const active = price.sizeId === selectedSizeId;

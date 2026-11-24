@@ -297,9 +297,11 @@ export default function ItemModal({ item, sizes, lang, whatsapp, onClose }: Item
                     className="font-display mt-2 text-3xl text-brand-red tabular-nums"
                   >
                     {summary.mode === "from" && (
-                      <span className="mr-2 font-sans text-sm font-bold tracking-wider text-ink/70 uppercase">
-                        {copy.from}
-                      </span>
+                      <>
+                        <span className="font-sans text-sm font-bold tracking-wider text-ink/70 uppercase">
+                          {copy.from}
+                        </span>{" "}
+                      </>
                     )}
                     {formatPrice(summary.amount)}
                   </p>
